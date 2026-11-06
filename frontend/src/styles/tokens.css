@@ -1,0 +1,51 @@
+:root {
+  /* Marca (manual de identidad) */
+  --marron: #654E3F;
+  --rosa: #F2C3C2;
+  --arena: #F3E8E0;
+  --blanco: #FFFFFF;
+  --negro: #111111;
+
+  /* Derivados: variantes de los colores de marca, no colores nuevos */
+  --marron-hover: color-mix(in srgb, var(--marron) 82%, black);
+  --rosa-hover: color-mix(in srgb, var(--rosa) 70%, var(--marron));
+  --texto-suave: color-mix(in srgb, var(--marron) 88%, white);
+  --borde: color-mix(in srgb, var(--marron) 16%, var(--arena));
+  --borde-fuerte: color-mix(in srgb, var(--marron) 60%, var(--arena));
+  --superficie: var(--blanco);
+
+  /* Estados funcionales (el manual no los define; solo error, éxito y aviso) */
+  --peligro: #B3261E;
+  --exito: #2E7D4F;
+  --aviso: #8A5A00;
+
+  /* Tipografías: Poppins títulos, Verdana interfaz, Aptos Narrow datos */
+  --fuente-titulo: "Poppins", Verdana, sans-serif;
+  --fuente-ui: Verdana, Geneva, sans-serif;
+  --fuente-dato: "Aptos Narrow", "Arial Narrow", Verdana, sans-serif;
+
+  /* Escala tipográfica */
+  --texto-s: 0.8125rem;
+  --texto-m: 0.9375rem;
+  --texto-l: 1.125rem;
+  --titulo-m: 1.5rem;
+  --titulo-l: 2rem;
+  --titulo-xl: clamp(2.25rem, 1.4rem + 2.6vw, 3.25rem);
+
+  /* Espaciado */
+  --espacio-1: 0.25rem;
+  --espacio-2: 0.5rem;
+  --espacio-3: 1rem;
+  --espacio-4: 1.5rem;
+  --espacio-5: 2.5rem;
+
+  /* Radios por jerarquía: control < panel < píldora */
+  --radio-control: 10px;
+  --radio-panel: 16px;
+  --radio-pildora: 999px;
+
+  /* Medidas de estructura */
+  --alto-control: 2.75rem; /* 44px: objetivo táctil mínimo */
+  --alto-cabecera: 4rem;
+  --ancho-lateral: 15.5rem;
+}
