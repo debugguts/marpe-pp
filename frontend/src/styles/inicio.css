@@ -1,0 +1,80 @@
+.inicio-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--espacio-3);
+  align-items: start;
+}
+.inicio-ventas { grid-column: span 7; }
+.inicio-stock { grid-column: span 5; }
+.inicio-mov { grid-column: 1 / -1; }
+@media (max-width: 70rem) {
+  .inicio-ventas, .inicio-stock { grid-column: 1 / -1; }
+}
+
+.cifra {
+  font: 600 var(--titulo-xl) / 1 var(--fuente-titulo);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.cifra__unidad { font-size: var(--titulo-m); letter-spacing: 0; }
+.cifra-nota { margin-top: 0.5rem; color: var(--texto-suave); }
+
+/* Reparto de ventas por forma de pago */
+.reparto {
+  display: flex;
+  gap: 3px;
+  height: 0.875rem;
+  margin-top: var(--espacio-4);
+  overflow: hidden;
+  border-radius: var(--radio-pildora);
+}
+.reparto > span { background: var(--sw); }
+
+.hechos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: var(--espacio-3);
+  margin: var(--espacio-3) 0 0;
+}
+.hechos dt { font-size: var(--texto-s); color: var(--texto-suave); }
+.hechos dt::before {
+  content: "";
+  display: inline-block;
+  width: 0.625rem;
+  height: 0.625rem;
+  margin-right: 0.5rem;
+  border-radius: 3px;
+  background: var(--sw);
+}
+.hechos dd {
+  margin: 0.125rem 0 0;
+  font: 600 1.375rem / 1.3 var(--fuente-dato);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Maple: 30 huevos en 6 × 5 */
+.maple {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 21rem;
+  margin-top: var(--espacio-4);
+  padding: 0.875rem;
+  background: color-mix(in srgb, var(--marron) 9%, var(--arena));
+  border-radius: 14px;
+}
+.maple__huevo {
+  aspect-ratio: 4 / 5;
+  border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%;
+  background: color-mix(in srgb, var(--marron) 13%, var(--arena));
+  box-shadow: inset 0 2px 3px rgb(101 78 63 / 0.28);
+}
+.maple__huevo.is-lleno {
+  background: var(--rosa);
+  box-shadow: inset 0 -3px 0 rgb(101 78 63 / 0.18), 0 1px 0 rgb(255 255 255 / 0.6);
+  animation: poner 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  animation-delay: calc(var(--i) * 26ms);
+}
+@keyframes poner { from { transform: scale(0.5); opacity: 0; } }
+.maple-leyenda { margin-top: 0.75rem; font-size: var(--texto-s); color: var(--texto-suave); }
