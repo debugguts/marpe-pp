@@ -1,0 +1,36 @@
+// Iconos de línea (24×24). Siempre decorativos: el texto vecino da el nombre accesible.
+const TRAZOS = {
+  inicio: 'M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1h-4v-5H9v5H5a1 1 0 0 1-1-1z',
+  ventas: 'M6 3h12v18l-3-2-3 2-3-2-3 2z M9 8h6 M9 12h6',
+  caja: 'M4 7h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z M4 7V6a2 2 0 0 1 2-2h10 M16 13.5h.01',
+  compras: 'M4 5h2l2 10h9l2-7H7 M10 19.5h.01 M16 19.5h.01',
+  inventario: 'M12 3 4 7v10l8 4 8-4V7z M4 7l8 4 8-4 M12 11v10',
+  gastos: 'M12 4v11 M7 11l5 5 5-5 M5 20h14',
+  catalogo: 'M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z',
+  clientes: 'M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z M3 20a6 6 0 0 1 12 0 M16 4.5a3.5 3.5 0 0 1 0 6.5 M18 14.5a6 6 0 0 1 3 5.5',
+  proveedores: 'M3 6h11v10H3z M14 10h4l3 3v3h-7z M7 19.5h.01 M17 19.5h.01',
+  usuarios: 'M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6z M9.5 12l2 2 3.5-4',
+  menu: 'M4 7h16 M4 12h16 M4 17h16',
+  cerrar: 'M6 6l12 12 M18 6 6 18',
+  chevron: 'm9 6 6 6-6 6',
+}
+
+export default function Icono({ nombre, tamano = 20 }) {
+  return (
+    <svg
+      className="icono"
+      width={tamano}
+      height={tamano}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d={TRAZOS[nombre]} />
+    </svg>
+  )
+}
