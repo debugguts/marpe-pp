@@ -53,3 +53,4 @@ docker compose exec web python manage.py test tests
 - Stock en bandejas con `DecimalField(12, 6)`.
 - Mermas y ajustes se registran en `movimiento_inventario` (sin tabla propia).
 - Usuarios, grupos y permisos con los modelos nativos de
+prueba
