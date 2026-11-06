@@ -1,0 +1,93 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  color-scheme: light;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem; /* la cabecera fija no tapa el elemento enfocado */
+}
+
+@media (pointer: fine) {
+  html { overscroll-behavior: none; }
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--arena);
+  color: var(--marron);
+  font-family: var(--fuente-ui);
+  font-size: var(--texto-m);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  margin: 0;
+  font-family: var(--fuente-titulo);
+  font-weight: 600;
+  line-height: 1.2;
+  text-wrap: balance;
+  scroll-margin-top: 5rem;
+}
+h1 { font-size: var(--titulo-l); }
+h2 { font-size: var(--titulo-m); }
+
+p { margin: 0; text-wrap: pretty; }
+a { color: inherit; text-underline-offset: 3px; }
+img, svg { display: block; max-width: 100%; }
+
+a, button, input, select, textarea, label, summary {
+  touch-action: manipulation;
+}
+
+/* Cifras alineadas en tablas y datos */
+table, .dato {
+  font-family: var(--fuente-dato);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Foco siempre visible para teclado */
+:focus-visible {
+  outline: 3px solid var(--marron);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.sobre-oscuro :focus-visible { outline-color: var(--blanco); }
+
+/* Saltar al contenido */
+.saltar {
+  position: absolute;
+  left: var(--espacio-3);
+  top: -4rem;
+  z-index: 100;
+  padding: var(--espacio-2) var(--espacio-3);
+  background: var(--marron);
+  color: var(--blanco);
+  border-radius: var(--radio-control);
+}
+.saltar:focus { top: var(--espacio-3); }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.suave { color: var(--texto-suave); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
