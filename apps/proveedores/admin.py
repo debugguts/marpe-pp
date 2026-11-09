@@ -8,3 +8,6 @@ class ProveedorAdmin(admin.ModelAdmin):
     list_display = ("nombre", "telefono", "estado")
     list_filter = ("estado",)
     search_fields = ("nombre",)
+from .models import CostoProveedor
+
+admin.site.register(CostoProveedor)
