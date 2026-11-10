@@ -17,7 +17,7 @@ class CuentasCorrientesAPITest(APITestCase):
         self.cliente = Cliente.objects.create(nombre="Almacén Don Pepe")
         venta = self.client.post("/api/ventas/", {
             "modalidad": "FIADO", "cliente": self.cliente.pk,
-            "detalles": [{"producto": self.producto.pk, "presentacion": self.maple.pk, "cantidad": "3"}],
+            "detalles": [{"producto": self.producto.pk, "presentacion": self.bandeja.pk, "cantidad": "3"}],
         }, format="json").data
         self.cuenta = self.client.get(self.url, {"cliente": self.cliente.pk}).data["results"][0]
         self.assertEqual(self.cuenta["venta"], venta["id_venta"])

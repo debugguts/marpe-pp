@@ -12,15 +12,13 @@ class InventarioAPITest(APITestCase):
     def mover(self, tipo, cantidad, motivo="Rotos en la descarga", presentacion=None):
         return self.client.post("/api/movimientos-inventario/", {
             "tipo_movimiento": tipo, "producto": self.producto.pk,
-            "presentacion": (presentacion or self.maple).pk, "cantidad": cantidad, "motivo": motivo,
+            "presentacion": (presentacion or self.bandeja).pk, "cantidad": cantidad, "motivo": motivo,
         }, format="json")
 
     def test_stock_por_presentacion(self):
-        self.cajon.cantidad_bandejas_equivalentes = 6  # como en la historia: 1 caja = 6 bandejas
-        self.cajon.save()
         fila = self.client.get("/api/stock/").data[0]
         self.assertEqual(fila["por_presentacion"], [
-            {"presentacion": "Cajón", "cantidad": 3}, {"presentacion": "Maple", "cantidad": 2}])
+            {"presentacion": "Caja", "cantidad": 3}, {"presentacion": "Bandeja", "cantidad": 2}])  # 1 caja = 6 bandejas
 
     def test_merma_descuenta_y_queda_registrada(self):
         self.assertEqual(self.mover("MERMA", "2").status_code, 201)
@@ -34,7 +32,7 @@ class InventarioAPITest(APITestCase):
 
     def test_merma_sin_motivo_o_mayor_al_stock(self):
         self.assertIn("motivo", self.mover("MERMA", "1", motivo="").data)
-        respuesta = self.mover("MERMA", "3", presentacion=self.cajon)  # 36 bandejas > 20
+        respuesta = self.mover("MERMA", "4", presentacion=self.caja)  # 24 bandejas > 20
         self.assertIn("Stock insuficiente", str(respuesta.data))
 
     def test_no_se_cargan_compras_ni_ventas_a_mano(self):

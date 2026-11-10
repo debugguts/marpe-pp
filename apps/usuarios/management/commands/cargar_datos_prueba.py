@@ -34,8 +34,8 @@ PRODUCTOS = [
 ]
 PRESENTACIONES = [
     ("Unidad", "0.033333", 250),
-    ("Maple", "1", 7000),
-    ("Cajón", "12", 80000),
+    ("Bandeja", "1", 7000),  # 30 huevos
+    ("Caja", "6", 40000),  # 6 bandejas
 ]
 
 
@@ -113,7 +113,7 @@ class Command(BaseCommand):
         pres = {p.nombre: p for p in Presentacion.objects.all()}
         bl_med, bl_sel = prod[("BLANCO", "MEDIANO")], prod[("BLANCO", "SELECCIÓN")]
         c_med, c_sup = prod[("CASTAÑO", "MEDIANO")], prod[("CASTAÑO", "SÚPER")]
-        maple, cajon = pres["Maple"], pres["Cajón"]
+        bandeja, caja_huevos = pres["Bandeja"], pres["Caja"]
 
         def mov(producto, tipo, cantidad, motivo=None):
             return MovimientoInventario.objects.create(
@@ -128,21 +128,21 @@ class Command(BaseCommand):
                 fecha_hora=fecha or timezone.now(),
             )
 
-        # Compra: 93 maples = stock final esperado + lo vendido/mermado
+        # Compra: 87 bandejas = stock final esperado + lo vendido/mermado
         compra = Compra.objects.create(
-            fecha=ahora.date(), total=Decimal("465000"), usuario=oper,
+            fecha=ahora.date(), total=Decimal("435000"), usuario=oper,
             proveedor=Proveedor.objects.get(nombre="Granja Los Andes"),
         )
-        for p, maples in [(bl_med, 28), (bl_sel, 9), (c_med, 52), (c_sup, 4)]:
+        for p, bandejas in [(bl_med, 28), (bl_sel, 9), (c_med, 46), (c_sup, 4)]:
             det = DetalleCompra.objects.create(
-                compra=compra, producto=p, presentacion=maple,
-                cantidad=Decimal(maples), precio_unitario=Decimal("5000"),
-                subtotal=Decimal(maples * 5000),
+                compra=compra, producto=p, presentacion=bandeja,
+                cantidad=Decimal(bandejas), precio_unitario=Decimal("5000"),
+                subtotal=Decimal(bandejas * 5000),
             )
             DetalleCompraMovimiento.objects.create(
                 detalle_compra=det,
                 movimiento_inventario=mov(
-                    p, "INGRESO_COMPRA", Decimal(maples) * maple.cantidad_bandejas_equivalentes
+                    p, "INGRESO_COMPRA", Decimal(bandejas) * bandeja.cantidad_bandejas_equivalentes
                 ),
             )
 
@@ -205,14 +205,14 @@ class Command(BaseCommand):
         maria = Cliente.objects.get(nombre="María Gómez")
         pepe = Cliente.objects.get(nombre="Almacén Don Pepe")
 
-        v1 = crear_venta(consumidor, "CONTADO", [(bl_med, maple, 2)])
+        v1 = crear_venta(consumidor, "CONTADO", [(bl_med, bandeja, 2)])
         pagar(v1, "EFECTIVO", "14000")
 
-        v2 = crear_venta(maria, "CONTADO", [(c_med, cajon, 1)])
-        pagar(v2, "EFECTIVO", "50000")
-        pagar(v2, "TRANSFERENCIA", "34000", "TRF-0001")
+        v2 = crear_venta(maria, "CONTADO", [(c_med, caja_huevos, 1)])
+        pagar(v2, "EFECTIVO", "20000")
+        pagar(v2, "TRANSFERENCIA", "22000", "TRF-0001")
 
-        v3 = crear_venta(pepe, "FIADO", [(bl_sel, maple, 3)])
+        v3 = crear_venta(pepe, "FIADO", [(bl_sel, bandeja, 3)])
         cuenta = CuentaCorriente.objects.create(
             venta=v3, importe_original=v3.total, saldo_pendiente=v3.total
         )
@@ -226,7 +226,7 @@ class Command(BaseCommand):
         cuenta.saldo_pendiente = v3.total - Decimal("10000")
         cuenta.save(update_fields=["saldo_pendiente"])
 
-        v4 = crear_venta(consumidor, "CONTADO", [(c_sup, maple, 1)])
+        v4 = crear_venta(consumidor, "CONTADO", [(c_sup, bandeja, 1)])
         pagar(v4, "TRANSFERENCIA", "8400", "TRF-0002")
 
         # Merma

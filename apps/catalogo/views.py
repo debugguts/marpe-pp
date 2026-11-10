@@ -33,7 +33,7 @@ class ProductoViewSet(ABMConBajaLogica):
 
 
 class PresentacionViewSet(ABMConBajaLogica):
-    """ABM de presentaciones: unidad, maple, cajón y su equivalencia en bandejas."""
+    """ABM de presentaciones: unidad, bandeja (30 huevos), caja (6 bandejas) y su equivalencia en bandejas."""
 
     modelo = Presentacion
     serializer_class = PresentacionSerializer
@@ -94,6 +94,7 @@ class PrecioViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                 "presentaciones": [{
                     "presentacion": p.pk,
                     "presentacion_nombre": p.nombre,
+                    "bandejas": p.cantidad_bandejas_equivalentes,
                     "precio_vigente": vigentes.get((producto.pk, p.pk)),
                     "sugerido": sugeridos.get(p.pk),
                 } for p in presentaciones],

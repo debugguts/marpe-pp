@@ -7,19 +7,19 @@ const VENTAS = [
   { clave: 'Transferencias', monto: 52920, color: 'var(--rosa)' },
   { clave: 'Fiado', monto: 13000, color: 'color-mix(in srgb, var(--marron) 38%, var(--arena))' },
 ]
-const STOCK = { maples: 142, sueltos: 18, porMaple: 30 }
+const STOCK = { bandejas: 142, sueltos: 18, porBandeja: 30 }
 const MOVIMIENTOS = [
-  { hora: '11:20', tipo: 'Venta', detalle: 'Consumidor final · 2 maples', pago: 'Efectivo', importe: 26000 },
-  { hora: '10:42', tipo: 'Venta', detalle: 'Kiosco San Cayetano · 1 maple', pago: 'Fiado', importe: 13000 },
-  { hora: '10:05', tipo: 'Venta', detalle: 'Panadería Doña Rosa · 4 maples', pago: 'Transferencia', importe: 52000 },
+  { hora: '11:20', tipo: 'Venta', detalle: 'Consumidor final · 2 bandejas', pago: 'Efectivo', importe: 26000 },
+  { hora: '10:42', tipo: 'Venta', detalle: 'Kiosco San Cayetano · 1 bandeja', pago: 'Fiado', importe: 13000 },
+  { hora: '10:05', tipo: 'Venta', detalle: 'Panadería Doña Rosa · 4 bandejas', pago: 'Transferencia', importe: 52000 },
   { hora: '09:30', tipo: 'Merma', detalle: '6 huevos rotos en la descarga', pago: '—', importe: null },
-  { hora: '08:15', tipo: 'Compra', detalle: 'Granja Los Álamos · 20 maples', pago: 'Transferencia', importe: -190000 },
+  { hora: '08:15', tipo: 'Compra', detalle: 'Granja Los Álamos · 20 bandejas', pago: 'Transferencia', importe: -190000 },
 ]
 const TIPO = { Venta: 'marca', Compra: 'neutro', Merma: 'peligro' }
 
 function Maple({ huevos, capacidad }) {
   return (
-    <div className="maple" role="img" aria-label={`Maple abierto con ${huevos} de ${capacidad} huevos`}>
+    <div className="maple" role="img" aria-label={`Bandeja abierta con ${huevos} de ${capacidad} huevos`}>
       {Array.from({ length: capacidad }, (_, i) => (
         <span key={i} className={`maple__huevo${i < huevos ? ' is-lleno' : ''}`} style={{ '--i': i }} />
       ))}
@@ -29,7 +29,7 @@ function Maple({ huevos, capacidad }) {
 
 export default function Inicio() {
   const totalVentas = VENTAS.reduce((s, v) => s + v.monto, 0)
-  const totalHuevos = STOCK.maples * STOCK.porMaple + STOCK.sueltos
+  const totalHuevos = STOCK.bandejas * STOCK.porBandeja + STOCK.sueltos
 
   return (
     <>
@@ -70,13 +70,13 @@ export default function Inicio() {
           accion={<Insignia variante="exito">Stock normal</Insignia>}
         >
           <p className="cifra">
-            {numero(STOCK.maples)} <span className="cifra__unidad">maples</span>
+            {numero(STOCK.bandejas)} <span className="cifra__unidad">bandejas</span>
           </p>
           <p className="cifra-nota">
             y {numero(STOCK.sueltos)} huevos sueltos · {numero(totalHuevos)} en total
           </p>
-          <Maple huevos={STOCK.sueltos} capacidad={STOCK.porMaple} />
-          <p className="maple-leyenda">Maple abierto: {STOCK.sueltos} de {STOCK.porMaple} huevos</p>
+          <Maple huevos={STOCK.sueltos} capacidad={STOCK.porBandeja} />
+          <p className="maple-leyenda">Bandeja abierta: {STOCK.sueltos} de {STOCK.porBandeja} huevos</p>
         </Panel>
 
         <Panel className="inicio-mov" titulo="Movimientos de hoy">

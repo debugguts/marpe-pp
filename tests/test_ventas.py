@@ -22,7 +22,7 @@ class VentasAPITest(APITestCase):
 
     def vender(self, cantidad="2", **datos):
         cuerpo = {"modalidad": "CONTADO", "medio_pago": "EFECTIVO",
-                  "detalles": [{"producto": self.producto.pk, "presentacion": self.maple.pk, "cantidad": cantidad}]}
+                  "detalles": [{"producto": self.producto.pk, "presentacion": self.bandeja.pk, "cantidad": cantidad}]}
         cuerpo.update(datos)
         return self.client.post(self.url, cuerpo, format="json")
 

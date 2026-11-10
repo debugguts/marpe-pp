@@ -47,6 +47,20 @@
   touch-action: manipulation;
   transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.1s ease;
 }
+
+.pos-opcion-grupo { display: grid; gap: 0.35rem; align-content: start; }
+.pos-docena {
+  min-height: 2.25rem;
+  padding: 0 0.75rem;
+  color: var(--marron);
+  background: transparent;
+  border: 1px dashed var(--borde-fuerte);
+  border-radius: var(--radio-control);
+  font: 600 var(--texto-s) / 1 var(--fuente-ui);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.pos-docena:hover { border-style: solid; border-color: var(--marron); }
 .pos-opcion span { font-size: var(--texto-s); color: var(--texto-suave); }
 .pos-opcion strong { font-variant-numeric: tabular-nums; }
 .pos-opcion:hover { border-color: var(--marron); background: color-mix(in srgb, var(--rosa) 35%, var(--blanco)); }

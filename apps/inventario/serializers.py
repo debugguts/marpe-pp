@@ -11,7 +11,7 @@ ACTIVO = {"does_not_exist": "No existe o está dado de baja."}
 
 
 def por_presentacion(bandejas):
-    """20 bandejas con cajón = 6 → [3 Cajón, 2 Maple, 0 Unidad] (HU-06-B).
+    """20 bandejas → [3 Caja, 2 Bandeja, 0 Unidad], con 1 caja = 6 bandejas (HU-06-B).
 
     Se reparte de la presentación más grande a la más chica, como se arma un pedido.
     """

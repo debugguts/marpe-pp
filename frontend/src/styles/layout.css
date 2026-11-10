@@ -14,8 +14,25 @@
   border-bottom: 1px solid var(--borde);
 }
 .cabecera__logo { display: inline-flex; align-items: center; text-decoration: none; border-radius: 8px; }
-.cabecera__logo img { height: 40px; width: auto; }
-.logo-texto { font: 600 1.25rem / 1 var(--fuente-titulo); letter-spacing: -0.01em; color: var(--marron); }
+.cabecera__logo { padding-block: 0.25rem; }
+
+/* Logo horizontal (isotipo + nombre), colores del manual de identidad */
+.logo { display: inline-flex; align-items: center; gap: calc(var(--logo-alto) * 0.16); }
+.logo img { height: var(--logo-alto); width: auto; }
+.logo__texto { display: grid; line-height: 1; }
+.logo__nombre {
+  font: 700 calc(var(--logo-alto) * 0.56) / 1 var(--fuente-titulo);
+  letter-spacing: 0.01em;
+  color: #664C42;
+  padding-bottom: calc(var(--logo-alto) * 0.07);
+  border-bottom: 2px solid #E3655F;
+}
+.logo__lugar {
+  margin-top: calc(var(--logo-alto) * 0.08);
+  font: 600 calc(var(--logo-alto) * 0.2) / 1 var(--fuente-titulo);
+  letter-spacing: 0.04em;
+  color: #845C20;
+}
 
 .cabecera__menu {
   display: none;

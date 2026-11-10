@@ -68,7 +68,7 @@ export default function Layout() {
           <Icono nombre={abierto ? 'cerrar' : 'menu'} />
         </button>
 
-        <NavLink to="/" className="cabecera__logo"><Logo /></NavLink>
+        <NavLink to="/" className="cabecera__logo" aria-label="Huevería Marpe, ir al inicio"><Logo /></NavLink>
 
         <div className="cabecera__usuario">
           <span className="avatar" aria-hidden="true">{nombre.charAt(0).toUpperCase()}</span>
