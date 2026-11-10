@@ -12,23 +12,23 @@ from apps.usuarios.models import Usuario
 
 
 def crear_base(prueba):
-    """Deja en la prueba: operador, admin, un producto con 20 bandejas, maple (1) y cajón (12),
+    """Deja en la prueba: operador, admin, un producto con 20 bandejas, bandeja (30 huevos) y caja (6 bandejas),
     precios de venta, un proveedor con su costo y el cliente de API ya logueado como operador."""
     prueba.operador = Usuario.objects.create_user("operador", password="x")
     prueba.admin = Usuario.objects.create_user("admin", password="x")
     prueba.admin.groups.add(Group.objects.create(name="Administrador"))
 
     prueba.producto = Producto.objects.create(tipo_huevo="BLANCO", tamano="MEDIANO")
-    prueba.maple = Presentacion.objects.create(nombre="Maple", cantidad_bandejas_equivalentes=1)
-    prueba.cajon = Presentacion.objects.create(nombre="Cajón", cantidad_bandejas_equivalentes=12)
+    prueba.bandeja = Presentacion.objects.create(nombre="Bandeja", cantidad_bandejas_equivalentes=1)
+    prueba.caja = Presentacion.objects.create(nombre="Caja", cantidad_bandejas_equivalentes=6)
     Stock.objects.create(producto=prueba.producto, cantidad_bandejas=20, stock_minimo_bandejas=5)
-    for presentacion, precio in [(prueba.maple, "7000"), (prueba.cajon, "80000")]:
+    for presentacion, precio in [(prueba.bandeja, "7000"), (prueba.caja, "40000")]:
         PrecioProducto.objects.create(producto=prueba.producto, presentacion=presentacion,
                                       precio=Decimal(precio), fecha_desde=date(2026, 11, 1))
 
     prueba.proveedor = Proveedor.objects.create(nombre="Granja Los Andes")
     CostoProveedor.objects.create(proveedor=prueba.proveedor, producto=prueba.producto,
-                                  presentacion=prueba.maple, precio_costo=Decimal("5000"))
+                                  presentacion=prueba.bandeja, precio_costo=Decimal("5000"))
     prueba.client.force_login(prueba.operador)
 
 

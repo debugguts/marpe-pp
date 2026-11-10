@@ -31,7 +31,7 @@ export default function Login() {
   return (
     <main className="login">
       <form className="login__tarjeta" onSubmit={enviar} noValidate>
-        <div className="login__marca"><Logo alto={56} /></div>
+        <div className="login__marca"><Logo alto={72} /></div>
         <div className="login__titulo">
           <h1>Iniciar sesión</h1>
           <p>Ingresá con tu usuario de Huevería Marpe.</p>

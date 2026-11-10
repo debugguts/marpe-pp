@@ -14,7 +14,7 @@ ACTIVO = {"does_not_exist": "No existe o está dado de baja."}
 # ---------- Lo que manda la pantalla ----------
 
 class LineaCompraSerializer(serializers.Serializer):
-    """Una línea de la compra: 2 cajones de Blanco Mediano a $ 80.000."""
+    """Una línea de la compra: 2 cajas de Blanco Mediano a $ 40.000."""
 
     producto = serializers.PrimaryKeyRelatedField(
         queryset=Producto.objects.filter(estado=Estado.ACTIVO), error_messages=ACTIVO)

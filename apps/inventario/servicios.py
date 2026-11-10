@@ -17,7 +17,7 @@ SUMAN = [Tipo.INGRESO_COMPRA, Tipo.AJUSTE_POSITIVO]  # el resto resta
 
 
 def a_bandejas(cantidad, presentacion):
-    """2 cajones × 12 bandejas = 24 bandejas. El stock siempre se guarda en bandejas."""
+    """2 cajas × 6 bandejas = 12 bandejas. El stock siempre se guarda en bandejas."""
     return (cantidad * presentacion.cantidad_bandejas_equivalentes).quantize(Decimal("0.000001"))
 
 

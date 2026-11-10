@@ -81,7 +81,7 @@ POST /api/compras/
 ```
 
 - Si una línea no trae `precio_unitario`, se usa el costo vigente que tiene cargado el proveedor. Si no tiene, responde 400 indicando qué falta.
-- Cada línea suma al stock convertida a bandejas: 2 cajones × 12 = 24 bandejas.
+- Cada línea suma al stock convertida a bandejas: 2 cajas × 6 = 12 bandejas.
 
 ### Registrar una venta
 
@@ -109,7 +109,7 @@ Respuesta (resumida):
 {
   "id_venta": 15, "modalidad": "CONTADO", "cliente": 1, "cliente_nombre": "Consumidor final",
   "total": "14000.00", "saldo_pendiente": null,
-  "detalles": [ { "producto_nombre": "Blanco Mediano", "presentacion_nombre": "Maple",
+  "detalles": [ { "producto_nombre": "Blanco Mediano", "presentacion_nombre": "Bandeja",
                   "cantidad": "2.000", "precio_unitario_aplicado": "7000.00", "subtotal": "14000.00" } ],
   "pagos": [ { "medio_pago": "EFECTIVO", "importe": "14000.00", "referencia_transferencia": null } ]
 }
@@ -166,8 +166,8 @@ GET /api/precios/sugeridos/
       "equilibrio_bandeja": 6750.0
     },
     "presentaciones": [
-      { "presentacion": 2, "presentacion_nombre": "Maple", "precio_vigente": 7000.0, "sugerido": 6750.0 },
-      { "presentacion": 3, "presentacion_nombre": "Cajón", "precio_vigente": 80000.0, "sugerido": 81000.0 }
+      { "presentacion": 2, "presentacion_nombre": "Bandeja", "bandejas": 1.0, "precio_vigente": 7000.0, "sugerido": 6750.0 },
+      { "presentacion": 3, "presentacion_nombre": "Caja", "bandejas": 6.0, "precio_vigente": 40000.0, "sugerido": 40500.0 }
     ]
   }
 ]
@@ -175,7 +175,7 @@ GET /api/precios/sugeridos/
 
 - **Costo por bandeja**: promedio ponderado de lo comprado en el mes (lo pagado ÷ bandejas compradas). Si el producto no tuvo compras en el mes, se usa el promedio de los costos vigentes de los proveedores.
 - **Gasto fijo por bandeja**: gastos fijos del mes ÷ bandejas compradas en el mes.
-- **Sugerido** = (costo + gasto fijo) × bandejas de la presentación. En este endpoint los importes vienen como números.
+- **Sugerido** = lo que cuesta esa presentación: (costo + gasto fijo) × bandejas de la presentación. La pantalla le suma la ganancia que elija el administrador. En este endpoint los importes vienen como números.
 
 ```json
 POST /api/precios/confirmar/

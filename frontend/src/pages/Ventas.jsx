@@ -4,7 +4,7 @@ import { Boton, CabeceraPagina, Campo, EstadoVacio, Insignia, Panel } from '../c
 import Icono from '../components/Icono'
 import { erroresDe } from '../lib/abm'
 import { api } from '../lib/api'
-import { hora, hoyISO, moneda, numero } from '../lib/formato'
+import { contenidoDe, hora, hoyISO, moneda, numero } from '../lib/formato'
 import '../styles/ventas.css'
 
 // Punto de venta (S5-11 · HU-05). A la izquierda los productos con su precio;
@@ -51,15 +51,16 @@ export default function Ventas() {
   })
   const errores = erroresDe(registrar.error)
 
-  function agregar(producto, p) {
+  // Suma "cuantas" unidades de esa presentación (1 al tocar; 12 con el botón Docena).
+  function agregar(producto, p, cuantas = 1) {
     setHecha(null); registrar.reset()
     const clave = `${producto.producto}-${p.presentacion}`
     setLineas((actuales) => actuales.some((l) => l.clave === clave)
-      ? actuales.map((l) => (l.clave === clave ? { ...l, cantidad: l.cantidad + 1 } : l))
+      ? actuales.map((l) => (l.clave === clave ? { ...l, cantidad: l.cantidad + cuantas } : l))
       : [...actuales, {
         clave, producto: producto.producto, presentacion: p.presentacion,
         nombre: `${producto.nombre} · ${p.presentacion_nombre}`,
-        precio: Number(p.precio), bandejas: Number(p.bandejas), cantidad: 1,
+        precio: Number(p.precio), bandejas: Number(p.bandejas), cantidad: cuantas,
       }])
   }
   const cambiarCantidad = (clave, cantidad) =>
@@ -98,11 +99,20 @@ export default function Ventas() {
               </header>
               <div className="pos-producto__opciones">
                 {producto.presentaciones.map((p) => (
-                  <button key={p.presentacion} type="button" className="pos-opcion" onClick={() => agregar(producto, p)}
-                    aria-label={`Agregar ${producto.nombre}, ${p.presentacion_nombre}, ${moneda(p.precio)}`}>
-                    <span>{p.presentacion_nombre}</span>
-                    <strong>{moneda(p.precio)}</strong>
-                  </button>
+                  <div key={p.presentacion} className="pos-opcion-grupo">
+                    <button type="button" className="pos-opcion" onClick={() => agregar(producto, p)}
+                      aria-label={`Agregar ${producto.nombre}, ${p.presentacion_nombre}, ${moneda(p.precio)}`}>
+                      <span>{p.presentacion_nombre} · {contenidoDe(p.bandejas)}</span>
+                      <strong>{moneda(p.precio)}</strong>
+                    </button>
+                    {Number(p.bandejas) < 1 && (
+                      // La docena se cobra al precio de la unidad: suma 12 unidades de una vez.
+                      <button type="button" className="pos-docena" onClick={() => agregar(producto, p, 12)}
+                        aria-label={`Agregar una docena de ${producto.nombre}, ${moneda(p.precio * 12)}`}>
+                        + Docena · {moneda(p.precio * 12)}
+                      </button>
+                    )}
+                  </div>
                 ))}
               </div>
             </article>

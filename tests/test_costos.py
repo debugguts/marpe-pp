@@ -15,13 +15,13 @@ class CostosProveedorAPITest(APITestCase):
     def setUp(self):
         self.proveedor = Proveedor.objects.create(nombre="Granja Los Andes")
         self.producto = Producto.objects.create(tipo_huevo="BLANCO", tamano="MEDIANO")
-        self.maple = Presentacion.objects.create(nombre="Maple", cantidad_bandejas_equivalentes=1)
+        self.bandeja = Presentacion.objects.create(nombre="Bandeja", cantidad_bandejas_equivalentes=1)
 
     def cargar(self, precio, proveedor=None):
         return self.client.post(self.url, {
             "proveedor": (proveedor or self.proveedor).pk,
             "producto": self.producto.pk,
-            "presentacion": self.maple.pk,
+            "presentacion": self.bandeja.pk,
             "precio_costo": precio,
         }, format="json")
 

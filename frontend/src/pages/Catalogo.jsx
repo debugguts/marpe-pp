@@ -107,7 +107,7 @@ function Presentaciones({ editando, setEditando, nuevo }) {
         nombreDe={(p) => p.nombre}
         alEditar={setEditando}
         buscarTexto="Buscar por nombre"
-        vacio={{ icono: 'inventario', titulo: 'Todavía no hay presentaciones', texto: 'Por ejemplo: Bandeja (equivale a 1) o Cajón (equivale a 12).', accion: nuevo }}
+        vacio={{ icono: 'inventario', titulo: 'Todavía no hay presentaciones', texto: 'Por ejemplo: Bandeja (equivale a 1) o Caja (equivale a 6).', accion: nuevo }}
       />
 
       {editando && (
@@ -120,12 +120,12 @@ function Presentaciones({ editando, setEditando, nuevo }) {
           {(errores) => (
             <>
               <Campo etiqueta="Nombre" name="nombre" defaultValue={editando.nombre} error={errores.nombre}
-                required autoComplete="off" placeholder="Cajón" data-foco />
+                required autoComplete="off" placeholder="Caja" data-foco />
               <Campo etiqueta="Equivale a cuántas bandejas" name="cantidad_bandejas_equivalentes" type="number"
                 step="any" min="0" inputMode="decimal"
                 defaultValue={editando.cantidad_bandejas_equivalentes ? Number(editando.cantidad_bandejas_equivalentes) : ''}
                 error={errores.cantidad_bandejas_equivalentes}
-                ayuda="El stock se cuenta en bandejas: 1 cajón = 12 bandejas." />
+                ayuda="El stock se cuenta en bandejas de 30 huevos: 1 caja = 6 bandejas, 1 unidad = 0,033333." />
             </>
           )}
         </FormularioABM>

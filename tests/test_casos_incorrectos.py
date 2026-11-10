@@ -16,7 +16,7 @@ class CasosIncorrectosTest(APITestCase):
 
     def vender(self, **datos):
         cuerpo = {"modalidad": "CONTADO", "medio_pago": "EFECTIVO",
-                  "detalles": [{"producto": self.producto.pk, "presentacion": self.maple.pk, "cantidad": "1"}]}
+                  "detalles": [{"producto": self.producto.pk, "presentacion": self.bandeja.pk, "cantidad": "1"}]}
         cuerpo.update(datos)
         return self.client.post("/api/ventas/", cuerpo, format="json")
 
@@ -24,17 +24,17 @@ class CasosIncorrectosTest(APITestCase):
         self.assertIn("detalles", self.vender(detalles=[]).data)
 
     def test_venta_con_producto_repetido(self):
-        linea = {"producto": self.producto.pk, "presentacion": self.maple.pk, "cantidad": "1"}
+        linea = {"producto": self.producto.pk, "presentacion": self.bandeja.pk, "cantidad": "1"}
         self.assertIn("repetido", str(self.vender(detalles=[linea, linea]).data))
 
     def test_cantidad_cero_o_negativa(self):
         for cantidad in ["0", "-2", "abc"]:
-            respuesta = self.vender(detalles=[{"producto": self.producto.pk, "presentacion": self.maple.pk, "cantidad": cantidad}])
+            respuesta = self.vender(detalles=[{"producto": self.producto.pk, "presentacion": self.bandeja.pk, "cantidad": cantidad}])
             self.assertEqual(respuesta.status_code, 400, cantidad)
 
     def test_stock_insuficiente_no_vende_nada(self):
         Caja.objects.create(saldo_inicial=0, usuario_apertura=self.operador)
-        respuesta = self.vender(detalles=[{"producto": self.producto.pk, "presentacion": self.cajon.pk, "cantidad": "2"}])
+        respuesta = self.vender(detalles=[{"producto": self.producto.pk, "presentacion": self.caja.pk, "cantidad": "4"}])
         self.assertEqual(respuesta.status_code, 400)
         self.assertIn("Stock insuficiente", str(respuesta.data))
         self.assertIn("hay 20 bandejas", str(respuesta.data))
@@ -64,7 +64,7 @@ class CasosIncorrectosTest(APITestCase):
 
     def test_compra_con_proveedor_inexistente(self):
         respuesta = self.client.post("/api/compras/", {"proveedor": 999, "detalles": [
-            {"producto": self.producto.pk, "presentacion": self.maple.pk, "cantidad": "1"}]}, format="json")
+            {"producto": self.producto.pk, "presentacion": self.bandeja.pk, "cantidad": "1"}]}, format="json")
         self.assertIn("proveedor", respuesta.data)
 
     def test_retiro_mayor_al_efectivo_de_la_caja(self):

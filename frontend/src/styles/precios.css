@@ -1,30 +1,51 @@
 /* Solapa Precios del Catálogo (S5-10) */
 .precios { display: grid; gap: var(--espacio-3); }
-.precios__ayuda { max-width: 70ch; }
-.precios__producto { padding: var(--espacio-3) var(--espacio-4); }
-.precios__cab { display: grid; gap: var(--espacio-1); margin-bottom: var(--espacio-2); }
-.precios__cab h2 { font-size: var(--texto-l); }
-.precios__formula {
+
+.precios__intro {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.35rem 0.6rem;
-  font-variant-numeric: tabular-nums;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--espacio-3);
 }
-.precios__formula small { flex-basis: 100%; }
-.precios__confirmar {
-  display: grid;
-  grid-template-columns: minmax(7rem, 9rem) max-content;
-  justify-content: start;
-  align-items: center;
-  gap: var(--espacio-2);
-}
-.precios__confirmar .campo__control { text-align: right; font-variant-numeric: tabular-nums; }
-.precios__mensaje { grid-column: 1 / -1; font-size: var(--texto-s); min-height: 0; }
-.precios__mensaje:empty { display: none; }
-.precios__ok { color: var(--exito, #2e6b45); font-weight: 600; }
+.precios__intro p { max-width: 62ch; }
+.precios__margen { display: grid; gap: var(--espacio-1); font-size: var(--texto-s); font-weight: 600; }
+.precios__margen-campo { display: flex; align-items: center; gap: var(--espacio-2); }
+.precios__margen-campo .campo__control { width: 6rem; text-align: right; font-variant-numeric: tabular-nums; }
+
+.precios__producto { padding: var(--espacio-4); }
+.precios__cab { display: grid; gap: var(--espacio-1); margin-bottom: var(--espacio-3); }
+.precios__cab h2 { font-size: var(--texto-l); }
+.precios__costo { font-size: var(--texto-l); }
+.precios__costo strong { font-variant-numeric: tabular-nums; }
+.precios__detalle { font-size: var(--texto-s); max-width: 80ch; }
 
 /* Mismas columnas en todas las tablas para que se lean alineadas */
-.precios .tabla { table-layout: fixed; }
-.precios .tabla th:nth-child(1) { width: 26%; }
-.precios .tabla th:nth-child(2), .precios .tabla th:nth-child(3) { width: 17%; }
+.precios__tabla { table-layout: fixed; }
+.precios__tabla th:nth-child(1) { width: 22%; }
+.precios__tabla th:nth-child(2), .precios__tabla th:nth-child(3), .precios__tabla th:nth-child(4) { width: 14%; }
+.precios__contenido { display: block; font-size: var(--texto-s); color: var(--texto-suave); }
+
+.ganancia { font-weight: 600; font-variant-numeric: tabular-nums; }
+.ganancia--si { color: var(--exito); }
+.ganancia--no { color: var(--peligro); }
+
+.precios__cambiar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--espacio-2); }
+.precios__pesos { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--texto-suave); }
+.precios__pesos .campo__control { width: 8rem; text-align: right; font-variant-numeric: tabular-nums; }
+.precios__mensaje { flex-basis: 100%; font-size: var(--texto-s); }
+.precios__mensaje:empty { display: none; }
+.precios__ok { color: var(--exito); font-weight: 600; }
+
+/* En celular la tabla pasa a tarjetas, una por presentación */
+@media (max-width: 40rem) {
+  .precios__producto { padding: var(--espacio-3); }
+  .precios__tabla, .precios__tabla tbody, .precios__tabla tr, .precios__tabla td { display: block; }
+  .precios__tabla thead { display: none; }
+  .precios__tabla tr { padding: var(--espacio-2) 0; border-bottom: 1px solid var(--borde); }
+  .precios__tabla td { padding: 0.15rem 0; border: 0; text-align: left; }
+  .precios__tabla td.num::before { color: var(--texto-suave); font-size: var(--texto-s); margin-right: 0.5rem; }
+  .precios__tabla td:nth-child(2)::before { content: "Te cuesta"; }
+  .precios__tabla td:nth-child(3)::before { content: "La vendés a"; }
+  .precios__tabla td:nth-child(4)::before { content: "Ganás"; }
+}

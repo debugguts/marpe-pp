@@ -21,4 +21,14 @@ export const hora = (iso) => horaMinutos.format(new Date(iso))
 // "2026-11-10" → "10/11/2026" (las fechas sin hora se leen como día local, no UTC)
 export const fecha = (iso) => diaMes.format(new Date(iso.length === 10 ? `${iso}T00:00` : iso))
 // Hoy en formato AAAA-MM-DD para filtrar en la API
+// Qué trae una presentación según sus bandejas: 1/30 → "1 huevo", 1 → "30 huevos", 6 → "6 bandejas"
+export function contenidoDe(bandejas) {
+  const b = Number(bandejas)
+  if (b < 1) {
+    const huevos = Math.round(b * 30)
+    return `${huevos} ${huevos === 1 ? 'huevo' : 'huevos'}`
+  }
+  if (b === 1) return '30 huevos'
+  return `${entero.format(b)} bandejas`
+}
 export const hoyISO = () => new Date().toLocaleDateString('en-CA')

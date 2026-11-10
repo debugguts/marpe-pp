@@ -21,7 +21,7 @@ class IntegridadTests(TestCase):
         cls.user = Usuario.objects.create_user("tester", password="x")
         cls.prod = Producto.objects.create(tipo_huevo="BLANCO", tamano="MEDIANO")
         cls.pres = Presentacion.objects.create(
-            nombre="Maple", cantidad_bandejas_equivalentes=Decimal("1")
+            nombre="Bandeja", cantidad_bandejas_equivalentes=Decimal("1")
         )
         cls.cliente = Cliente.objects.create(nombre="Cliente Test")
 
