@@ -4,6 +4,7 @@ from rest_framework.routers import DefaultRouter
 from apps.caja.views import CajaViewSet
 from apps.catalogo.views import PresentacionViewSet, ProductoViewSet
 from apps.clientes.views import ClienteViewSet
+from apps.compras.views import CompraViewSet
 from apps.proveedores.views import CostoProveedorViewSet, ProveedorViewSet
 from apps.usuarios.views import LoginView, LogoutView, YoView
 
@@ -17,6 +18,7 @@ router.register("clientes", ClienteViewSet, basename="cliente")
 
 # Movimientos (Sprint 5): piden haber iniciado sesión, porque guardan quién los hizo.
 router.register("cajas", CajaViewSet, basename="caja")
+router.register("compras", CompraViewSet, basename="compra")
 
 # Sesión: iniciar, cerrar y saber quién está conectado.
 urlpatterns = router.urls + [
