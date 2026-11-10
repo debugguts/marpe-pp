@@ -14,6 +14,11 @@ const TRAZOS = {
   cerrar: 'M6 6l12 12 M18 6 6 18',
   chevron: 'm9 6 6 6-6 6',
   salir: 'M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4 M15 8l4 4-4 4 M19 12H9',
+  mas: 'M12 5v14 M5 12h14',
+  buscar: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z M20 20l-4-4',
+  editar: 'M4 20h4L19 9l-4-4L4 16z M14 6l4 4',
+  archivar: 'M4 5h16v4H4z M5 9v10h14V9 M10 13h4',
+  reactivar: 'M4 12a8 8 0 1 0 2.5-5.8 M4 4v4h4',
 }
 
 export default function Icono({ nombre, tamano = 20 }) {

@@ -1,0 +1,132 @@
+/* Pantallas ABM: buscador, tabla con acciones, paginado, ventana y solapas. */
+
+/* ---------- Barra de búsqueda y filtro ---------- */
+.abm-barra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
+  margin-bottom: var(--espacio-3);
+}
+.abm-buscar {
+  position: relative;
+  flex: 1 1 18rem;
+  max-width: 28rem;
+}
+.abm-buscar .icono {
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  translate: 0 -50%;
+  color: var(--texto-suave);
+  pointer-events: none;
+}
+.abm-buscar .campo__control { padding-left: 2.6rem; }
+.abm-filtro { flex: 0 0 auto; }
+.abm-filtro .campo__control { width: auto; padding-right: 2rem; }
+
+/* ---------- Tabla ---------- */
+.abm-panel { padding: var(--espacio-2) var(--espacio-3); }
+.abm-panel .tabla td { vertical-align: middle; }
+.abm-acciones { display: inline-flex; gap: var(--espacio-1); }
+.abm-acciones .btn { min-height: 2.25rem; padding-inline: 0.7rem; font-size: var(--texto-s); }
+.abm-cargando { padding: var(--espacio-4); color: var(--texto-suave); }
+
+.abm-pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-2);
+  padding: var(--espacio-3) 0.75rem var(--espacio-2);
+  border-top: 1px solid var(--borde);
+  font-size: var(--texto-s);
+  font-variant-numeric: tabular-nums;
+}
+.abm-paginas { display: flex; gap: var(--espacio-2); }
+
+/* En celular cada fila se muestra como una tarjeta (sin scroll horizontal) */
+@media (max-width: 40rem) {
+  .abm-panel { padding: 0; }
+  .abm-tabla thead { display: none; }
+  .abm-tabla, .abm-tabla tbody, .abm-tabla tr, .abm-tabla td { display: block; }
+  .abm-tabla tr { padding: var(--espacio-3); border-bottom: 1px solid var(--borde); }
+  .abm-tabla td, .abm-tabla tbody tr:last-child td { padding: 0.2rem 0; border: 0; text-align: left; }
+  .abm-tabla tbody tr:hover td { background: none; }
+  .abm-tabla td[data-titulo] { display: flex; justify-content: space-between; gap: var(--espacio-3); }
+  .abm-tabla td[data-titulo]::before {
+    content: attr(data-titulo);
+    color: var(--texto-suave);
+    font-size: var(--texto-s);
+  }
+  .abm-tabla td:first-child { font-size: var(--texto-l); }
+  .abm-tabla td:first-child::before { content: none; }
+  .abm-celda-acciones:not(:empty) { margin-top: var(--espacio-2); }
+  .abm-acciones { display: flex; gap: var(--espacio-2); }
+  .abm-acciones .btn { flex: 1; border: 1px solid var(--borde-fuerte); }
+  .abm-pie { padding-inline: var(--espacio-3); }
+}
+
+/* ---------- Ventana (dialog) ---------- */
+.dialogo {
+  width: min(32rem, calc(100% - 2rem));
+  max-height: calc(100dvh - 2rem);
+  padding: 0;
+  color: var(--marron);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-panel);
+  box-shadow: 0 24px 60px -12px color-mix(in srgb, var(--marron) 45%, transparent);
+  overscroll-behavior: contain;
+}
+.dialogo[open] { animation: aparecer 0.18s ease-out; }
+.dialogo::backdrop { background: color-mix(in srgb, var(--marron) 45%, transparent); }
+@keyframes aparecer { from { opacity: 0; translate: 0 8px; } }
+
+.dialogo__cab {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+  padding: var(--espacio-4) var(--espacio-4) var(--espacio-2);
+}
+.dialogo__cab h2 { font-size: var(--texto-l); }
+.dialogo__cab p { margin-top: 0.25rem; font-size: var(--texto-s); }
+.dialogo__cerrar { width: var(--alto-control); padding: 0; flex: none; }
+.dialogo__cuerpo { display: grid; gap: var(--espacio-3); padding: var(--espacio-2) var(--espacio-4) var(--espacio-4); }
+.dialogo__pie {
+  display: flex;
+  flex-wrap: wrap-reverse;
+  justify-content: flex-end;
+  gap: var(--espacio-2);
+  padding: var(--espacio-3) var(--espacio-4);
+  background: color-mix(in srgb, var(--arena) 50%, var(--blanco));
+  border-top: 1px solid var(--borde);
+  border-radius: 0 0 var(--radio-panel) var(--radio-panel);
+}
+
+/* ---------- Solapas (Productos / Presentaciones) ---------- */
+.segmentado {
+  display: inline-flex;
+  gap: 0.25rem;
+  margin-bottom: var(--espacio-3);
+  padding: 0.25rem;
+  background: color-mix(in srgb, var(--marron) 8%, var(--arena));
+  border-radius: var(--radio-control);
+}
+.segmentado__opcion {
+  min-height: 2.5rem;
+  padding: 0 1.1rem;
+  background: transparent;
+  color: var(--texto-suave);
+  border: 0;
+  border-radius: calc(var(--radio-control) - 3px);
+  font: 600 var(--texto-s) / 1 var(--fuente-ui);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.segmentado__opcion:hover { color: var(--marron); }
+.segmentado__opcion[aria-pressed="true"] {
+  background: var(--superficie);
+  color: var(--marron);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--marron) 20%, transparent);
+}
