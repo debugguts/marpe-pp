@@ -4,8 +4,8 @@ Práctica Profesional II · Comisión 2C
 Autores: Quispe Camila del Milagro y Siñanis Gustavo Exequiel
 
 Sistema de inventario y punto de venta para un local de venta de huevos
-(Cerrillos, Salta). Estado actual: **Sprint 4** (API REST de las tablas maestras,
-inicio de sesión por rol y pantallas ABM de proveedores, catálogo y clientes).
+(Cerrillos, Salta). Estado actual: **Sprint 5** (movimientos: caja, compras, ventas,
+fiado y cobros, gastos, stock y mermas, y precio de venta sugerido).
 
 ## Stack
 
@@ -73,6 +73,22 @@ Cada alta, modificación y baja queda en `REGISTRO_ACTIVIDAD`.
 | Clientes             | `/api/clientes/`              | «Consumidor final» (id 1) no se modifica ni se da de baja |
 | Sesión               | `/api/auth/login/` · `logout/` · `yo/` | Sesión de Django con cookie                   |
 
+## API REST de movimientos (Sprint 5)
+
+Detalle completo, con ejemplos de JSON: [`docs/contrato_api_movimientos.md`](docs/contrato_api_movimientos.md).
+Todos piden haber iniciado sesión, porque guardan qué usuario hizo cada operación.
+
+| Recurso              | Dirección                         | Regla principal                                                    |
+| -------------------- | --------------------------------- | ------------------------------------------------------------------ |
+| Caja                 | `/api/cajas/`                     | Una sola abierta; cierre con arqueo (esperado vs. contado)         |
+| Compras              | `/api/compras/`                   | Suma al stock en bandejas; sin precio usa el costo del proveedor   |
+| Ventas               | `/api/ventas/`                    | Precio vigente congelado; descuenta stock; efectivo entra a caja   |
+| Cuenta corriente     | `/api/cuentas-corrientes/`        | La venta fiada abre la deuda; se cobra el total                    |
+| Gastos               | `/api/gastos/`                    | Fijo o variable; en efectivo sale de la caja                       |
+| Stock                | `/api/stock/`                     | En bandejas y por presentación; aviso de stock mínimo              |
+| Movimientos de stock | `/api/movimientos-inventario/`    | Mermas y ajustes siempre con motivo                                |
+| Precios              | `/api/precios/`                   | Sugerido = costo + gasto fijo por bandeja; confirma el administrador |
+
 ## Estructura
 
 | Carpeta     | Contenido                                                                                                                                |
@@ -101,3 +117,11 @@ Sprint 4
 - Los costos los carga el proveedor (`COSTO_PROVEEDOR`) con historial: nunca se pisa un precio, se cierra el vigente y se crea uno nuevo.
 - Las pantallas ABM comparten un mismo listado (`ListadoABM`) y formulario (`FormularioABM`); cada pantalla solo define sus columnas y campos.
 - Permisos de la API abiertos (`AllowAny`) hasta el taller de seguridad; el frontend ya oculta lo que no corresponde a cada rol.
+
+Sprint 5
+
+- Las reglas de negocio viven en un archivo `servicios.py` por app (caja, inventario, compras, ventas): las vistas solo reciben el pedido y responden.
+- Todo movimiento de stock pasa por `mover_stock()` y todo movimiento de efectivo por `mover_caja()`: así el stock y la caja siempre coinciden con sus movimientos.
+- Cada operación se guarda en una transacción: si algo falla (por ejemplo, falta stock), no queda nada a medias.
+- Precio sugerido: (costo promedio ponderado del mes + gastos fijos del mes ÷ bandejas compradas en el mes) × bandejas de la presentación. El administrador lo confirma y el anterior pasa al historial.
+- Los movimientos piden sesión iniciada (`IsAuthenticated`); confirmar precios, además, rol Administrador.
