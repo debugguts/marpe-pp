@@ -1,20 +1,22 @@
-
 # Huevería Marpe — Sistema de gestión
 
 Práctica Profesional II · Comisión 2C
 Autores: Quispe Camila del Milagro y Siñanis Gustavo Exequiel
 
 Sistema de inventario y punto de venta para un local de venta de huevos
-(Cerrillos, Salta). Estado actual: **Sprint 3** (base de datos, modelos, admin y pruebas).
+(Cerrillos, Salta). Estado actual: **Sprint 4** (API REST de las tablas maestras,
+inicio de sesión por rol y pantallas ABM de proveedores, catálogo y clientes).
 
 ## Stack
 
-Python 3.12 · Django 5.2 LTS · PostgreSQL 16 · Gunicorn · Nginx · Docker Compose
+Python 3.12 · Django 5.2 LTS · Django REST Framework · PostgreSQL 16 · Gunicorn · Nginx · Docker Compose
+Frontend: React 19 · Vite · React Router · TanStack Query (sin librería de componentes: estilos propios con el manual de identidad)
 
 ## Requisitos
 
 - Docker Desktop en ejecución
 - Git
+- Node.js 22 o superior (solo para trabajar el frontend en modo desarrollo)
 
 ## Puesta en marcha
 
@@ -25,9 +27,30 @@ docker compose exec -e DJANGO_SUPERUSER_PASSWORD=<clave> web python manage.py cr
 docker compose exec web python manage.py cargar_datos_prueba
 ```
 
-Panel de administración: http://localhost:8080/admin/
+| Qué                         | Dirección                     |
+| --------------------------- | ----------------------------- |
+| Sistema (frontend + API)    | http://localhost:8080/        |
+| API REST navegable          | http://localhost:8080/api/    |
+| Panel de administración     | http://localhost:8080/admin/  |
 
 Usuarios de prueba (solo desarrollo): `admin` (el que se crea arriba) y `operador` / `marpe1234`.
+
+### Después de un `git pull`
+
+El contenedor no lee los archivos en vivo: hay que reconstruir.
+
+```bash
+docker compose up -d --build web      # cambios en Python (las migraciones se aplican solas)
+docker compose up -d --build nginx    # cambios en el frontend
+```
+
+### Frontend en modo desarrollo (recarga al guardar)
+
+```bash
+cd frontend
+npm install        # la primera vez y cada vez que cambie package.json
+npm run dev        # http://localhost:5173 (usa la API de Docker en el 8080)
+```
 
 ## Pruebas
 
@@ -35,22 +58,46 @@ Usuarios de prueba (solo desarrollo): `admin` (el que se crea arriba) y `operado
 docker compose exec web python manage.py test tests
 ```
 
+## API REST (Sprint 4)
+
+Todas las tablas maestras usan la misma base (`config/vistas.py`): listado paginado de a 20,
+búsqueda con `?search=`, filtro `?estado=ACTIVO|INACTIVO`, y **baja lógica** (pasa a INACTIVO, no se borra).
+Cada alta, modificación y baja queda en `REGISTRO_ACTIVIDAD`.
+
+| Recurso              | Dirección                     | Regla especial                                         |
+| -------------------- | ----------------------------- | ------------------------------------------------------ |
+| Proveedores          | `/api/proveedores/`           | —                                                      |
+| Costos de proveedor  | `/api/costos-proveedor/`      | Un solo costo vigente; cambiar el precio guarda historial |
+| Productos            | `/api/productos/`             | No se repite tipo + tamaño                             |
+| Presentaciones       | `/api/presentaciones/`        | Equivalencia en bandejas mayor que 0                   |
+| Clientes             | `/api/clientes/`              | «Consumidor final» (id 1) no se modifica ni se da de baja |
+| Sesión               | `/api/auth/login/` · `logout/` · `yo/` | Sesión de Django con cookie                   |
+
 ## Estructura
 
 | Carpeta     | Contenido                                                                                                                                |
 | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `config/` | Configuración de Django y elementos comunes (`comunes.py`)                                                                            |
-| `apps/`   | 11 apps, una por responsabilidad: usuarios, proveedores, clientes, catalogo, inventario, caja, compras, gastos, ventas, mermas, reportes |
-| `tests/`  | Pruebas de integridad de la base de datos                                                                                                |
-| `nginx/`  | Configuración del proxy inverso                                                                                                         |
-| `docs/`   | DER, diccionario de datos y documentación                                                                                               |
+| `config/`   | Configuración de Django, rutas de la API (`api.py`), base de los ABM (`vistas.py`) y validaciones comunes                              |
+| `apps/`     | 11 apps, una por responsabilidad: usuarios, proveedores, clientes, catalogo, inventario, caja, compras, gastos, ventas, mermas, reportes |
+| `frontend/` | Aplicación React: `pages/` (pantallas), `components/` (piezas reutilizables), `lib/` (pedidos a la API), `styles/`                     |
+| `tests/`    | Pruebas de integridad de la base de datos y de la API                                                                                   |
+| `nginx/`    | Proxy inverso: sirve el frontend compilado y deriva `/api` y `/admin` a Django                                                          |
+| `docs/`     | DER, diccionario de datos y documentación                                                                                               |
 
-## Decisiones de diseño (Sprint 3)
+## Decisiones de diseño
+
+Sprint 3
 
 - Cuenta corriente 1:N con pagos de cuenta (varios cobros posibles).
 - Cliente fijo "Consumidor final" (`id_cliente = 1`); `venta.cliente` es obligatorio y una venta fiada no puede usarlo.
 - Tablas puente 1:1 entre operaciones y movimientos de inventario o de caja.
 - Stock en bandejas con `DecimalField(12, 6)`.
 - Mermas y ajustes se registran en `movimiento_inventario` (sin tabla propia).
-- Usuarios, grupos y permisos con los modelos nativos de
-prueba
+- Usuarios, grupos y permisos con los modelos nativos de Django.
+
+Sprint 4
+
+- Frontend desacoplado (React + Vite) servido por Nginx en el mismo dominio que la API: la sesión viaja en una cookie y no hace falta CORS.
+- Los costos los carga el proveedor (`COSTO_PROVEEDOR`) con historial: nunca se pisa un precio, se cierra el vigente y se crea uno nuevo.
+- Las pantallas ABM comparten un mismo listado (`ListadoABM`) y formulario (`FormularioABM`); cada pantalla solo define sus columnas y campos.
+- Permisos de la API abiertos (`AllowAny`) hasta el taller de seguridad; el frontend ya oculta lo que no corresponde a cada rol.
