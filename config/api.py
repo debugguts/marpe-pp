@@ -7,6 +7,7 @@ from apps.clientes.views import ClienteViewSet
 from apps.compras.views import CompraViewSet
 from apps.proveedores.views import CostoProveedorViewSet, ProveedorViewSet
 from apps.usuarios.views import LoginView, LogoutView, YoView
+from apps.ventas.views import VentaViewSet
 
 # Tablas maestras: el router arma solo las direcciones del ABM.
 router = DefaultRouter()
@@ -19,6 +20,7 @@ router.register("clientes", ClienteViewSet, basename="cliente")
 # Movimientos (Sprint 5): piden haber iniciado sesión, porque guardan quién los hizo.
 router.register("cajas", CajaViewSet, basename="caja")
 router.register("compras", CompraViewSet, basename="compra")
+router.register("ventas", VentaViewSet, basename="venta")
 
 # Sesión: iniciar, cerrar y saber quién está conectado.
 urlpatterns = router.urls + [
