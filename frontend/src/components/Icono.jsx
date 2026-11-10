@@ -13,6 +13,7 @@ const TRAZOS = {
   menu: 'M4 7h16 M4 12h16 M4 17h16',
   cerrar: 'M6 6l12 12 M18 6 6 18',
   chevron: 'm9 6 6 6-6 6',
+  salir: 'M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4 M15 8l4 4-4 4 M19 12H9',
 }
 
 export default function Icono({ nombre, tamano = 20 }) {

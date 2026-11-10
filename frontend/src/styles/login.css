@@ -1,0 +1,32 @@
+/* Pantalla de inicio de sesión: una tarjeta centrada sobre el fondo arena */
+.login {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: var(--espacio-4) max(var(--espacio-3), env(safe-area-inset-left));
+}
+.login__tarjeta {
+  display: grid;
+  gap: var(--espacio-3);
+  width: min(24rem, 100%);
+  padding: var(--espacio-5) var(--espacio-4);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 20px;
+}
+.login__marca { display: flex; justify-content: center; margin-bottom: var(--espacio-2); }
+.login__marca img { height: 56px; width: auto; }
+.login__titulo { display: grid; gap: 0.25rem; text-align: center; margin-bottom: var(--espacio-2); }
+.login__titulo h1 { font-size: var(--titulo-m); }
+.login__titulo p { color: var(--texto-suave); font-size: var(--texto-s); }
+.login__error { min-height: 1.25rem; font-size: var(--texto-s); font-weight: 600; color: var(--peligro); }
+.login__error:empty { min-height: 0; }
+.login__boton { width: 100%; }
+
+.cargando { padding: var(--espacio-5); text-align: center; color: var(--texto-suave); }
+
+/* Botón de salir en la cabecera */
+.cabecera__salir { min-height: 2.5rem; padding-inline: 0.75rem; }
+@media (max-width: 56.25rem) {
+  .cabecera__salir span { display: none; }
+}
