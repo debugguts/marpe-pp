@@ -5,6 +5,7 @@ from apps.caja.views import CajaViewSet
 from apps.catalogo.views import PrecioViewSet, PresentacionViewSet, ProductoViewSet
 from apps.clientes.views import ClienteViewSet
 from apps.compras.views import CompraViewSet
+from apps.gastos.views import GastoViewSet
 from apps.proveedores.views import CostoProveedorViewSet, ProveedorViewSet
 from apps.usuarios.views import LoginView, LogoutView, YoView
 from apps.ventas.cuentas import CuentaCorrienteViewSet
@@ -24,6 +25,7 @@ router.register("compras", CompraViewSet, basename="compra")
 router.register("ventas", VentaViewSet, basename="venta")
 router.register("precios", PrecioViewSet, basename="precio")
 router.register("cuentas-corrientes", CuentaCorrienteViewSet, basename="cuenta-corriente")
+router.register("gastos", GastoViewSet, basename="gasto")
 
 # Sesión: iniciar, cerrar y saber quién está conectado.
 urlpatterns = router.urls + [
