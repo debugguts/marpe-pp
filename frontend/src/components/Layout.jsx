@@ -10,7 +10,7 @@ const GRUPOS = [
     titulo: 'Operación',
     items: [
       { a: '/', texto: 'Inicio', icono: 'inicio', fin: true },
-      { texto: 'Ventas', icono: 'ventas' },
+      { a: '/ventas', texto: 'Ventas', icono: 'ventas' },
       { texto: 'Caja', icono: 'caja' },
       { texto: 'Compras', icono: 'compras' },
       { texto: 'Inventario', icono: 'inventario' },

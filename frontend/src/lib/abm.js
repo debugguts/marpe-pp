@@ -38,6 +38,14 @@ export function useBaja(recurso) {
   })
 }
 
+// Los errores pueden venir anidados (por ejemplo, uno por cada línea de una venta):
+// se juntan todos los mensajes en un solo texto, sin repetir.
+function aTexto(mensajes) {
+  if (Array.isArray(mensajes)) return [...new Set(mensajes.map(aTexto).filter(Boolean))].join(' ')
+  if (mensajes && typeof mensajes === 'object') return aTexto(Object.values(mensajes))
+  return String(mensajes ?? '')
+}
+
 // Convierte la respuesta de error de Django en mensajes por campo.
 // Ejemplo: { nombre: ["Ingresá el nombre"] } → { nombre: "Ingresá el nombre" }
 // Los errores que no son de un campo quedan en "general".
@@ -48,7 +56,7 @@ export function erroresDe(error) {
 
   const errores = {}
   for (const [campo, mensajes] of Object.entries(datos)) {
-    const texto = Array.isArray(mensajes) ? mensajes.join(' ') : String(mensajes)
+    const texto = aTexto(mensajes)
     const clave = campo === 'non_field_errors' ? 'general' : campo
     errores[clave] = texto
   }
