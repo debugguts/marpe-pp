@@ -7,6 +7,8 @@ import Inicio from './pages/Inicio'
 import Caja from './pages/Caja'
 import Catalogo from './pages/Catalogo'
 import Clientes from './pages/Clientes'
+import Compras from './pages/Compras'
+import Gastos from './pages/Gastos'
 import Proveedores from './pages/Proveedores'
 import Ventas from './pages/Ventas'
 import { NoEncontrada } from './pages/Pendiente'
@@ -30,6 +32,8 @@ export default function App() {
               <Route path="proveedores" element={<Proveedores />} />
               <Route path="ventas" element={<Ventas />} />
               <Route path="caja" element={<Caja />} />
+              <Route path="compras" element={<Compras />} />
+              <Route path="gastos" element={<Gastos />} />
               <Route path="*" element={<NoEncontrada />} />
             </Route>
           </Route>
