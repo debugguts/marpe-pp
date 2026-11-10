@@ -1,0 +1,102 @@
+/* Punto de venta (S5-11) */
+.pos {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 26rem);
+  gap: var(--espacio-4);
+  align-items: start;
+}
+@media (max-width: 64rem) {
+  .pos { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------- Productos ---------- */
+.pos__catalogo { display: grid; gap: var(--espacio-3); }
+.pos-producto {
+  padding: var(--espacio-3);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-panel);
+}
+.pos-producto header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--espacio-2);
+  margin-bottom: var(--espacio-2);
+}
+.pos-producto h2 { font-size: var(--texto-l); }
+.pos-producto__stock { font-size: var(--texto-s); color: var(--texto-suave); font-variant-numeric: tabular-nums; }
+.pos-producto__stock.is-vacio { color: var(--peligro); font-weight: 600; }
+.pos-producto__opciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: var(--espacio-2);
+}
+.pos-opcion {
+  display: grid;
+  gap: 0.2rem;
+  min-height: 4rem;
+  padding: 0.7rem 0.9rem;
+  text-align: left;
+  color: var(--marron);
+  background: color-mix(in srgb, var(--arena) 55%, var(--blanco));
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-control);
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.1s ease;
+}
+.pos-opcion span { font-size: var(--texto-s); color: var(--texto-suave); }
+.pos-opcion strong { font-variant-numeric: tabular-nums; }
+.pos-opcion:hover { border-color: var(--marron); background: color-mix(in srgb, var(--rosa) 35%, var(--blanco)); }
+.pos-opcion:active { transform: scale(0.98); }
+
+/* ---------- Venta en curso ---------- */
+.pos__ticket { position: sticky; top: calc(var(--alto-cabecera, 4rem) + var(--espacio-3)); }
+@media (max-width: 64rem) { .pos__ticket { position: static; } }
+.pos__ticket { display: grid; gap: var(--espacio-3); }
+.pos__vacio { padding: var(--espacio-3) 0; }
+.pos__hecha {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  padding: 0.7rem 0.9rem;
+  color: var(--exito);
+  background: color-mix(in srgb, var(--exito) 10%, var(--blanco));
+  border-radius: var(--radio-control);
+  font-weight: 600;
+}
+
+.pos-lineas { display: grid; list-style: none; padding: 0; margin: 0; }
+.pos-linea {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4.5rem auto auto;
+  align-items: center;
+  gap: var(--espacio-2);
+  padding: var(--espacio-2) 0;
+  border-bottom: 1px solid var(--borde);
+}
+.pos-linea p { margin: 0; }
+.pos-linea .suave { font-size: var(--texto-s); }
+.pos-linea__nombre { font-weight: 600; }
+.pos-linea__cantidad { padding-inline: 0.5rem; text-align: center; font-variant-numeric: tabular-nums; }
+.pos-linea__subtotal { font-variant-numeric: tabular-nums; min-width: 5.5rem; text-align: right; }
+.pos-linea__quitar { width: 2.25rem; min-height: 2.25rem; padding: 0; }
+
+.pos__total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-top: var(--espacio-2);
+  font-size: var(--texto-l);
+}
+.pos__total strong { font: 600 1.75rem/1 var(--fuente-ui); font-variant-numeric: tabular-nums; }
+
+.pos__opciones { border: 0; padding: 0; margin: 0; display: grid; gap: var(--espacio-1); }
+.pos__opciones .segmentado { margin: 0; display: flex; }
+.pos__opciones .segmentado__opcion { flex: 1; }
+.pos__cliente { display: grid; gap: var(--espacio-2); }
+.pos__confirmar { width: 100%; min-height: 3.25rem; font-size: var(--texto-l); }
+
+.pos__hoy { margin-top: var(--espacio-4); }

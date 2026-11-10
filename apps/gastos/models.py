@@ -6,10 +6,16 @@ from config.comunes import MedioPago
 
 
 class Gasto(models.Model):
+    class Tipo(models.TextChoices):
+        # Los fijos (alquiler, combustible, ...) se usan para calcular el precio sugerido (HU-09-E).
+        FIJO = "FIJO", "Fijo"
+        VARIABLE = "VARIABLE", "Variable"
+
     id_gasto = models.AutoField(primary_key=True)
     fecha = models.DateField()
     concepto = models.CharField(max_length=200)
     categoria = models.CharField(max_length=80)
+    tipo = models.CharField(max_length=20, choices=Tipo.choices, default=Tipo.VARIABLE)
     importe = models.DecimalField(max_digits=12, decimal_places=2)
     medio_pago = models.CharField(max_length=20, choices=MedioPago.choices)
     usuario = models.ForeignKey(
@@ -25,6 +31,10 @@ class Gasto(models.Model):
             models.CheckConstraint(
                 condition=models.Q(medio_pago__in=MedioPago.values),
                 name="gasto_medio_pago_valido",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(tipo__in=["FIJO", "VARIABLE"]),
+                name="gasto_tipo_valido",
             ),
         ]
 

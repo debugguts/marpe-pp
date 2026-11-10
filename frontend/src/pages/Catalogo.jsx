@@ -4,19 +4,21 @@ import FormularioABM from '../components/FormularioABM'
 import ListadoABM from '../components/ListadoABM'
 import { Boton, CabeceraPagina, Campo } from '../components/ui'
 import { numero } from '../lib/formato'
+import Precios from './Precios'
 
-// Pantalla de Catálogo (S4-10 · HU-02): dos solapas, Productos y Presentaciones.
+// Pantalla de Catálogo (S4-10 · HU-02): solapas Productos, Presentaciones y Precios (S5-10).
 // La solapa elegida queda en la dirección (?ver=presentaciones) para poder compartirla o recargar.
+const SOLAPAS = [['productos', 'Productos'], ['presentaciones', 'Presentaciones'], ['precios', 'Precios']]
 const TIPOS = [['BLANCO', 'Blanco'], ['CASTAÑO', 'Castaño']]
 const TAMANOS = [['MEDIANO', 'Mediano'], ['SELECCIÓN', 'Selección'], ['SÚPER', 'Súper']]
 const textoDe = (opciones, valor) => opciones.find(([v]) => v === valor)?.[1] ?? valor
 
 export default function Catalogo() {
   const [parametros, setParametros] = useSearchParams()
-  const ver = parametros.get('ver') === 'presentaciones' ? 'presentaciones' : 'productos'
+  const ver = SOLAPAS.some(([v]) => v === parametros.get('ver')) ? parametros.get('ver') : 'productos'
   const [editando, setEditando] = useState(null) // null cerrado · {} alta · registro edición
 
-  const nuevo = (
+  const nuevo = ver !== 'precios' && (
     <Boton icono="mas" onClick={() => setEditando({})}>
       {ver === 'productos' ? 'Nuevo producto' : 'Nueva presentación'}
     </Boton>
@@ -24,10 +26,10 @@ export default function Catalogo() {
 
   return (
     <>
-      <CabeceraPagina titulo="Catálogo" descripcion="Los huevos que se venden y en qué presentaciones." acciones={nuevo} />
+      <CabeceraPagina titulo="Catálogo" descripcion="Los huevos que se venden, en qué presentaciones y a qué precio." acciones={nuevo} />
 
       <div className="segmentado" role="group" aria-label="Qué mostrar">
-        {[['productos', 'Productos'], ['presentaciones', 'Presentaciones']].map(([valor, texto]) => (
+        {SOLAPAS.map(([valor, texto]) => (
           <button
             key={valor}
             type="button"
@@ -40,11 +42,9 @@ export default function Catalogo() {
         ))}
       </div>
 
-      {ver === 'productos' ? (
-        <Productos editando={editando} setEditando={setEditando} nuevo={nuevo} />
-      ) : (
-        <Presentaciones editando={editando} setEditando={setEditando} nuevo={nuevo} />
-      )}
+      {ver === 'productos' && <Productos editando={editando} setEditando={setEditando} nuevo={nuevo} />}
+      {ver === 'presentaciones' && <Presentaciones editando={editando} setEditando={setEditando} nuevo={nuevo} />}
+      {ver === 'precios' && <Precios />}
     </>
   )
 }

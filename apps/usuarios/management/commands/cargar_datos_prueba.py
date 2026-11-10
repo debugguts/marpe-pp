@@ -44,6 +44,8 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
+        self.cargar_usuarios()
+        self.cargar_proveedores_y_clientes()
         self.cargar_catalogo_y_stock()
         self.cargar_operaciones()
         self.stdout.write(self.style.SUCCESS("Datos de prueba cargados."))
@@ -242,6 +244,13 @@ class Command(BaseCommand):
             fecha=ahora.date(), concepto="Servicio de luz", categoria="Servicios",
             importe=Decimal("12000"), medio_pago="TRANSFERENCIA", usuario=oper,
         )
+        # Gastos fijos del mes: se usan para el precio sugerido (HU-09-E)
+        for concepto, categoria, importe in [("Alquiler del local", "Alquiler", "150000"),
+                                             ("Combustible del reparto", "Combustible", "60000")]:
+            Gasto.objects.create(
+                fecha=ahora.date(), concepto=concepto, categoria=categoria, tipo="FIJO",
+                importe=Decimal(importe), medio_pago="TRANSFERENCIA", usuario=oper,
+            )
 
         # Auditoría
         for op, ent, ref in [("Alta", "Compra", compra.pk), ("Alta", "Venta", v1.pk),
