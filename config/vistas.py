@@ -43,12 +43,25 @@ class ABMConBajaLogica(viewsets.ModelViewSet):
         self.anotar_actividad("Baja", instance)
 
     def anotar_actividad(self, operacion, registro):
-        """Deja constancia de quién hizo qué, sobre qué registro y cuándo."""
-        usuario = self.request.user if self.request.user.is_authenticated else None
-        RegistroActividad.objects.create(
-            usuario=usuario,
-            operacion=operacion,
-            entidad_afectada=self.modelo.__name__,  # por ejemplo "Proveedor"
-            referencia_registro=str(registro.pk),
-            detalle=str(registro),
-        )
+        anotar_actividad(self.request.user, operacion, registro)
+
+
+def anotar_actividad(usuario, operacion, registro):
+    """Deja constancia de quién hizo qué, sobre qué registro y cuándo (HU-01-E).
+
+    La usan los ABM de arriba y también los movimientos (compras, ventas, caja...).
+    """
+    RegistroActividad.objects.create(
+        usuario=usuario if usuario.is_authenticated else None,
+        operacion=operacion,
+        entidad_afectada=type(registro).__name__,  # por ejemplo "Proveedor" o "Venta"
+        referencia_registro=str(registro.pk),
+        detalle=str(registro),
+    )
+
+
+def validar(serializer_class, datos):
+    """Valida lo que mandó la pantalla; si algo está mal, responde 400 con el detalle por campo."""
+    serializer = serializer_class(data=datos)
+    serializer.is_valid(raise_exception=True)
+    return serializer.validated_data

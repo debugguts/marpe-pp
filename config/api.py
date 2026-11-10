@@ -1,6 +1,7 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 
+from apps.caja.views import CajaViewSet
 from apps.catalogo.views import PresentacionViewSet, ProductoViewSet
 from apps.clientes.views import ClienteViewSet
 from apps.proveedores.views import CostoProveedorViewSet, ProveedorViewSet
@@ -13,6 +14,9 @@ router.register("costos-proveedor", CostoProveedorViewSet, basename="costo-prove
 router.register("productos", ProductoViewSet, basename="producto")
 router.register("presentaciones", PresentacionViewSet, basename="presentacion")
 router.register("clientes", ClienteViewSet, basename="cliente")
+
+# Movimientos (Sprint 5): piden haber iniciado sesión, porque guardan quién los hizo.
+router.register("cajas", CajaViewSet, basename="caja")
 
 # Sesión: iniciar, cerrar y saber quién está conectado.
 urlpatterns = router.urls + [
