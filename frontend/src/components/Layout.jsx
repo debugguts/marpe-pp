@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import Logo from './Logo'
 import Icono from './Icono'
+import { useLogout, useSesion } from '../lib/sesion'
 
 // Items sin "a" todavía no existen: se muestran apagados con la marca "Pronto".
 const GRUPOS = [
@@ -26,6 +27,7 @@ const GRUPOS = [
   },
   {
     titulo: 'Administración',
+    soloAdministrador: true, // el Operador no ve este grupo (S4-06)
     items: [{ texto: 'Usuarios y roles', icono: 'usuarios' }],
   },
 ]
@@ -33,6 +35,13 @@ const GRUPOS = [
 export default function Layout() {
   const [abierto, setAbierto] = useState(false)
   const { pathname } = useLocation()
+  // Al cerrar sesión, "usuario" queda vacío un instante antes de que
+  // RutaPrivada nos lleve al login: por eso se lee con "?." (sin romper).
+  const { data: usuario } = useSesion()
+  const salir = useLogout()
+  const nombre = usuario?.nombre ?? ''
+  const esAdministrador = usuario?.rol === 'Administrador'
+  const grupos = GRUPOS.filter((g) => !g.soloAdministrador || esAdministrador)
 
   useEffect(() => { setAbierto(false) }, [pathname])
 
@@ -61,20 +70,29 @@ export default function Layout() {
 
         <NavLink to="/" className="cabecera__logo"><Logo /></NavLink>
 
-        {/* Datos de ejemplo hasta conectar el login (S4-05) */}
         <div className="cabecera__usuario">
-          <span className="avatar" aria-hidden="true">G</span>
+          <span className="avatar" aria-hidden="true">{nombre.charAt(0).toUpperCase()}</span>
           <span className="cabecera__datos">
-            <strong>Gustavo</strong>
-            <small>Administrador</small>
+            <strong>{nombre}</strong>
+            <small>{usuario?.rol}</small>
           </span>
+          <button
+            type="button"
+            className="btn btn--fantasma cabecera__salir"
+            onClick={() => salir.mutate()}
+            disabled={salir.isPending}
+            aria-label="Cerrar sesión"
+          >
+            <Icono nombre="salir" />
+            <span>Salir</span>
+          </button>
         </div>
       </header>
 
       <div className="cuerpo">
         <aside id="lateral" className="lateral sobre-oscuro" data-abierto={abierto || undefined}>
           <nav aria-label="Principal">
-            {GRUPOS.map((g) => (
+            {grupos.map((g) => (
               <div className="nav-grupo" key={g.titulo}>
                 <p className="nav-grupo__titulo">{g.titulo}</p>
                 <ul className="nav-lista">
