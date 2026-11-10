@@ -1,0 +1,60 @@
+/* Pantallas de movimientos: Caja, Compras y Gastos (S5-12, S5-13) */
+.acciones { display: flex; flex-wrap: wrap; gap: var(--espacio-2); }
+
+/* ---------- Tarjetas con cifras ---------- */
+.cifras {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--espacio-3);
+  margin-bottom: var(--espacio-4);
+}
+.cifra-tarjeta {
+  padding: var(--espacio-3) var(--espacio-4);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-panel);
+}
+.cifra-tarjeta.is-destacada { background: var(--marron); border-color: var(--marron); color: var(--blanco); }
+.cifra-tarjeta__titulo { font-size: var(--texto-s); color: var(--texto-suave); }
+.cifra-tarjeta.is-destacada .cifra-tarjeta__titulo,
+.cifra-tarjeta.is-destacada .cifra-tarjeta__nota { color: color-mix(in srgb, var(--blanco) 75%, transparent); }
+.cifra-tarjeta__valor { margin-top: 0.25rem; font: 600 1.6rem/1.2 var(--fuente-titulo); font-variant-numeric: tabular-nums; }
+.cifra-tarjeta__nota { margin-top: 0.25rem; font-size: var(--texto-s); color: var(--texto-suave); }
+
+.importe--entra { color: var(--exito); }
+.importe--sale { color: var(--peligro); }
+
+/* ---------- Caja ---------- */
+.caja-abrir { max-width: 32rem; margin-bottom: var(--espacio-4); }
+.caja-abrir__form { display: grid; gap: var(--espacio-3); margin-top: var(--espacio-3); }
+.caja-historial { margin-top: var(--espacio-4); }
+.arqueo { display: grid; gap: var(--espacio-2); margin: 0; }
+.arqueo div { display: flex; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid var(--borde); }
+.arqueo dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.arqueo .is-ok dd { color: var(--exito); }
+.arqueo .is-diferencia dd { color: var(--peligro); }
+
+/* ---------- Formularios con varias columnas y líneas ---------- */
+.fila-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: var(--espacio-3); }
+.lineas { border: 0; padding: 0; margin: 0; display: grid; gap: var(--espacio-2); }
+.linea-compra {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 5rem 6.5rem 2.25rem;
+  gap: var(--espacio-1);
+  align-items: center;
+}
+.linea-compra .campo__control { padding-inline: 0.6rem; }
+.linea-compra__quitar { width: 2.25rem; min-height: 2.25rem; padding: 0; }
+@media (max-width: 40rem) {
+  .linea-compra { grid-template-columns: 1fr 1fr; }
+  .linea-compra__quitar { justify-self: end; grid-column: 2; }
+}
+.total-dialogo { display: flex; justify-content: space-between; align-items: baseline; font-size: var(--texto-l); }
+.total-dialogo strong { font-variant-numeric: tabular-nums; }
+.detalle-lineas { color: var(--texto-suave); font-size: var(--texto-s); }
+
+/* La ventana de compra necesita más ancho para las líneas */
+.dialogo:has(.lineas) { width: min(46rem, calc(100% - 2rem)); }
+
+/* Los textos ocultos para lectores de pantalla dentro de la tabla no tienen que estirar la página */
+.tabla-wrap { position: relative; }

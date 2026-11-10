@@ -5,8 +5,11 @@ from apps.caja.views import CajaViewSet
 from apps.catalogo.views import PrecioViewSet, PresentacionViewSet, ProductoViewSet
 from apps.clientes.views import ClienteViewSet
 from apps.compras.views import CompraViewSet
+from apps.gastos.views import GastoViewSet
+from apps.inventario.views import MovimientoInventarioViewSet, StockViewSet
 from apps.proveedores.views import CostoProveedorViewSet, ProveedorViewSet
 from apps.usuarios.views import LoginView, LogoutView, YoView
+from apps.ventas.cuentas import CuentaCorrienteViewSet
 from apps.ventas.views import VentaViewSet
 
 # Tablas maestras: el router arma solo las direcciones del ABM.
@@ -22,6 +25,10 @@ router.register("cajas", CajaViewSet, basename="caja")
 router.register("compras", CompraViewSet, basename="compra")
 router.register("ventas", VentaViewSet, basename="venta")
 router.register("precios", PrecioViewSet, basename="precio")
+router.register("cuentas-corrientes", CuentaCorrienteViewSet, basename="cuenta-corriente")
+router.register("gastos", GastoViewSet, basename="gasto")
+router.register("stock", StockViewSet, basename="stock")
+router.register("movimientos-inventario", MovimientoInventarioViewSet, basename="movimiento-inventario")
 
 # Sesión: iniciar, cerrar y saber quién está conectado.
 urlpatterns = router.urls + [

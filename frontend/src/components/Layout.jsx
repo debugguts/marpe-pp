@@ -11,10 +11,10 @@ const GRUPOS = [
     items: [
       { a: '/', texto: 'Inicio', icono: 'inicio', fin: true },
       { a: '/ventas', texto: 'Ventas', icono: 'ventas' },
-      { texto: 'Caja', icono: 'caja' },
-      { texto: 'Compras', icono: 'compras' },
+      { a: '/caja', texto: 'Caja', icono: 'caja' },
+      { a: '/compras', texto: 'Compras', icono: 'compras' },
       { texto: 'Inventario', icono: 'inventario' },
-      { texto: 'Gastos', icono: 'gastos' },
+      { a: '/gastos', texto: 'Gastos', icono: 'gastos' },
     ],
   },
   {
