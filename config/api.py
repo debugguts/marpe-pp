@@ -2,7 +2,7 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from apps.caja.views import CajaViewSet
-from apps.catalogo.views import PresentacionViewSet, ProductoViewSet
+from apps.catalogo.views import PrecioViewSet, PresentacionViewSet, ProductoViewSet
 from apps.clientes.views import ClienteViewSet
 from apps.compras.views import CompraViewSet
 from apps.proveedores.views import CostoProveedorViewSet, ProveedorViewSet
@@ -21,6 +21,7 @@ router.register("clientes", ClienteViewSet, basename="cliente")
 router.register("cajas", CajaViewSet, basename="caja")
 router.register("compras", CompraViewSet, basename="compra")
 router.register("ventas", VentaViewSet, basename="venta")
+router.register("precios", PrecioViewSet, basename="precio")
 
 # Sesión: iniciar, cerrar y saber quién está conectado.
 urlpatterns = router.urls + [

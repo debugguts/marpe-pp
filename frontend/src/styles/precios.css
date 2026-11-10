@@ -1,0 +1,30 @@
+/* Solapa Precios del Catálogo (S5-10) */
+.precios { display: grid; gap: var(--espacio-3); }
+.precios__ayuda { max-width: 70ch; }
+.precios__producto { padding: var(--espacio-3) var(--espacio-4); }
+.precios__cab { display: grid; gap: var(--espacio-1); margin-bottom: var(--espacio-2); }
+.precios__cab h2 { font-size: var(--texto-l); }
+.precios__formula {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.6rem;
+  font-variant-numeric: tabular-nums;
+}
+.precios__formula small { flex-basis: 100%; }
+.precios__confirmar {
+  display: grid;
+  grid-template-columns: minmax(7rem, 9rem) max-content;
+  justify-content: start;
+  align-items: center;
+  gap: var(--espacio-2);
+}
+.precios__confirmar .campo__control { text-align: right; font-variant-numeric: tabular-nums; }
+.precios__mensaje { grid-column: 1 / -1; font-size: var(--texto-s); min-height: 0; }
+.precios__mensaje:empty { display: none; }
+.precios__ok { color: var(--exito, #2e6b45); font-weight: 600; }
+
+/* Mismas columnas en todas las tablas para que se lean alineadas */
+.precios .tabla { table-layout: fixed; }
+.precios .tabla th:nth-child(1) { width: 26%; }
+.precios .tabla th:nth-child(2), .precios .tabla th:nth-child(3) { width: 17%; }
