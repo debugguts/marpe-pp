@@ -13,6 +13,11 @@ class Venta(models.Model):
         CONTADO = "CONTADO", "Contado"
         FIADO = "FIADO", "Fiado"
 
+    class Estado(models.TextChoices):
+        # Una venta nunca se borra: si hay que deshacerla, se anula y queda el registro.
+        CONFIRMADA = "CONFIRMADA", "Confirmada"
+        ANULADA = "ANULADA", "Anulada"
+
     id_venta = models.AutoField(primary_key=True)
     fecha = models.DateTimeField(default=timezone.now)
     modalidad = models.CharField(max_length=20, choices=Modalidad.choices)
@@ -26,6 +31,10 @@ class Venta(models.Model):
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, db_column="id_usuario"
     )
+    estado = models.CharField(max_length=20, choices=Estado.choices, default=Estado.CONFIRMADA)
+    fecha_modificacion = models.DateTimeField(null=True, blank=True)
+    fecha_anulacion = models.DateTimeField(null=True, blank=True)
+    motivo_anulacion = models.CharField(max_length=200, null=True, blank=True)
 
     class Meta:
         db_table = "venta"
@@ -43,6 +52,15 @@ class Venta(models.Model):
                     & models.Q(cliente=CONSUMIDOR_FINAL_ID)
                 ),
                 name="venta_fiado_requiere_cliente_real",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(estado__in=["CONFIRMADA", "ANULADA"]),
+                name="venta_estado_valido",
+            ),
+            models.CheckConstraint(
+                condition=~models.Q(estado="ANULADA")
+                | (models.Q(motivo_anulacion__isnull=False) & ~models.Q(motivo_anulacion="")),
+                name="venta_anulada_con_motivo",
             ),
         ]
 

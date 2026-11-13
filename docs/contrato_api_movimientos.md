@@ -22,9 +22,11 @@ Huevería Marpe · Práctica Profesional II · Comisión 2C
 | Compras | `GET /compras/` | Lista (`?proveedor`, `?desde`, `?hasta`) | HU-04-C |
 | | `POST /compras/` | Registra la compra y suma al stock | HU-04-A/B |
 | | `GET /compras/<id>/` | Compra con su detalle | HU-04-C |
-| Ventas | `GET /ventas/` | Lista (`?cliente`, `?modalidad`, `?desde`, `?hasta`) | HU-05-H |
+| Ventas | `GET /ventas/` | Lista (`?cliente`, `?modalidad`, `?estado=CONFIRMADA\|ANULADA`, `?desde`, `?hasta`) | HU-05-H |
 | | `POST /ventas/` | Registra la venta: precio vigente, stock, cobro o fiado | HU-05-A a F |
 | | `GET /ventas/<id>/` | Venta con detalle y pagos | HU-05-H |
+| | `PUT /ventas/<id>/` | Solo administrador: modificación completa (mismos datos que el alta) | HU-05 |
+| | `POST /ventas/<id>/anular/` | Solo administrador: anula con motivo; devuelve stock y efectivo | HU-05 |
 | Cuenta corriente | `GET /cuentas-corrientes/` | Deudas (`?cliente`, `?estado=PENDIENTE\|CANCELADA`) | HU-07-C/E |
 | | `POST /cuentas-corrientes/<id>/cobrar/` | Cobra el total de la deuda | HU-05-G, HU-07-D |
 | Gastos | `GET /gastos/` | Lista (`?desde`, `?hasta`, `?tipo`, `?search`) | HU-09-B |
@@ -121,7 +123,41 @@ Reglas:
 - Sin cliente, la venta es a «Consumidor final». Para **fiar** hay que elegir un cliente registrado.
 - **Contado** pide medio de pago; **transferencia** pide referencia; **efectivo** pide una caja abierta.
 - Si no alcanza el stock de algún producto no se vende nada: `"Stock insuficiente de Castaño Súper: hay 3 bandejas y se necesitan 12."`
-- Una venta confirmada no se modifica (405).
+- Una venta no se borra (`DELETE` responde 405): se modifica o se anula, y siempre queda registrada.
+
+### Modificar una venta (solo administrador)
+
+```json
+PUT /api/ventas/15/
+{
+  "modalidad": "FIADO",
+  "cliente": 3,
+  "detalles": [ { "producto": 1, "presentacion": 3, "cantidad": "1" } ]
+}
+```
+
+Se manda la venta completa, igual que en el alta (`PATCH` hace lo mismo). El sistema, en una sola transacción:
+
+1. Devuelve al stock las bandejas que había descontado la venta (movimiento `AJUSTE_POSITIVO` con motivo «Modificación de la venta 15»).
+2. Reemplaza las líneas y el cobro, y vuelve a descontar el stock y a cobrar o fiar con los datos nuevos.
+3. Si antes había entrado efectivo, lo saca de la caja abierta (movimiento `RETIRO` con el mismo motivo).
+
+Reglas:
+
+- La venta conserva su número y su fecha; se guarda `fecha_modificacion`.
+- Las líneas que ya estaban conservan su precio; las nuevas toman el precio vigente.
+- Si no alcanza el stock, no se modifica nada.
+- Cómo estaba la venta antes queda escrito en `REGISTRO_ACTIVIDAD` (operación «Modificación»).
+- No se puede modificar una venta anulada ni una venta fiada cuya deuda ya se cobró.
+
+### Anular una venta (solo administrador)
+
+```json
+POST /api/ventas/15/anular/
+{ "motivo": "El cliente devolvió la mercadería" }
+```
+
+La venta pasa a `ANULADA` con su motivo y su fecha de anulación, y conserva el detalle y los pagos. Se devuelve el stock y, si fue en efectivo, el dinero sale de la caja abierta. Si era fiada, la deuda se da de baja (saldo 0). Una venta anulada no se modifica ni se vuelve a anular. El operador recibe 403.
 
 ### Cobrar una deuda
 

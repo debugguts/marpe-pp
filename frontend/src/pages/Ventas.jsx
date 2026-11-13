@@ -1,15 +1,20 @@
 import { useDeferredValue, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Boton, CabeceraPagina, Campo, EstadoVacio, Insignia, Panel } from '../components/ui'
+import AvisoError from '../components/AvisoError'
+import Dialogo from '../components/Dialogo'
 import Icono from '../components/Icono'
 import { erroresDe } from '../lib/abm'
 import { api } from '../lib/api'
 import { contenidoDe, hora, hoyISO, moneda, numero } from '../lib/formato'
+import { useSesion } from '../lib/sesion'
 import '../styles/ventas.css'
 
 // Punto de venta (S5-11 · HU-05). A la izquierda los productos con su precio;
 // a la derecha la venta en curso. El total y el control de stock se calculan acá
 // para avisar antes de confirmar, pero quien decide es la API (precio vigente y stock real).
+// El administrador además puede modificar una venta (se carga en el ticket) o anularla.
+// Una venta nunca se borra: anulada, queda en la lista con su motivo.
 const CONSUMIDOR_FINAL_ID = 1
 
 export default function Ventas() {
@@ -22,16 +27,24 @@ export default function Ventas() {
   const [medio, setMedio] = useState('EFECTIVO')
   const [referencia, setReferencia] = useState('')
   const [clienteId, setClienteId] = useState('')
-  const [hecha, setHecha] = useState(null) // última venta registrada
+  const [hecha, setHecha] = useState(null) // última venta registrada o modificada
+  const [editando, setEditando] = useState(null) // venta que se está modificando (o null si es una venta nueva)
+  const [fallo, setFallo] = useState(null) // error de la API para mostrar en la ventana de aviso
+  const sesion = useSesion()
+  const esAdministrador = sesion.data?.rol === 'Administrador'
 
   const productos = agruparPorProducto(precios.data ?? [])
   const total = lineas.reduce((s, l) => s + l.cantidad * l.precio, 0)
-  const faltantes = sinStock(lineas, productos)
-  const sinCaja = modalidad === 'CONTADO' && medio === 'EFECTIVO' && caja.isSuccess && !caja.data
+  // Al modificar, las bandejas que ya tenía la venta vuelven al stock: cuentan como disponibles.
+  const reservado = reservadoPor(editando, precios.data ?? [])
+  const faltantes = sinStock(lineas, productos, reservado)
+  const cobraEfectivo = modalidad === 'CONTADO' && medio === 'EFECTIVO'
+  const devuelveEfectivo = editando?.pagos.some((p) => p.medio_pago === 'EFECTIVO')
+  const sinCaja = (cobraEfectivo || devuelveEfectivo) && caja.isSuccess && !caja.data
 
   const registrar = useMutation({
-    mutationFn: () => api('/ventas/', {
-      metodo: 'POST',
+    mutationFn: () => api(editando ? `/ventas/${editando.id_venta}/` : '/ventas/', {
+      metodo: editando ? 'PUT' : 'POST',
       datos: {
         modalidad,
         ...(clienteId && { cliente: Number(clienteId) }),
@@ -41,15 +54,39 @@ export default function Ventas() {
       },
     }),
     onSuccess: (venta) => {
-      setHecha(venta)
+      setHecha({ ...venta, modificada: Boolean(editando) })
+      setEditando(null)
       setLineas([]); setReferencia(''); setClienteId(''); setModalidad('CONTADO')
       // Cambiaron el stock, la caja y las ventas del día: se vuelven a pedir solos.
       cliente.invalidateQueries({ queryKey: ['precios'] })
       cliente.invalidateQueries({ queryKey: ['caja'] })
       cliente.invalidateQueries({ queryKey: ['ventas'] })
     },
+    onError: (error) => setFallo(error),
   })
   const errores = erroresDe(registrar.error)
+
+  // Carga una venta ya hecha en el ticket para corregirla.
+  function modificar(venta) {
+    const bandejasDe = equivalencias(precios.data ?? [])
+    setHecha(null); registrar.reset()
+    setEditando(venta)
+    setLineas(venta.detalles.map((d) => ({
+      clave: `${d.producto}-${d.presentacion}`, producto: d.producto, presentacion: d.presentacion,
+      nombre: `${d.producto_nombre} · ${d.presentacion_nombre}`,
+      precio: Number(d.precio_unitario_aplicado), // la línea que ya estaba conserva su precio
+      bandejas: bandejasDe.get(d.presentacion) ?? 1, cantidad: Number(d.cantidad),
+    })))
+    setModalidad(venta.modalidad)
+    setMedio(venta.pagos[0]?.medio_pago ?? 'EFECTIVO')
+    setReferencia(venta.pagos[0]?.referencia_transferencia ?? '')
+    setClienteId(venta.cliente === CONSUMIDOR_FINAL_ID ? '' : String(venta.cliente))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+  function cancelarModificacion() {
+    setEditando(null); registrar.reset()
+    setLineas([]); setReferencia(''); setClienteId(''); setModalidad('CONTADO')
+  }
 
   // Suma "cuantas" unidades de esa presentación (1 al tocar; 12 con el botón Docena).
   function agregar(producto, p, cuantas = 1) {
@@ -76,7 +113,7 @@ export default function Ventas() {
     <>
       <CabeceraPagina
         titulo="Ventas"
-        descripcion="Tocá un producto para sumarlo a la venta."
+        descripcion={editando ? `Modificando la venta Nº ${editando.id_venta}.` : 'Tocá un producto para sumarlo a la venta.'}
         acciones={caja.data
           ? <Insignia variante="exito">Caja abierta</Insignia>
           : caja.isSuccess && <Insignia variante="aviso">Caja cerrada</Insignia>}
@@ -119,10 +156,17 @@ export default function Ventas() {
           ))}
         </section>
 
-        <Panel titulo="Venta en curso" className="pos__ticket">
+        <Panel titulo={editando ? `Modificar venta Nº ${editando.id_venta}` : 'Venta en curso'}
+          className={`pos__ticket${editando ? ' is-editando' : ''}`}>
+          {editando && (
+            <div className="pos__editando" role="status">
+              <p>Cambiá productos, cantidades o forma de pago y guardá. El sistema devuelve lo anterior al stock y a la caja y vuelve a cargar la venta.</p>
+              <Boton variante="secundario" onClick={cancelarModificacion}>Cancelar</Boton>
+            </div>
+          )}
           {hecha && (
             <p className="pos__hecha" role="status">
-              <Icono nombre="ventas" /> Venta Nº {hecha.id_venta} registrada · {moneda(hecha.total)}
+              <Icono nombre="ventas" /> Venta Nº {hecha.id_venta} {hecha.modificada ? 'modificada' : 'registrada'} · {moneda(hecha.total)}
               {hecha.modalidad === 'FIADO' && ` · fiado a ${hecha.cliente_nombre}`}
             </p>
           )}
@@ -168,26 +212,32 @@ export default function Ventas() {
                   onChange={(e) => setReferencia(e.target.value)} error={errores.referencia_transferencia}
                   autoComplete="off" placeholder="Últimos números de la operación" />
               )}
-              {sinCaja && <p className="campo__error">No hay caja abierta: abrila para cobrar en efectivo.</p>}
             </>
           ) : (
             <ElegirCliente valor={clienteId} alCambiar={setClienteId} error={errores.cliente} />
           )}
-
-          {registrar.isError && !errores.referencia_transferencia && !(modalidad === 'FIADO' && errores.cliente) && (
-            <p className="campo__error" role="alert">
-              {errores.general || errores.detalles || errores.medio_pago || errores.cliente || registrar.error.message}
+          {sinCaja && (
+            <p className="campo__error">
+              No hay caja abierta: abrila para {cobraEfectivo ? 'cobrar' : 'devolver'} en efectivo.
             </p>
           )}
 
           <Boton className="pos__confirmar" disabled={!puedeConfirmar} cargando={registrar.isPending}
-            textoCargando="Registrando…" onClick={() => registrar.mutate()}>
-            {modalidad === 'FIADO' ? `Registrar fiado · ${moneda(total)}` : `Cobrar ${moneda(total)}`}
+            textoCargando={editando ? 'Guardando…' : 'Registrando…'} onClick={() => registrar.mutate()}>
+            {editando
+              ? `Guardar cambios · ${moneda(total)}`
+              : modalidad === 'FIADO' ? `Registrar fiado · ${moneda(total)}` : `Cobrar ${moneda(total)}`}
           </Boton>
         </Panel>
       </div>
 
-      <VentasDeHoy />
+      <ListadoVentas esAdministrador={esAdministrador} editandoId={editando?.id_venta}
+        alModificar={modificar} alFallar={setFallo} />
+
+      {fallo && (
+        <AvisoError error={fallo} titulo={editando ? 'No se pudo modificar la venta' : 'No se pudo registrar la venta'}
+          alCerrar={() => setFallo(null)} />
+      )}
     </>
   )
 }
@@ -230,41 +280,118 @@ function ElegirCliente({ valor, alCambiar, error }) {
   )
 }
 
-function VentasDeHoy() {
-  const ventas = useQuery({ queryKey: ['ventas', 'hoy'], queryFn: () => api(`/ventas/?desde=${hoyISO()}`) })
+// Ventas de un día. El administrador puede modificarlas o anularlas; las anuladas quedan a la vista.
+function ListadoVentas({ esAdministrador, editandoId, alModificar, alFallar }) {
+  const [dia, setDia] = useState(hoyISO())
+  const [anulando, setAnulando] = useState(null)
+  const ventas = useQuery({
+    queryKey: ['ventas', 'dia', dia],
+    queryFn: () => api(`/ventas/?desde=${dia}&hasta=${dia}`),
+    enabled: Boolean(dia),
+  })
   const filas = ventas.data?.results ?? []
+  const esHoy = dia === hoyISO()
+
   return (
-    <Panel titulo="Ventas de hoy" className="pos__hoy">
+    <Panel titulo={esHoy ? 'Ventas de hoy' : 'Ventas del día'} className="pos__hoy"
+      accion={<Campo etiqueta="Día" type="date" value={dia} max={hoyISO()} onChange={(e) => setDia(e.target.value)} className="pos__dia" />}>
       {filas.length === 0 ? (
-        <p className="suave">{ventas.isPending ? 'Cargando…' : 'Todavía no hay ventas hoy.'}</p>
+        <p className="suave">{ventas.isPending ? 'Cargando…' : esHoy ? 'Todavía no hay ventas hoy.' : 'No hubo ventas ese día.'}</p>
       ) : (
         <div className="tabla-wrap">
-          <table className="tabla">
+          <table className="tabla tabla-ventas">
             <thead>
               <tr>
                 <th scope="col">Hora</th><th scope="col">Nº</th><th scope="col">Cliente</th>
-                <th scope="col">Forma</th><th scope="col" className="num">Total</th>
+                <th scope="col">Forma</th><th scope="col">Estado</th><th scope="col" className="num">Total</th>
+                {esAdministrador && <th scope="col"><span className="sr-only">Acciones</span></th>}
               </tr>
             </thead>
             <tbody>
-              {filas.map((v) => (
-                <tr key={v.id_venta}>
-                  <td>{hora(v.fecha)}</td>
-                  <td>{v.id_venta}</td>
-                  <td>{v.cliente_nombre}</td>
-                  <td>
-                    {v.modalidad === 'FIADO'
-                      ? <Insignia variante="aviso">Fiado</Insignia>
-                      : <Insignia variante="neutro">{v.pagos[0]?.medio_pago === 'TRANSFERENCIA' ? 'Transferencia' : 'Efectivo'}</Insignia>}
-                  </td>
-                  <td className="num">{moneda(v.total)}</td>
-                </tr>
-              ))}
+              {filas.map((v) => {
+                const anulada = v.estado === 'ANULADA'
+                return (
+                  <tr key={v.id_venta} className={anulada ? 'is-anulada' : v.id_venta === editandoId ? 'is-editando' : undefined}>
+                    <td>{hora(v.fecha)}</td>
+                    <td>{v.id_venta}</td>
+                    <td>{v.cliente_nombre}</td>
+                    <td>
+                      {v.modalidad === 'FIADO'
+                        ? <Insignia variante="aviso">Fiado</Insignia>
+                        : <Insignia variante="neutro">{v.pagos[0]?.medio_pago === 'TRANSFERENCIA' ? 'Transferencia' : 'Efectivo'}</Insignia>}
+                    </td>
+                    <td>
+                      {anulada
+                        ? <span title={v.motivo_anulacion}><Insignia variante="peligro">Anulada</Insignia></span>
+                        : v.fecha_modificacion
+                          ? <Insignia variante="marca">Modificada</Insignia>
+                          : <Insignia variante="exito">Confirmada</Insignia>}
+                      {anulada && <p className="suave tabla-ventas__motivo">{v.motivo_anulacion}</p>}
+                    </td>
+                    <td className="num tabla-ventas__total">{moneda(v.total)}</td>
+                    {esAdministrador && (
+                      <td className="tabla-ventas__acciones">
+                        {!anulada && (
+                          <>
+                            <button type="button" className="btn btn--fantasma" onClick={() => alModificar(v)}
+                              disabled={v.id_venta === editandoId} aria-label={`Modificar la venta ${v.id_venta}`}>
+                              <Icono nombre="editar" /><span>Modificar</span>
+                            </button>
+                            <button type="button" className="btn btn--fantasma tabla-ventas__anular" onClick={() => setAnulando(v)}
+                              aria-label={`Anular la venta ${v.id_venta}`}>
+                              <Icono nombre="anular" /><span>Anular</span>
+                            </button>
+                          </>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
       )}
+      {anulando && <AnularVenta venta={anulando} alCerrar={() => setAnulando(null)} alFallar={alFallar} />}
     </Panel>
+  )
+}
+
+// Anular en vez de borrar: la venta queda registrada como ANULADA con su motivo,
+// y el sistema devuelve el stock y el efectivo.
+function AnularVenta({ venta, alCerrar, alFallar }) {
+  const cliente = useQueryClient()
+  const [motivo, setMotivo] = useState('')
+  const anular = useMutation({
+    mutationFn: () => api(`/ventas/${venta.id_venta}/anular/`, { metodo: 'POST', datos: { motivo } }),
+    onSuccess: () => {
+      for (const clave of ['ventas', 'precios', 'caja', 'cuentas-corrientes']) cliente.invalidateQueries({ queryKey: [clave] })
+      alCerrar()
+    },
+    onError: (error) => { if (!erroresDe(error).motivo) { alCerrar(); alFallar(error) } },
+  })
+  const errores = erroresDe(anular.error)
+  const efectivo = venta.pagos.some((p) => p.medio_pago === 'EFECTIVO')
+
+  return (
+    <Dialogo titulo={`Anular la venta Nº ${venta.id_venta}`}
+      descripcion={`${venta.cliente_nombre} · ${moneda(venta.total)}`} alCerrar={alCerrar}>
+      <form className="dialogo__cuerpo" onSubmit={(e) => { e.preventDefault(); anular.mutate() }}>
+        <p>
+          La venta no se borra: queda en la lista como anulada. Los huevos vuelven al stock
+          {efectivo ? ' y el efectivo sale de la caja abierta' : ''}{venta.modalidad === 'FIADO' ? ' y la deuda del cliente se da de baja' : ''}.
+        </p>
+        <Campo etiqueta="Motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} error={errores.motivo}
+          placeholder="Por ejemplo: el cliente devolvió la mercadería" maxLength={200} data-foco required />
+      </form>
+      <footer className="dialogo__pie">
+        <Boton variante="secundario" onClick={alCerrar}>Volver</Boton>
+        <Boton variante="peligro" cargando={anular.isPending} textoCargando="Anulando…"
+          disabled={motivo.trim().length < 3} onClick={() => anular.mutate()}>
+          Anular venta
+        </Boton>
+      </footer>
+    </Dialogo>
   )
 }
 
@@ -280,12 +407,29 @@ function agruparPorProducto(precios) {
   return [...porProducto.values()]
 }
 
+// Presentación → bandejas que equivale (Unidad 0,0333 · Bandeja 1 · Caja 6)
+function equivalencias(precios) {
+  return new Map(precios.map((p) => [p.presentacion, Number(p.bandejas)]))
+}
+
+// Bandejas que tiene tomadas la venta que se está modificando → Map(producto → bandejas)
+function reservadoPor(venta, precios) {
+  const reservado = new Map()
+  if (!venta) return reservado
+  const bandejasDe = equivalencias(precios)
+  for (const d of venta.detalles) {
+    reservado.set(d.producto, (reservado.get(d.producto) ?? 0) + Number(d.cantidad) * (bandejasDe.get(d.presentacion) ?? 1))
+  }
+  return reservado
+}
+
 // Productos cuya venta necesita más bandejas de las que hay → Map(producto → stock disponible)
-function sinStock(lineas, productos) {
+function sinStock(lineas, productos, reservado = new Map()) {
   const faltan = new Map()
   for (const producto of productos) {
+    const disponible = producto.stock + (reservado.get(producto.producto) ?? 0)
     const necesarias = lineas.filter((l) => l.producto === producto.producto).reduce((s, l) => s + l.cantidad * l.bandejas, 0)
-    if (necesarias > producto.stock + 1e-6) faltan.set(producto.producto, producto.stock)
+    if (necesarias > disponible + 1e-6) faltan.set(producto.producto, disponible)
   }
   return faltan
 }

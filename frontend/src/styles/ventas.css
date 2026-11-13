@@ -114,3 +114,25 @@
 .pos__confirmar { width: 100%; min-height: 3.25rem; font-size: var(--texto-l); }
 
 .pos__hoy { margin-top: var(--espacio-4); }
+
+/* ---------- Modificar y anular (solo administrador) ---------- */
+.pos__ticket.is-editando { outline: 2px solid var(--rosa); outline-offset: 2px; border-radius: var(--radio-panel); }
+.pos__editando {
+  display: grid;
+  gap: var(--espacio-2);
+  padding: 0.8rem 0.9rem;
+  background: color-mix(in srgb, var(--rosa) 35%, var(--blanco));
+  border-radius: var(--radio-control);
+  font-size: var(--texto-s);
+}
+.pos__editando .btn { justify-self: start; }
+.pos__hoy .panel__cab { flex-wrap: wrap; gap: var(--espacio-2); }
+.pos__dia { min-width: 10rem; }
+.pos__dia .campo__label { font-size: var(--texto-s); }
+.tabla-ventas__acciones { white-space: nowrap; text-align: right; }
+.tabla-ventas__acciones .btn { min-height: 2.25rem; padding: 0 0.6rem; font-size: var(--texto-s); }
+.tabla-ventas__anular { color: var(--peligro); }
+.tabla-ventas tr.is-anulada td { color: var(--texto-suave); }
+.tabla-ventas tr.is-anulada .tabla-ventas__total { text-decoration: line-through; }
+.tabla-ventas tr.is-editando td { background: color-mix(in srgb, var(--rosa) 30%, var(--blanco)); }
+.tabla-ventas__motivo { margin: 0.2rem 0 0; font-size: var(--texto-s); max-width: 18rem; }

@@ -32,12 +32,13 @@ class CuentaCorrienteSerializer(serializers.ModelSerializer):
     fecha = serializers.DateTimeField(source="venta.fecha", read_only=True)
     cliente = serializers.IntegerField(source="venta.cliente_id", read_only=True)
     cliente_nombre = serializers.CharField(source="venta.cliente.nombre", read_only=True)
+    venta_estado = serializers.CharField(source="venta.estado", read_only=True)  # ANULADA: la deuda se dio de baja
     pagos = PagoCuentaSerializer(many=True, read_only=True)
 
     class Meta:
         model = CuentaCorriente
         fields = ["id_cuenta", "venta", "fecha", "cliente", "cliente_nombre",
-                  "importe_original", "saldo_pendiente", "estado", "pagos"]
+                  "importe_original", "saldo_pendiente", "estado", "venta_estado", "pagos"]
 
 
 class CobroSerializer(serializers.Serializer):

@@ -54,11 +54,11 @@ class VentasAPITest(APITestCase):
         self.assertEqual(CuentaCorriente.objects.get().estado, "PENDIENTE")
         self.assertEqual(stock_de(self.producto), 18)
 
-    def test_una_venta_no_se_puede_modificar(self):
+    def test_una_venta_no_se_puede_borrar(self):
         id_venta = self.vender().data["id_venta"]
-        respuesta = self.client.patch(f"{self.url}{id_venta}/", {"total": "1"}, format="json")
+        respuesta = self.client.delete(f"{self.url}{id_venta}/")
         self.assertEqual(respuesta.status_code, 405)
-        self.assertEqual(Venta.objects.get().total, Decimal("14000"))
+        self.assertTrue(Venta.objects.filter(pk=id_venta).exists())
 
     def test_contado_sin_cliente_va_a_consumidor_final(self):
         respuesta = self.vender(cliente=None)

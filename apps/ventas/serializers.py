@@ -52,6 +52,15 @@ class NuevaVentaSerializer(serializers.Serializer):
         return datos
 
 
+class AnularVentaSerializer(serializers.Serializer):
+    """Para anular hay que decir por qué: queda guardado en la venta."""
+
+    motivo = serializers.CharField(max_length=200, min_length=3, trim_whitespace=True, error_messages={
+        "blank": "Escribí el motivo de la anulación.",
+        "min_length": "Escribí el motivo de la anulación (al menos 3 letras).",
+    })
+
+
 # ---------- Lo que devuelve la API ----------
 
 class DetalleVentaSerializer(serializers.ModelSerializer):
@@ -80,7 +89,8 @@ class VentaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Venta
         fields = ["id_venta", "fecha", "modalidad", "cliente", "cliente_nombre", "total",
-                  "saldo_pendiente", "usuario_nombre", "detalles", "pagos"]
+                  "saldo_pendiente", "usuario_nombre", "estado", "fecha_modificacion",
+                  "fecha_anulacion", "motivo_anulacion", "detalles", "pagos"]
 
     def get_saldo_pendiente(self, venta):
         cuenta = getattr(venta, "cuenta_corriente", None) if venta.modalidad == Venta.Modalidad.FIADO else None
