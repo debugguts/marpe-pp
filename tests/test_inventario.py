@@ -40,5 +40,8 @@ class InventarioAPITest(APITestCase):
 
     def test_bajo_minimo_y_cambio_de_minimo(self):
         self.assertEqual(self.client.get("/api/stock/", {"bajo_minimo": "1"}).data, [])
+        operador = self.client.patch(f"/api/stock/{self.producto.pk}/", {"stock_minimo_bandejas": "30"}, format="json")
+        self.assertEqual(operador.status_code, 403)  # el mínimo lo cambia el administrador
+        self.client.force_login(self.admin)
         self.client.patch(f"/api/stock/{self.producto.pk}/", {"stock_minimo_bandejas": "30"}, format="json")
         self.assertTrue(self.client.get("/api/stock/").data[0]["bajo_minimo"])

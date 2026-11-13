@@ -11,10 +11,11 @@ const GRUPOS = [
     items: [
       { a: '/', texto: 'Inicio', icono: 'inicio', fin: true },
       { a: '/ventas', texto: 'Ventas', icono: 'ventas' },
+      { a: '/cuentas', texto: 'Cuentas corrientes', icono: 'cuentas' },
       { a: '/caja', texto: 'Caja', icono: 'caja' },
-      { a: '/compras', texto: 'Compras', icono: 'compras' },
-      { texto: 'Inventario', icono: 'inventario' },
-      { a: '/gastos', texto: 'Gastos', icono: 'gastos' },
+      { a: '/compras', texto: 'Compras', icono: 'compras', soloAdministrador: true },
+      { a: '/inventario', texto: 'Inventario', icono: 'inventario' },
+      { a: '/gastos', texto: 'Gastos', icono: 'gastos', soloAdministrador: true },
     ],
   },
   {
@@ -28,7 +29,7 @@ const GRUPOS = [
   {
     titulo: 'Administración',
     soloAdministrador: true, // el Operador no ve este grupo (S4-06)
-    items: [{ texto: 'Usuarios y roles', icono: 'usuarios' }],
+    items: [{ a: '/usuarios', texto: 'Usuarios y roles', icono: 'usuarios' }],
   },
 ]
 
@@ -41,7 +42,9 @@ export default function Layout() {
   const salir = useLogout()
   const nombre = usuario?.nombre ?? ''
   const esAdministrador = usuario?.rol === 'Administrador'
+  // El Operador no ve lo que no puede usar (grupos o ítems marcados soloAdministrador).
   const grupos = GRUPOS.filter((g) => !g.soloAdministrador || esAdministrador)
+    .map((g) => ({ ...g, items: g.items.filter((i) => !i.soloAdministrador || esAdministrador) }))
 
   useEffect(() => { setAbierto(false) }, [pathname])
 

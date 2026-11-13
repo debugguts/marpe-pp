@@ -13,6 +13,7 @@ class ComprasAPITest(APITestCase):
 
     def setUp(self):
         crear_base(self)
+        self.client.force_login(self.admin)  # compras, gastos y precios los carga el administrador
 
     def comprar(self, lineas, **extra):
         return self.client.post(self.url, {"proveedor": self.proveedor.pk, "detalles": lineas, **extra}, format="json")

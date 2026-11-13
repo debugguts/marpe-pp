@@ -4,6 +4,7 @@ from rest_framework import mixins, status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from config.permisos import ConsultaOAdministrador
 from config.vistas import anotar_actividad, validar
 
 from .models import MovimientoInventario, Stock
@@ -20,7 +21,7 @@ class StockViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Upda
     """
 
     serializer_class = StockSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [ConsultaOAdministrador]  # el stock mínimo lo cambia el administrador
     pagination_class = None
 
     def get_queryset(self):

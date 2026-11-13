@@ -5,9 +5,12 @@ from rest_framework.test import APITestCase
 from apps.clientes.models import CONSUMIDOR_FINAL_ID
 from apps.usuarios.models import RegistroActividad, Usuario
 
+from .datos import entrar_como_admin
+
 
 class RegistroActividadTest(APITestCase):
     def test_alta_queda_registrada(self):
+        entrar_como_admin(self)
         respuesta = self.client.post("/api/proveedores/", {"nombre": "Granja Prueba"}, format="json")
         anotacion = RegistroActividad.objects.get()
         self.assertEqual(anotacion.operacion, "Alta")
@@ -24,5 +27,6 @@ class RegistroActividadTest(APITestCase):
         self.assertEqual(operaciones, [("Alta", usuario.pk), ("Modificación", usuario.pk), ("Baja", usuario.pk)])
 
     def test_intento_bloqueado_no_se_registra(self):
+        entrar_como_admin(self)
         self.client.delete(f"/api/clientes/{CONSUMIDOR_FINAL_ID}/")  # responde 403
         self.assertFalse(RegistroActividad.objects.exists())

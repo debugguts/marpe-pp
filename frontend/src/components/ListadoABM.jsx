@@ -17,6 +17,7 @@ export default function ListadoABM({
   nombreDe,       // (fila) => texto para mensajes: "Avícola del Norte"
   alEditar,       // (fila) => abre el formulario
   protegido = () => false, // (fila) => true si no se puede tocar (Consumidor final)
+  soloLectura = false, // true: el rol solo consulta (el operador en proveedores y catálogo)
   buscarTexto = 'Buscar',
   vacio,          // { icono, titulo, texto, accion }
 }) {
@@ -104,7 +105,7 @@ export default function ListadoABM({
                           : <Insignia variante={activo ? 'exito' : 'neutro'}>{activo ? 'Activo' : 'De baja'}</Insignia>}
                       </td>
                       <td className="num abm-celda-acciones">
-                        {!protegido(fila) && (
+                        {!protegido(fila) && !soloLectura && (
                           <div className="abm-acciones">
                             {activo ? (
                               <>

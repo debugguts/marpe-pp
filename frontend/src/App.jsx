@@ -8,8 +8,11 @@ import Caja from './pages/Caja'
 import Catalogo from './pages/Catalogo'
 import Clientes from './pages/Clientes'
 import Compras from './pages/Compras'
+import Cuentas from './pages/Cuentas'
 import Gastos from './pages/Gastos'
+import Inventario from './pages/Inventario'
 import Proveedores from './pages/Proveedores'
+import Usuarios from './pages/Usuarios'
 import Ventas from './pages/Ventas'
 import { NoEncontrada } from './pages/Pendiente'
 
@@ -34,6 +37,9 @@ export default function App() {
               <Route path="caja" element={<Caja />} />
               <Route path="compras" element={<Compras />} />
               <Route path="gastos" element={<Gastos />} />
+              <Route path="inventario" element={<Inventario />} />
+              <Route path="cuentas" element={<Cuentas />} />
+              <Route path="usuarios" element={<Usuarios />} />
               <Route path="*" element={<NoEncontrada />} />
             </Route>
           </Route>

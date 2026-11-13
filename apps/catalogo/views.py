@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from config.comunes import Estado
 from config.formato import pesos
-from config.permisos import EsAdministrador
+from config.permisos import ConsultaOAdministrador, EsAdministrador
 from config.vistas import ABMConBajaLogica, anotar_actividad, validar
 
 from .models import PrecioProducto, Presentacion, Producto
@@ -25,6 +25,8 @@ from .serializers import (
 class ProductoViewSet(ABMConBajaLogica):
     """ABM de productos: huevo por tipo y tamaño (HU-02-A, HU-02-B)."""
 
+    permission_classes = [ConsultaOAdministrador]
+
     modelo = Producto
     serializer_class = ProductoSerializer
     search_fields = ["tipo_huevo", "tamano"]
@@ -34,6 +36,8 @@ class ProductoViewSet(ABMConBajaLogica):
 
 class PresentacionViewSet(ABMConBajaLogica):
     """ABM de presentaciones: unidad, bandeja (30 huevos), caja (6 bandejas) y su equivalencia en bandejas."""
+
+    permission_classes = [ConsultaOAdministrador]
 
     modelo = Presentacion
     serializer_class = PresentacionSerializer

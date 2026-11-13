@@ -2,6 +2,7 @@ import { useState } from 'react'
 import FormularioABM from '../components/FormularioABM'
 import ListadoABM from '../components/ListadoABM'
 import { Boton, CabeceraPagina, Campo } from '../components/ui'
+import { useEsAdministrador } from '../lib/sesion'
 
 // Pantalla ABM de Proveedores (S4-08 · HU-03).
 const COLUMNAS = [
@@ -13,7 +14,8 @@ const COLUMNAS = [
 export default function Proveedores() {
   // null = ventana cerrada · {} = alta nueva · proveedor = edición
   const [editando, setEditando] = useState(null)
-  const nuevo = <Boton icono="mas" onClick={() => setEditando({})}>Nuevo proveedor</Boton>
+  const esAdministrador = useEsAdministrador() // el Operador solo consulta
+  const nuevo = esAdministrador && <Boton icono="mas" onClick={() => setEditando({})}>Nuevo proveedor</Boton>
 
   return (
     <>
@@ -25,6 +27,7 @@ export default function Proveedores() {
         columnas={COLUMNAS}
         nombreDe={(p) => p.nombre}
         alEditar={setEditando}
+        soloLectura={!esAdministrador}
         buscarTexto="Buscar por nombre o teléfono"
         vacio={{ icono: 'proveedores', titulo: 'Todavía no hay proveedores', texto: 'Cargá el primero para registrar compras y costos.', accion: nuevo }}
       />

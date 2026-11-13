@@ -8,6 +8,7 @@ from apps.compras.views import CompraViewSet
 from apps.gastos.views import GastoViewSet
 from apps.inventario.views import MovimientoInventarioViewSet, StockViewSet
 from apps.proveedores.views import CostoProveedorViewSet, ProveedorViewSet
+from apps.usuarios.gestion import ActividadViewSet, UsuarioViewSet
 from apps.usuarios.views import LoginView, LogoutView, YoView
 from apps.ventas.cuentas import CuentaCorrienteViewSet
 from apps.ventas.views import VentaViewSet
@@ -29,6 +30,10 @@ router.register("cuentas-corrientes", CuentaCorrienteViewSet, basename="cuenta-c
 router.register("gastos", GastoViewSet, basename="gasto")
 router.register("stock", StockViewSet, basename="stock")
 router.register("movimientos-inventario", MovimientoInventarioViewSet, basename="movimiento-inventario")
+
+# Administración (solo administrador): usuarios con su rol y registro de actividad.
+router.register("usuarios", UsuarioViewSet, basename="usuario")
+router.register("actividad", ActividadViewSet, basename="actividad")
 
 # Sesión: iniciar, cerrar y saber quién está conectado.
 urlpatterns = router.urls + [

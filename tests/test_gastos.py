@@ -14,6 +14,7 @@ class GastosAPITest(APITestCase):
 
     def setUp(self):
         crear_base(self)
+        self.client.force_login(self.admin)  # compras, gastos y precios los carga el administrador
 
     def gasto(self, **datos):
         cuerpo = {"fecha": str(date.today()), "concepto": "Alquiler del local", "categoria": "Alquiler",

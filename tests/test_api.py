@@ -12,11 +12,16 @@ from apps.catalogo.models import Producto
 from apps.clientes.models import CONSUMIDOR_FINAL_ID, Cliente
 from apps.proveedores.models import Proveedor
 
+from .datos import entrar_como_admin
+
 
 class ProveedoresAPITest(APITestCase):
     """HU-03: alta, validaciones, búsqueda y baja lógica de proveedores."""
 
     url = "/api/proveedores/"
+
+    def setUp(self):
+        entrar_como_admin(self)
 
     def test_alta_valida(self):
         respuesta = self.client.post(
@@ -62,6 +67,9 @@ class ProveedoresAPITest(APITestCase):
 class CatalogoAPITest(APITestCase):
     """HU-02: productos (tipo + tamaño único) y presentaciones."""
 
+    def setUp(self):
+        entrar_como_admin(self)
+
     def test_producto_muestra_nombre_legible(self):
         Producto.objects.create(tipo_huevo="BLANCO", tamano="MEDIANO")
         respuesta = self.client.get("/api/productos/")
@@ -93,6 +101,9 @@ class ClientesAPITest(APITestCase):
     """HU-07: ABM de clientes y protección de «Consumidor final»."""
 
     url = "/api/clientes/"
+
+    def setUp(self):
+        entrar_como_admin(self)
 
     def test_consumidor_final_existe(self):
         self.assertTrue(Cliente.objects.filter(pk=CONSUMIDOR_FINAL_ID).exists())

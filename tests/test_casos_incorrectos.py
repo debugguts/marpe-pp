@@ -63,6 +63,7 @@ class CasosIncorrectosTest(APITestCase):
         self.assertIn("medio_pago", self.vender(medio_pago=None).data)
 
     def test_compra_con_proveedor_inexistente(self):
+        self.client.force_login(self.admin)
         respuesta = self.client.post("/api/compras/", {"proveedor": 999, "detalles": [
             {"producto": self.producto.pk, "presentacion": self.bandeja.pk, "cantidad": "1"}]}, format="json")
         self.assertIn("proveedor", respuesta.data)

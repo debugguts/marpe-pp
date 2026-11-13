@@ -1,8 +1,8 @@
 from django.db import transaction
 from rest_framework import mixins, status, viewsets
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from config.permisos import ConsultaOAdministrador
 from config.vistas import anotar_actividad, validar
 
 from .models import Compra
@@ -19,7 +19,7 @@ class CompraViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.G
     """
 
     serializer_class = CompraSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [ConsultaOAdministrador]  # el operador consulta; carga el administrador
 
     def get_queryset(self):
         compras = (Compra.objects.select_related("proveedor", "usuario")

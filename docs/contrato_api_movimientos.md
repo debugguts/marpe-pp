@@ -4,7 +4,8 @@ Huevería Marpe · Práctica Profesional II · Comisión 2C
 
 - Base: `http://localhost:8080/api/`
 - Formato: JSON. Fechas `AAAA-MM-DD`, fecha y hora en ISO 8601. Importes como texto con 2 decimales (`"14000.00"`).
-- Sesión: todos los movimientos piden haber iniciado sesión (`POST /api/auth/login/`), porque guardan qué usuario los hizo. Sin sesión responden **403**.
+- Sesión: toda la API pide haber iniciado sesión (`POST /api/auth/login/`); sin sesión responde **403**.
+- Roles: el **operador** vende, cobra deudas, opera la caja, carga mermas y da de alta clientes, y consulta lo demás. El **administrador** además carga proveedores, productos, presentaciones, costos, precios, compras, gastos y stock mínimo, gestiona usuarios y modifica o anula ventas. Si el operador lo intenta, la API responde **403** (la pantalla además esconde esos botones).
 - Listados paginados de a 20: `{ "count", "next", "previous", "results": [...] }` (salvo `precios`, `stock` y los movimientos de una caja, que vienen completos).
 - Errores: **400** con el problema por campo, por ejemplo `{ "cantidad": ["Asegúrese de que este valor sea mayor o igual a 0.001."] }`. Los errores que no son de un campo vienen en `non_field_errors`.
 - Cada alta queda registrada en `REGISTRO_ACTIVIDAD` (quién, qué y cuándo).
@@ -29,6 +30,7 @@ Huevería Marpe · Práctica Profesional II · Comisión 2C
 | | `POST /ventas/<id>/anular/` | Solo administrador: anula con motivo; devuelve stock y efectivo | HU-05 |
 | Cuenta corriente | `GET /cuentas-corrientes/` | Deudas (`?cliente`, `?estado=PENDIENTE\|CANCELADA`) | HU-07-C/E |
 | | `POST /cuentas-corrientes/<id>/cobrar/` | Cobra el total de la deuda | HU-05-G, HU-07-D |
+| | `GET /cuentas-corrientes/resumen/` | Total a cobrar y deuda por cliente | HU-07-E |
 | Gastos | `GET /gastos/` | Lista (`?desde`, `?hasta`, `?tipo`, `?search`) | HU-09-B |
 | | `POST /gastos/` | Alta; en efectivo sale de la caja | HU-09-A/E |
 | | `PATCH /gastos/<id>/` | Corrige fecha, concepto, categoría o tipo | HU-09-C |
@@ -40,6 +42,15 @@ Huevería Marpe · Práctica Profesional II · Comisión 2C
 | Precios | `GET /precios/` | Precios vigentes con el stock de cada producto (`?historial=1`) | HU-02-C |
 | | `GET /precios/sugeridos/` | Costo, gasto fijo, equilibrio y sugerido por producto | HU-02-C |
 | | `POST /precios/confirmar/` | Solo administrador: deja vigente un precio nuevo | HU-02-C |
+
+| Usuarios | `GET /usuarios/` | Solo administrador. Lista (`?search`, `?estado=ACTIVO\|INACTIVO`) | HU-01 |
+| | `POST /usuarios/` | Alta con `rol` (Administrador u Operador) y `clave` | HU-01-A |
+| | `PATCH /usuarios/<id>/` | Cambia nombre, rol o clave | HU-01-B |
+| | `DELETE /usuarios/<id>/` | Baja lógica: no entra más, su historial queda | HU-01-D |
+| | `POST /usuarios/<id>/reactivar/` | Lo vuelve a habilitar | HU-01-D |
+| Actividad | `GET /actividad/` | Solo administrador. Quién hizo qué y cuándo (`?usuario`, `?entidad`, `?operacion`, `?desde`, `?hasta`) | HU-01-E |
+
+Reglas de usuarios: la clave se guarda cifrada y tiene que cumplir los validadores de Django (8 caracteres, no solo números, no común); nadie se da de baja a sí mismo y siempre queda al menos un administrador activo.
 
 ## Ejemplos
 

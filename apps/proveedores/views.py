@@ -3,6 +3,7 @@ from datetime import date
 from django.db import transaction
 from rest_framework import mixins, serializers, viewsets
 
+from config.permisos import ConsultaOAdministrador
 from config.vistas import ABMConBajaLogica
 
 from .models import CostoProveedor, Proveedor
@@ -11,6 +12,8 @@ from .serializers import CostoProveedorSerializer, ProveedorSerializer
 
 class ProveedorViewSet(ABMConBajaLogica):
     """ABM de proveedores (HU-03)."""
+
+    permission_classes = [ConsultaOAdministrador]
 
     modelo = Proveedor
     serializer_class = ProveedorSerializer
@@ -52,6 +55,8 @@ class CostoProveedorViewSet(
     PATCH /costos-proveedor/<id>/   cambia el precio: el sistema guarda el anterior en el historial
     No se pueden borrar. Filtros: ?proveedor=<id>  ?producto=<id>  ?vigentes=1
     """
+
+    permission_classes = [ConsultaOAdministrador]
 
     serializer_class = CostoProveedorSerializer
 

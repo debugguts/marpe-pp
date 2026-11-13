@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import FormularioABM from '../components/FormularioABM'
 import ListadoABM from '../components/ListadoABM'
 import { Boton, CabeceraPagina, Campo } from '../components/ui'
+import { useEsAdministrador } from '../lib/sesion'
 import { numero } from '../lib/formato'
 import Precios from './Precios'
 
@@ -18,7 +19,8 @@ export default function Catalogo() {
   const ver = SOLAPAS.some(([v]) => v === parametros.get('ver')) ? parametros.get('ver') : 'productos'
   const [editando, setEditando] = useState(null) // null cerrado · {} alta · registro edición
 
-  const nuevo = ver !== 'precios' && (
+  const esAdministrador = useEsAdministrador() // el Operador solo consulta
+  const nuevo = esAdministrador && ver !== 'precios' && (
     <Boton icono="mas" onClick={() => setEditando({})}>
       {ver === 'productos' ? 'Nuevo producto' : 'Nueva presentación'}
     </Boton>
@@ -53,6 +55,7 @@ function Productos({ editando, setEditando, nuevo }) {
   return (
     <>
       <ListadoABM
+        soloLectura={!nuevo}
         key="productos"
         recurso="productos"
         clave="id_producto"
@@ -97,6 +100,7 @@ function Presentaciones({ editando, setEditando, nuevo }) {
   return (
     <>
       <ListadoABM
+        soloLectura={!nuevo}
         key="presentaciones"
         recurso="presentaciones"
         clave="id_presentacion"

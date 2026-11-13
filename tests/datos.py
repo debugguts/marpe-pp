@@ -34,3 +34,10 @@ def crear_base(prueba):
 
 def stock_de(producto):
     return Stock.objects.get(producto=producto).cantidad_bandejas
+
+
+def entrar_como_admin(prueba):
+    """Crea un administrador e inicia sesión con él (las altas de tablas base son del administrador)."""
+    prueba.admin = Usuario.objects.create_user("admin", password="x")
+    prueba.admin.groups.add(Group.objects.get_or_create(name="Administrador")[0])
+    prueba.client.force_login(prueba.admin)
