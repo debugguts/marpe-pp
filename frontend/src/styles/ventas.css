@@ -5,7 +5,7 @@
 .mostrador__cab h1 { font-size: clamp(1.8rem, 3vw, 2.4rem); }
 .mostrador__cab h1 span { font-size: 0.6em; font-weight: 500; color: var(--texto-suave); }
 
-.mostrador__cuerpo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(20rem, 25rem); gap: var(--espacio-4); align-items: start; }
+.mostrador__cuerpo { display: grid; grid-template-columns: minmax(0, 1fr) clamp(20rem, 26vw, 30rem); gap: var(--espacio-4); align-items: start; }
 @media (max-width: 64rem) { .mostrador__cuerpo { grid-template-columns: minmax(0, 1fr); } }
 
 /* ---------- Buscador y filtros ---------- */
@@ -148,3 +148,86 @@
   .mostrador__cuenta { grid-row: auto; grid-column: 1; }
   .chips__eti { width: 100%; }
 }
+
+/* ---------- Una tarjeta por huevo, una fila por presentación ----------
+   Cada presentación tiene su color y su marca para reconocerla sin leer el precio:
+   Bandeja (30) arena · Caja (×6) marrón · Huevos sueltos (1) rosa. El mismo color se repite en el ticket. */
+.mostrador__tarjetas { grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr)); }
+.tarjeta-huevo {
+  display: grid; align-content: start; gap: var(--espacio-3);
+  padding: var(--espacio-3) var(--espacio-3) var(--espacio-3);
+  background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio-panel);
+}
+.tarjeta-huevo header { display: grid; gap: 0.3rem; }
+.tarjeta-huevo__chips { display: flex; gap: 0.3rem; }
+.tarjeta-huevo h3 { font-size: 1.3rem; }
+.tarjeta-huevo__stock { margin: 0; font-size: var(--texto-s); font-weight: 600; }
+.tarjeta-huevo__stock::before { content: "● "; }
+.tarjeta-huevo__stock.is-ok { color: var(--exito); }
+.tarjeta-huevo__stock.is-bajo { color: var(--aviso); }
+.tarjeta-huevo__stock.is-agotado { color: var(--peligro); }
+.tarjeta-huevo__opciones { display: grid; gap: var(--espacio-2); margin: 0; padding: 0; list-style: none; }
+
+.opcion-venta {
+  --tono: var(--arena); --tinta: var(--marron);
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 0.75rem;
+  width: 100%; min-height: 3.6rem; padding: 0.5rem 0.6rem 0.5rem 0.5rem; cursor: pointer; touch-action: manipulation;
+  font: inherit; color: var(--marron); text-align: left;
+  background: color-mix(in srgb, var(--tono) 28%, var(--blanco));
+  border: 1.5px solid color-mix(in srgb, var(--tono) 70%, var(--borde)); border-radius: var(--radio-control);
+  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.1s ease;
+}
+.opcion-venta.is-bandeja { --tono: #E9D9C8; --tinta: #654E3F; }
+.opcion-venta.is-caja { --tono: #B79C86; --tinta: #FFFFFF; }
+.opcion-venta.is-unidad { --tono: #F2C3C2; --tinta: #654E3F; }
+.opcion-venta:hover:not(:disabled) { border-color: var(--marron); background: color-mix(in srgb, var(--tono) 45%, var(--blanco)); }
+.opcion-venta:active:not(:disabled) { transform: scale(0.98); }
+.opcion-venta:disabled { cursor: not-allowed; opacity: 0.5; }
+.opcion-venta__marca {
+  display: grid; place-items: center; width: 2.6rem; height: 2.6rem;
+  font: 700 0.9rem/1 var(--fuente-titulo); color: var(--tinta);
+  background: var(--tono); border-radius: 8px;
+}
+.opcion-venta__texto { display: grid; min-width: 0; }
+.opcion-venta__texto strong { font: 600 1rem/1.2 var(--fuente-titulo); }
+.opcion-venta__texto small { font-size: 0.75rem; color: var(--texto-suave); }
+.opcion-venta__precio { font: 700 1.15rem/1 var(--fuente-titulo); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.opcion-venta__mas { display: grid; place-items: center; width: 2rem; height: 2rem; color: var(--exito); background: color-mix(in srgb, var(--exito) 12%, var(--blanco)); border-radius: 50%; }
+
+.etiqueta-pres { display: inline-block; margin-right: 0.3rem; padding: 0.05rem 0.45rem; font-size: 0.72rem; font-weight: 600; border-radius: var(--radio-pildora); }
+.etiqueta-pres.is-bandeja { background: #E9D9C8; color: #654E3F; }
+.etiqueta-pres.is-caja { background: #B79C86; color: #FFFFFF; }
+.etiqueta-pres.is-unidad { background: #F2C3C2; color: #654E3F; }
+/* Ticket: nombre arriba a lo ancho; cantidad y subtotal abajo */
+.venta-actual__lineas li { grid-template-columns: minmax(0, 1fr) auto; row-gap: 0.4rem; }
+.venta-actual__lineas li > div:first-child { grid-column: 1 / -1; }
+.venta-actual__lineas .paso-a-paso { justify-self: start; }
+.venta-actual__nombre { display: flex; flex-wrap: wrap; align-items: center; gap: 0.2rem; }
+/* Huevos sueltos: se escribe la cantidad o se usan los botones rápidos */
+.opcion-venta--sueltos { cursor: default; grid-template-columns: auto minmax(0, 1fr); row-gap: 0.5rem; }
+.opcion-venta--sueltos.is-apagada { opacity: 0.5; }
+.sueltos { grid-column: 1 / -1; display: grid; grid-template-columns: 5.5rem minmax(0, 1fr) auto; align-items: center; gap: 0.6rem; }
+.sueltos input {
+  width: 100%; min-height: 2.5rem; padding: 0 0.6rem; text-align: center;
+  font: 600 1.05rem var(--fuente-ui); font-variant-numeric: tabular-nums; color: var(--marron);
+  background: var(--blanco); border: 1px solid var(--borde); border-radius: 8px;
+}
+.sueltos input:focus { outline: 2px solid var(--marron); outline-offset: 1px; }
+.sueltos__total { font: 700 1.15rem/1 var(--fuente-titulo); font-variant-numeric: tabular-nums; text-align: right; }
+.sueltos .opcion-venta__mas { border: 0; cursor: pointer; }
+.sueltos .opcion-venta__mas:disabled { cursor: not-allowed; opacity: 0.5; }
+.sueltos__rapidos { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.sueltos__rapidos button {
+  min-height: 2rem; padding: 0 0.7rem; cursor: pointer; touch-action: manipulation;
+  font: 600 0.75rem/1 var(--fuente-ui); color: var(--marron);
+  background: var(--blanco); border: 1px dashed color-mix(in srgb, var(--marron) 45%, transparent); border-radius: var(--radio-pildora);
+}
+.sueltos__rapidos button:hover:not(:disabled) { border-style: solid; }
+/* Cantidad editable en el ticket */
+.paso-a-paso input {
+  width: 3.25rem; height: 2.25rem; border: 0; text-align: center; background: var(--blanco);
+  font: 600 var(--texto-m) var(--fuente-ui); font-variant-numeric: tabular-nums; color: var(--marron);
+  -moz-appearance: textfield; appearance: textfield;
+}
+.paso-a-paso input::-webkit-inner-spin-button, .paso-a-paso input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.paso-a-paso input:focus { outline: 2px solid var(--marron); outline-offset: -2px; }

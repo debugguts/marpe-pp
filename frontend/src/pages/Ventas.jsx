@@ -11,7 +11,7 @@ import { useSesion } from '../lib/sesion'
 import '../styles/ventas.css'
 
 // Punto de venta (S5-11 · HU-05). Rediseño «mostrador»: buscador y filtros por tamaño y color,
-// una tarjeta por producto y presentación (con la Docena), y a la derecha la venta actual con
+// una tarjeta por huevo con sus presentaciones (y huevos sueltos por cantidad), y a la derecha la venta actual con
 // el medio de pago en un solo paso. El total y el control de stock se calculan acá para avisar
 // antes de confirmar, pero quien decide es la API (precio vigente y stock real).
 // El administrador además puede modificar una venta (se carga en el ticket) o anularla.
@@ -33,7 +33,7 @@ export default function Ventas() {
   const stock = useQuery({ queryKey: ['stock'], queryFn: () => api('/stock/') })
   const caja = useQuery({ queryKey: ['caja', 'actual'], queryFn: () => api('/cajas/actual/') })
 
-  const [lineas, setLineas] = useState([]) // [{ clave, producto, presentacion, nombre, detalle, precio, bandejas, cantidad, paso }]
+  const [lineas, setLineas] = useState([]) // [{ clave, producto, presentacion, nombre, detalle, precio, bandejas, cantidad }]
   const [pago, setPago] = useState('EFECTIVO') // EFECTIVO · TRANSFERENCIA · FIADO
   const [referencia, setReferencia] = useState('')
   const [clienteId, setClienteId] = useState('')
@@ -53,8 +53,10 @@ export default function Ventas() {
   const texto = buscar.trim().toLowerCase()
   const visibles = tarjetas.filter((t) => (!tamano || t.tamano === tamano) && (!color || t.color === color)
     && (!texto || `${t.nombre} ${t.presentacion_nombre}`.toLowerCase().includes(texto)))
-  const grupos = TAMANOS.slice(1).map(([v, nombre]) => ({ nombre, tarjetas: visibles.filter((t) => t.tamano === v) }))
-    .filter((g) => g.tarjetas.length > 0)
+  // Una tarjeta por huevo; adentro, una fila por presentación (Bandeja, Caja y huevos sueltos).
+  const grupos = TAMANOS.slice(1).map(([v, nombre]) => ({ nombre, huevos: porHuevo(visibles.filter((t) => t.tamano === v)) }))
+    .filter((g) => g.huevos.length > 0)
+  const cantidadHuevos = grupos.reduce((s, g) => s + g.huevos.length, 0)
 
   const total = lineas.reduce((s, l) => s + l.cantidad * l.precio, 0)
   // Al modificar, las bandejas que ya tenía la venta vuelven al stock: cuentan como disponibles.
@@ -85,19 +87,22 @@ export default function Ventas() {
   })
   const errores = erroresDe(registrar.error)
 
-  // Suma una tarjeta a la venta. La Docena suma 12 unidades al precio de la unidad.
-  function agregar(t) {
+  // Suma a la venta. Bandeja y Caja de a una; los huevos sueltos, la cantidad que se escriba.
+  function agregar(t, cuantas = 1) {
     setHecha(null); registrar.reset()
     setLineas((actuales) => actuales.some((l) => l.clave === t.clave)
-      ? actuales.map((l) => (l.clave === t.clave ? { ...l, cantidad: l.cantidad + t.paso } : l))
+      ? actuales.map((l) => (l.clave === t.clave ? { ...l, cantidad: l.cantidad + cuantas } : l))
       : [...actuales, {
         clave: t.clave, producto: t.producto, presentacion: t.presentacion, nombre: t.nombre,
-        detalle: t.presentacion_nombre, precio: t.precio, bandejas: t.bandejas, cantidad: t.paso, paso: t.paso,
+        detalle: t.presentacion_nombre, precio: t.precio, bandejas: t.bandejas, cantidad: cuantas,
       }])
   }
   const cambiar = (clave, delta) => setLineas((actuales) => actuales
-    .map((l) => (l.clave === clave ? { ...l, cantidad: Math.max(0, l.cantidad + delta * l.paso) } : l))
+    .map((l) => (l.clave === clave ? { ...l, cantidad: Math.max(0, l.cantidad + delta) } : l))
     .filter((l) => l.cantidad > 0))
+  // Cantidad escrita a mano en el ticket (útil para huevos sueltos: 18, 45…). Vacío o 0 no borra la línea.
+  const fijar = (clave, valor) => setLineas((actuales) => actuales
+    .map((l) => (l.clave === clave ? { ...l, cantidad: Math.max(0, Math.floor(Number(valor) || 0)) } : l)))
   function vaciar() {
     setEditando(null); setLineas([]); setReferencia(''); setClienteId(''); setPago('EFECTIVO')
   }
@@ -111,7 +116,7 @@ export default function Ventas() {
       clave: `${d.producto}-${d.presentacion}`, producto: d.producto, presentacion: d.presentacion,
       nombre: d.producto_nombre, detalle: d.presentacion_nombre,
       precio: Number(d.precio_unitario_aplicado), // la línea que ya estaba conserva su precio
-      bandejas: bandejasDe.get(d.presentacion) ?? 1, cantidad: Number(d.cantidad), paso: 1,
+      bandejas: bandejasDe.get(d.presentacion) ?? 1, cantidad: Number(d.cantidad),
     })))
     setPago(venta.modalidad === 'FIADO' ? 'FIADO' : venta.pagos[0]?.medio_pago ?? 'EFECTIVO')
     setReferencia(venta.pagos[0]?.referencia_transferencia ?? '')
@@ -152,7 +157,7 @@ export default function Ventas() {
           <div className="mostrador__filtros">
             <Chips etiqueta="Tamaño" opciones={TAMANOS} valor={tamano} alCambiar={setTamano} />
             <Chips etiqueta="Color" opciones={COLORES} valor={color} alCambiar={setColor} />
-            <span className="mostrador__cuenta">{visibles.length} {visibles.length === 1 ? 'producto' : 'productos'}</span>
+            <span className="mostrador__cuenta">{cantidadHuevos} {cantidadHuevos === 1 ? 'huevo' : 'huevos'}</span>
           </div>
 
           {precios.isPending && <p className="abm-cargando">Cargando productos…</p>}
@@ -164,24 +169,40 @@ export default function Ventas() {
 
           {grupos.map((g) => (
             <section key={g.nombre} className="mostrador__grupo" aria-label={g.nombre}>
-              <h2>{g.nombre} <span>{g.tarjetas.length} {g.tarjetas.length === 1 ? 'producto' : 'productos'}</span></h2>
+              <h2>{g.nombre} <span>{g.huevos.length} {g.huevos.length === 1 ? 'huevo' : 'huevos'}</span></h2>
               <div className="mostrador__tarjetas">
-                {g.tarjetas.map((t) => (
-                  <article key={t.clave} className="tarjeta-venta">
+                {g.huevos.map((h) => (
+                  <article key={h.producto} className="tarjeta-huevo">
                     <header>
-                      <span className="tarjeta-venta__chip">{t.colorTexto}</span>
-                      <span className="tarjeta-venta__chip">{t.tamanoTexto}</span>
-                      <span className={`tarjeta-venta__stock is-${t.nivel}`}>{t.disponibles}</span>
+                      <div className="tarjeta-huevo__chips">
+                        <span className="tarjeta-venta__chip">{h.colorTexto}</span>
+                        <span className="tarjeta-venta__chip">{h.tamanoTexto}</span>
+                      </div>
+                      <h3>{h.nombre}</h3>
+                      <p className={`tarjeta-huevo__stock is-${h.nivel}`}>
+                        {h.nivel === 'agotado' ? 'Sin stock' : `Hay ${h.stockTexto}`}{h.nivel === 'bajo' && ' · reponer'}
+                      </p>
                     </header>
-                    <h3>{t.nombre}</h3>
-                    <p className="suave">{t.presentacion_nombre} · {t.contenido}</p>
-                    <footer>
-                      <strong>{moneda(t.precio * t.paso)}</strong>
-                      <button type="button" className="tarjeta-venta__agregar" onClick={() => agregar(t)} disabled={t.nivel === 'agotado'}
-                        aria-label={`Agregar ${t.nombre}, ${t.presentacion_nombre}, ${moneda(t.precio * t.paso)}`}>
-                        <Icono nombre="mas" /> Agregar
-                      </button>
-                    </footer>
+                    <ul className="tarjeta-huevo__opciones">
+                      {h.opciones.map((t) => (
+                        <li key={t.clave}>
+                          {t.tipo === 'unidad'
+                            ? <HuevosSueltos t={t} alAgregar={(n) => agregar(t, n)} />
+                            : (
+                              <button type="button" className={`opcion-venta is-${t.tipo}`} onClick={() => agregar(t)} disabled={t.nivel === 'agotado'}
+                                aria-label={`Agregar ${t.nombre}, ${t.presentacion_nombre}, ${moneda(t.precio)}`}>
+                                <span className="opcion-venta__marca" aria-hidden="true">{t.sigla}</span>
+                                <span className="opcion-venta__texto">
+                                  <strong>{t.presentacion_nombre}</strong>
+                                  <small>{t.contenido} · {t.nivel === 'agotado' ? 'sin stock' : `${t.disponibles} disp.`}</small>
+                                </span>
+                                <span className="opcion-venta__precio">{moneda(t.precio)}</span>
+                                <span className="opcion-venta__mas" aria-hidden="true"><Icono nombre="mas" /></span>
+                              </button>
+                            )}
+                        </li>
+                      ))}
+                    </ul>
                   </article>
                 ))}
               </div>
@@ -215,13 +236,15 @@ export default function Ventas() {
               {lineas.map((l) => (
                 <li key={l.clave}>
                   <div>
-                    <p className="venta-actual__nombre">{l.nombre}</p>
-                    <p className="suave">{l.detalle} · {moneda(l.precio * l.paso)} c/u</p>
+                    <p className="venta-actual__nombre"><span className={`etiqueta-pres is-${tipoDe(l)}`}>{l.detalle}</span>{l.nombre}</p>
+                    <p className="suave">{moneda(l.precio)} {tipoDe(l) === 'unidad' ? 'el huevo' : 'c/u'}</p>
                     {faltantes.has(l.producto) && <p className="campo__error">Stock insuficiente: hay {numero(faltantes.get(l.producto))} bandejas.</p>}
                   </div>
                   <div className="paso-a-paso" role="group" aria-label={`Cantidad de ${l.nombre}`}>
                     <button type="button" onClick={() => cambiar(l.clave, -1)} aria-label="Uno menos">−</button>
-                    <span>{l.paso === 12 ? l.cantidad / 12 : numero(l.cantidad)}</span>
+                    <input type="number" inputMode="numeric" min="1" step="1" value={l.cantidad || ''}
+                      onChange={(e) => fijar(l.clave, e.target.value)} onBlur={() => l.cantidad || cambiar(l.clave, 0)}
+                      aria-label={`Cantidad de ${l.detalle.toLowerCase()} de ${l.nombre}`} />
                     <button type="button" onClick={() => cambiar(l.clave, 1)} aria-label="Uno más">+</button>
                   </div>
                   <strong className="venta-actual__subtotal">{moneda(l.cantidad * l.precio)}</strong>
@@ -440,32 +463,86 @@ function AnularVenta({ venta, alCerrar, alFallar }) {
   )
 }
 
-// Una tarjeta por producto y presentación. La Unidad se ofrece como Docena (12 unidades a su precio).
-// "disponibles" se cuenta en la presentación de la tarjeta: 24 bandejas = 4 cajas = 60 docenas.
+// Una opción por producto y presentación. La Unidad se vende como «huevos sueltos»: se escribe cuántos.
+// "disponibles" se cuenta en la unidad de cada opción: 24 bandejas = 4 cajas = 720 huevos.
 function armarTarjetas(precios, productos, stock) {
   const datos = new Map(productos.map((p) => [p.id_producto, p]))
   const minimos = new Map(stock.map((s) => [s.producto, s]))
   return precios.map((p) => {
     const producto = datos.get(p.producto) ?? {}
     const bandejas = Number(p.bandejas)
-    const esDocena = bandejas < 1
-    const paso = esDocena ? 12 : 1
-    const cantidad = Math.floor(Number(p.stock_bandejas) / (bandejas * paso) + 1e-9)
-    const unidad = esDocena ? (cantidad === 1 ? 'docena' : 'docenas') : bandejas >= 6 ? (cantidad === 1 ? 'caja' : 'cajas') : (cantidad === 1 ? 'bandeja' : 'bandejas')
+    const tipo = bandejas < 1 ? 'unidad' : bandejas >= 6 ? 'caja' : 'bandeja'
+    const cantidad = Math.floor(Number(p.stock_bandejas) / bandejas + 1e-6)
+    const unidad = { unidad: ['huevo', 'huevos'], caja: ['caja', 'cajas'], bandeja: ['bandeja', 'bandejas'] }[tipo][cantidad === 1 ? 0 : 1]
     return {
       clave: `${p.producto}-${p.presentacion}`, producto: p.producto, presentacion: p.presentacion,
-      nombre: p.producto_nombre, presentacion_nombre: esDocena ? 'Docena' : p.presentacion_nombre,
-      contenido: esDocena ? '12 huevos' : contenidoDe(bandejas), precio: Number(p.precio), bandejas, paso,
+      nombre: p.producto_nombre, presentacion_nombre: tipo === 'unidad' ? 'Huevos sueltos' : p.presentacion_nombre,
+      contenido: contenidoDe(bandejas), precio: Number(p.precio), bandejas, tipo, maximo: cantidad,
       color: producto.tipo_huevo, colorTexto: producto.tipo_huevo === 'BLANCO' ? 'Blanco' : 'Castaño',
       tamano: producto.tamano, tamanoTexto: { MEDIANO: 'Mediano', 'SELECCIÓN': 'Selección', 'SÚPER': 'Súper' }[producto.tamano] ?? '',
-      disponibles: cantidad > 0 ? `${numero(cantidad)} ${unidad}` : 'Sin stock',
+      disponibles: `${numero(cantidad)} ${unidad}`,
+      sigla: tipo === 'unidad' ? '1' : tipo === 'caja' ? `×${numero(bandejas)}` : '30',
+      stockBandejas: Number(p.stock_bandejas),
       nivel: cantidad <= 0 ? 'agotado' : minimos.get(p.producto)?.bajo_minimo ? 'bajo' : 'ok',
     }
   }).sort((a, b) => a.nombre.localeCompare(b.nombre) || orden(a) - orden(b))
 }
 
-// Orden dentro de cada huevo: Bandeja, Caja y al final la Docena.
-const orden = (t) => (t.paso === 12 ? 1000 : t.bandejas)
+// Huevos sueltos: se escribe la cantidad (por defecto 12, una docena) y se agrega.
+// Botones rápidos para lo más común: media docena, docena y 30.
+function HuevosSueltos({ t, alAgregar }) {
+  const [cantidad, setCantidad] = useState('12')
+  const n = Math.floor(Number(cantidad) || 0)
+  const sinStock = t.nivel === 'agotado'
+  const enviar = (valor) => { if (valor > 0) alAgregar(valor) }
+  return (
+    <div className={`opcion-venta is-unidad opcion-venta--sueltos${sinStock ? ' is-apagada' : ''}`}>
+      <span className="opcion-venta__marca" aria-hidden="true">{t.sigla}</span>
+      <span className="opcion-venta__texto">
+        <strong>Huevos sueltos</strong>
+        <small>{moneda(t.precio)} el huevo · {sinStock ? 'sin stock' : `${t.disponibles} disp.`}</small>
+      </span>
+      <form className="sueltos" onSubmit={(e) => { e.preventDefault(); enviar(n) }}>
+        <label className="sr-only" htmlFor={`sueltos-${t.clave}`}>Cantidad de huevos de {t.nombre}</label>
+        <input id={`sueltos-${t.clave}`} type="number" inputMode="numeric" min="1" max={t.maximo || undefined} step="1"
+          value={cantidad} onChange={(e) => setCantidad(e.target.value)} disabled={sinStock} />
+        <span className="sueltos__total">{n > 0 ? moneda(n * t.precio) : '—'}</span>
+        <button type="submit" className="opcion-venta__mas" disabled={sinStock || n <= 0} aria-label={`Agregar ${n} huevos de ${t.nombre}`}>
+          <Icono nombre="mas" />
+        </button>
+      </form>
+      <div className="sueltos__rapidos">
+        {[[6, 'Media docena'], [12, 'Docena'], [30, '30']].map(([v, texto]) => (
+          <button key={v} type="button" disabled={sinStock} onClick={() => enviar(v)} aria-label={`Agregar ${texto.toLowerCase()} de ${t.nombre}`}>
+            + {texto}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Agrupa las opciones por huevo: [{ producto, nombre, stockTexto, nivel, opciones: [Bandeja, Caja, Huevos sueltos] }]
+function porHuevo(tarjetas) {
+  const huevos = new Map()
+  for (const t of tarjetas) {
+    if (!huevos.has(t.producto)) {
+      huevos.set(t.producto, {
+        producto: t.producto, nombre: t.nombre, colorTexto: t.colorTexto, tamanoTexto: t.tamanoTexto,
+        stockTexto: `${numero(Math.floor(t.stockBandejas * 100) / 100)} bandejas`, opciones: [],
+        nivel: t.stockBandejas <= 0 ? 'agotado' : t.nivel === 'bajo' ? 'bajo' : 'ok',
+      })
+    }
+    huevos.get(t.producto).opciones.push(t)
+  }
+  return [...huevos.values()]
+}
+
+// Tipo de presentación de una línea del ticket, para pintarla igual que su botón.
+const tipoDe = (l) => (l.bandejas < 1 ? 'unidad' : l.bandejas >= 6 ? 'caja' : 'bandeja')
+
+// Orden dentro de cada huevo: Bandeja, Caja y al final los huevos sueltos.
+const orden = (t) => (t.tipo === 'unidad' ? 1000 : t.bandejas)
 
 // [{producto, presentacion, ...}] → [{ producto, nombre, stock, presentaciones: [...] }]
 function agruparPorProducto(precios) {
