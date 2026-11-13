@@ -1,6 +1,6 @@
 import { useDeferredValue, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Boton, CabeceraPagina, Campo, EstadoVacio, Insignia, Panel } from '../components/ui'
+import { Boton, Campo, EstadoVacio, Insignia, Panel } from '../components/ui'
 import AvisoError from '../components/AvisoError'
 import Dialogo from '../components/Dialogo'
 import Icono from '../components/Icono'
@@ -10,35 +10,57 @@ import { contenidoDe, hora, hoyISO, moneda, numero } from '../lib/formato'
 import { useSesion } from '../lib/sesion'
 import '../styles/ventas.css'
 
-// Punto de venta (S5-11 · HU-05). A la izquierda los productos con su precio;
-// a la derecha la venta en curso. El total y el control de stock se calculan acá
-// para avisar antes de confirmar, pero quien decide es la API (precio vigente y stock real).
+// Punto de venta (S5-11 · HU-05). Rediseño «mostrador»: buscador y filtros por tamaño y color,
+// una tarjeta por producto y presentación (con la Docena), y a la derecha la venta actual con
+// el medio de pago en un solo paso. El total y el control de stock se calculan acá para avisar
+// antes de confirmar, pero quien decide es la API (precio vigente y stock real).
 // El administrador además puede modificar una venta (se carga en el ticket) o anularla.
 // Una venta nunca se borra: anulada, queda en la lista con su motivo.
 const CONSUMIDOR_FINAL_ID = 1
+const TAMANOS = [['', 'Todos'], ['MEDIANO', 'Mediano'], ['SELECCIÓN', 'Selección'], ['SÚPER', 'Súper']]
+const COLORES = [['', 'Todos'], ['BLANCO', 'Blanco'], ['CASTAÑO', 'Castaño']]
+const PAGOS = [
+  ['EFECTIVO', 'Efectivo', 'Entra a la caja', 'caja'],
+  ['TRANSFERENCIA', 'Transferencia', 'QR o banco', 'banco'],
+  ['FIADO', 'Fiado', 'Cuenta corriente', 'cuentas'],
+]
+const fechaHoy = new Intl.DateTimeFormat('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })
 
 export default function Ventas() {
   const cliente = useQueryClient()
   const precios = useQuery({ queryKey: ['precios', 'lista'], queryFn: () => api('/precios/') })
+  const productosApi = useQuery({ queryKey: ['productos', 'activos'], queryFn: () => api('/productos/?estado=ACTIVO') })
+  const stock = useQuery({ queryKey: ['stock'], queryFn: () => api('/stock/') })
   const caja = useQuery({ queryKey: ['caja', 'actual'], queryFn: () => api('/cajas/actual/') })
 
-  const [lineas, setLineas] = useState([]) // [{ clave, producto, presentacion, nombre, precio, bandejas, cantidad }]
-  const [modalidad, setModalidad] = useState('CONTADO')
-  const [medio, setMedio] = useState('EFECTIVO')
+  const [lineas, setLineas] = useState([]) // [{ clave, producto, presentacion, nombre, detalle, precio, bandejas, cantidad, paso }]
+  const [pago, setPago] = useState('EFECTIVO') // EFECTIVO · TRANSFERENCIA · FIADO
   const [referencia, setReferencia] = useState('')
   const [clienteId, setClienteId] = useState('')
+  const [buscar, setBuscar] = useState('')
+  const [tamano, setTamano] = useState('')
+  const [color, setColor] = useState('')
   const [hecha, setHecha] = useState(null) // última venta registrada o modificada
   const [editando, setEditando] = useState(null) // venta que se está modificando (o null si es una venta nueva)
   const [fallo, setFallo] = useState(null) // error de la API para mostrar en la ventana de aviso
+  const [verLista, setVerLista] = useState(false)
   const sesion = useSesion()
   const esAdministrador = sesion.data?.rol === 'Administrador'
 
+  const modalidad = pago === 'FIADO' ? 'FIADO' : 'CONTADO'
   const productos = agruparPorProducto(precios.data ?? [])
+  const tarjetas = armarTarjetas(precios.data ?? [], productosApi.data?.results ?? [], stock.data ?? [])
+  const texto = buscar.trim().toLowerCase()
+  const visibles = tarjetas.filter((t) => (!tamano || t.tamano === tamano) && (!color || t.color === color)
+    && (!texto || `${t.nombre} ${t.presentacion_nombre}`.toLowerCase().includes(texto)))
+  const grupos = TAMANOS.slice(1).map(([v, nombre]) => ({ nombre, tarjetas: visibles.filter((t) => t.tamano === v) }))
+    .filter((g) => g.tarjetas.length > 0)
+
   const total = lineas.reduce((s, l) => s + l.cantidad * l.precio, 0)
   // Al modificar, las bandejas que ya tenía la venta vuelven al stock: cuentan como disponibles.
   const reservado = reservadoPor(editando, precios.data ?? [])
   const faltantes = sinStock(lineas, productos, reservado)
-  const cobraEfectivo = modalidad === 'CONTADO' && medio === 'EFECTIVO'
+  const cobraEfectivo = pago === 'EFECTIVO'
   const devuelveEfectivo = editando?.pagos.some((p) => p.medio_pago === 'EFECTIVO')
   const sinCaja = (cobraEfectivo || devuelveEfectivo) && caja.isSuccess && !caja.data
 
@@ -48,23 +70,37 @@ export default function Ventas() {
       datos: {
         modalidad,
         ...(clienteId && { cliente: Number(clienteId) }),
-        medio_pago: modalidad === 'CONTADO' ? medio : null,
+        medio_pago: modalidad === 'CONTADO' ? pago : null,
         referencia_transferencia: referencia,
         detalles: lineas.map((l) => ({ producto: l.producto, presentacion: l.presentacion, cantidad: l.cantidad })),
       },
     }),
     onSuccess: (venta) => {
       setHecha({ ...venta, modificada: Boolean(editando) })
-      setEditando(null)
-      setLineas([]); setReferencia(''); setClienteId(''); setModalidad('CONTADO')
+      vaciar()
       // Cambiaron el stock, la caja y las ventas del día: se vuelven a pedir solos.
-      cliente.invalidateQueries({ queryKey: ['precios'] })
-      cliente.invalidateQueries({ queryKey: ['caja'] })
-      cliente.invalidateQueries({ queryKey: ['ventas'] })
+      for (const clave of ['precios', 'stock', 'caja', 'ventas', 'cuentas-corrientes']) cliente.invalidateQueries({ queryKey: [clave] })
     },
     onError: (error) => setFallo(error),
   })
   const errores = erroresDe(registrar.error)
+
+  // Suma una tarjeta a la venta. La Docena suma 12 unidades al precio de la unidad.
+  function agregar(t) {
+    setHecha(null); registrar.reset()
+    setLineas((actuales) => actuales.some((l) => l.clave === t.clave)
+      ? actuales.map((l) => (l.clave === t.clave ? { ...l, cantidad: l.cantidad + t.paso } : l))
+      : [...actuales, {
+        clave: t.clave, producto: t.producto, presentacion: t.presentacion, nombre: t.nombre,
+        detalle: t.presentacion_nombre, precio: t.precio, bandejas: t.bandejas, cantidad: t.paso, paso: t.paso,
+      }])
+  }
+  const cambiar = (clave, delta) => setLineas((actuales) => actuales
+    .map((l) => (l.clave === clave ? { ...l, cantidad: Math.max(0, l.cantidad + delta * l.paso) } : l))
+    .filter((l) => l.cantidad > 0))
+  function vaciar() {
+    setEditando(null); setLineas([]); setReferencia(''); setClienteId(''); setPago('EFECTIVO')
+  }
 
   // Carga una venta ya hecha en el ticket para corregirla.
   function modificar(venta) {
@@ -73,96 +109,93 @@ export default function Ventas() {
     setEditando(venta)
     setLineas(venta.detalles.map((d) => ({
       clave: `${d.producto}-${d.presentacion}`, producto: d.producto, presentacion: d.presentacion,
-      nombre: `${d.producto_nombre} · ${d.presentacion_nombre}`,
+      nombre: d.producto_nombre, detalle: d.presentacion_nombre,
       precio: Number(d.precio_unitario_aplicado), // la línea que ya estaba conserva su precio
-      bandejas: bandejasDe.get(d.presentacion) ?? 1, cantidad: Number(d.cantidad),
+      bandejas: bandejasDe.get(d.presentacion) ?? 1, cantidad: Number(d.cantidad), paso: 1,
     })))
-    setModalidad(venta.modalidad)
-    setMedio(venta.pagos[0]?.medio_pago ?? 'EFECTIVO')
+    setPago(venta.modalidad === 'FIADO' ? 'FIADO' : venta.pagos[0]?.medio_pago ?? 'EFECTIVO')
     setReferencia(venta.pagos[0]?.referencia_transferencia ?? '')
     setClienteId(venta.cliente === CONSUMIDOR_FINAL_ID ? '' : String(venta.cliente))
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
-  function cancelarModificacion() {
-    setEditando(null); registrar.reset()
-    setLineas([]); setReferencia(''); setClienteId(''); setModalidad('CONTADO')
-  }
 
-  // Suma "cuantas" unidades de esa presentación (1 al tocar; 12 con el botón Docena).
-  function agregar(producto, p, cuantas = 1) {
-    setHecha(null); registrar.reset()
-    const clave = `${producto.producto}-${p.presentacion}`
-    setLineas((actuales) => actuales.some((l) => l.clave === clave)
-      ? actuales.map((l) => (l.clave === clave ? { ...l, cantidad: l.cantidad + cuantas } : l))
-      : [...actuales, {
-        clave, producto: producto.producto, presentacion: p.presentacion,
-        nombre: `${producto.nombre} · ${p.presentacion_nombre}`,
-        precio: Number(p.precio), bandejas: Number(p.bandejas), cantidad: cuantas,
-      }])
-  }
-  const cambiarCantidad = (clave, cantidad) =>
-    setLineas((actuales) => actuales.map((l) => (l.clave === clave ? { ...l, cantidad } : l)))
-  const quitar = (clave) => setLineas((actuales) => actuales.filter((l) => l.clave !== clave))
-
-  const puedeConfirmar = lineas.length > 0 && lineas.every((l) => l.cantidad > 0)
-    && faltantes.size === 0 && !sinCaja
-    && (modalidad === 'CONTADO' || clienteId)
-    && !(modalidad === 'CONTADO' && medio === 'TRANSFERENCIA' && !referencia.trim())
+  const puedeConfirmar = lineas.length > 0 && faltantes.size === 0 && !sinCaja
+    && (pago !== 'FIADO' || clienteId)
+    && !(pago === 'TRANSFERENCIA' && !referencia.trim())
+  const motivoBloqueo = lineas.length === 0 ? 'Elegí un producto para empezar.'
+    : faltantes.size > 0 ? 'Hay productos sin stock suficiente.'
+      : sinCaja ? `No hay caja abierta: abrila para ${cobraEfectivo ? 'cobrar' : 'devolver'} en efectivo.`
+        : pago === 'FIADO' && !clienteId ? 'Elegí el cliente que se lleva fiado.'
+          : pago === 'TRANSFERENCIA' && !referencia.trim() ? 'Anotá la referencia de la transferencia.'
+            : pago === 'EFECTIVO' ? 'Cobro listo para recibir en efectivo.'
+              : pago === 'TRANSFERENCIA' ? 'La transferencia no pasa por la caja.' : 'La deuda queda en la cuenta corriente del cliente.'
 
   return (
-    <>
-      <CabeceraPagina
-        titulo="Ventas"
-        descripcion={editando ? `Modificando la venta Nº ${editando.id_venta}.` : 'Tocá un producto para sumarlo a la venta.'}
-        acciones={caja.data
+    <div className="mostrador">
+      <header className="mostrador__cab">
+        <div>
+          <p className="mostrador__fecha">{fechaHoy.format(new Date())}</p>
+          <h1>Ventas <span>· {editando ? `Modificando Nº ${editando.id_venta}` : 'Mostrador'}</span></h1>
+        </div>
+        {caja.data
           ? <Insignia variante="exito">Caja abierta</Insignia>
           : caja.isSuccess && <Insignia variante="aviso">Caja cerrada</Insignia>}
-      />
+      </header>
 
-      <div className="pos">
-        <section className="pos__catalogo" aria-label="Productos">
+      <div className="mostrador__cuerpo">
+        <section className="mostrador__catalogo" aria-label="Productos">
+          <label className="mostrador__buscar">
+            <Icono nombre="buscar" />
+            <span className="sr-only">Buscar producto</span>
+            <input type="search" value={buscar} onChange={(e) => setBuscar(e.target.value)} placeholder="Buscar producto…" autoComplete="off" />
+          </label>
+          <div className="mostrador__filtros">
+            <Chips etiqueta="Tamaño" opciones={TAMANOS} valor={tamano} alCambiar={setTamano} />
+            <Chips etiqueta="Color" opciones={COLORES} valor={color} alCambiar={setColor} />
+            <span className="mostrador__cuenta">{visibles.length} {visibles.length === 1 ? 'producto' : 'productos'}</span>
+          </div>
+
           {precios.isPending && <p className="abm-cargando">Cargando productos…</p>}
           {precios.isError && <EstadoVacio icono="cerrar" titulo="No se pudieron cargar los precios" texto={precios.error.message} />}
-          {precios.isSuccess && productos.length === 0 && (
-            <EstadoVacio icono="catalogo" titulo="No hay precios cargados" texto="Confirmá los precios en Catálogo › Precios." />
+          {precios.isSuccess && visibles.length === 0 && (
+            <EstadoVacio icono="catalogo" titulo={tarjetas.length ? 'Nada coincide con la búsqueda' : 'No hay precios cargados'}
+              texto={tarjetas.length ? 'Probá con otro nombre o sacá los filtros.' : 'Confirmá los precios en Catálogo › Precios.'} />
           )}
-          {productos.map((producto) => (
-            <article key={producto.producto} className="pos-producto">
-              <header>
-                <h2>{producto.nombre}</h2>
-                <span className={`pos-producto__stock${producto.stock <= 0 ? ' is-vacio' : ''}`}>
-                  {numero(producto.stock)} bandejas
-                </span>
-              </header>
-              <div className="pos-producto__opciones">
-                {producto.presentaciones.map((p) => (
-                  <div key={p.presentacion} className="pos-opcion-grupo">
-                    <button type="button" className="pos-opcion" onClick={() => agregar(producto, p)}
-                      aria-label={`Agregar ${producto.nombre}, ${p.presentacion_nombre}, ${moneda(p.precio)}`}>
-                      <span>{p.presentacion_nombre} · {contenidoDe(p.bandejas)}</span>
-                      <strong>{moneda(p.precio)}</strong>
-                    </button>
-                    {Number(p.bandejas) < 1 && (
-                      // La docena se cobra al precio de la unidad: suma 12 unidades de una vez.
-                      <button type="button" className="pos-docena" onClick={() => agregar(producto, p, 12)}
-                        aria-label={`Agregar una docena de ${producto.nombre}, ${moneda(p.precio * 12)}`}>
-                        + Docena · {moneda(p.precio * 12)}
+
+          {grupos.map((g) => (
+            <section key={g.nombre} className="mostrador__grupo" aria-label={g.nombre}>
+              <h2>{g.nombre} <span>{g.tarjetas.length} {g.tarjetas.length === 1 ? 'producto' : 'productos'}</span></h2>
+              <div className="mostrador__tarjetas">
+                {g.tarjetas.map((t) => (
+                  <article key={t.clave} className="tarjeta-venta">
+                    <header>
+                      <span className="tarjeta-venta__chip">{t.colorTexto}</span>
+                      <span className="tarjeta-venta__chip">{t.tamanoTexto}</span>
+                      <span className={`tarjeta-venta__stock is-${t.nivel}`}>{t.disponibles}</span>
+                    </header>
+                    <h3>{t.nombre}</h3>
+                    <p className="suave">{t.presentacion_nombre} · {t.contenido}</p>
+                    <footer>
+                      <strong>{moneda(t.precio * t.paso)}</strong>
+                      <button type="button" className="tarjeta-venta__agregar" onClick={() => agregar(t)} disabled={t.nivel === 'agotado'}
+                        aria-label={`Agregar ${t.nombre}, ${t.presentacion_nombre}, ${moneda(t.precio * t.paso)}`}>
+                        <Icono nombre="mas" /> Agregar
                       </button>
-                    )}
-                  </div>
+                    </footer>
+                  </article>
                 ))}
               </div>
-            </article>
+            </section>
           ))}
         </section>
 
-        <Panel titulo={editando ? `Modificar venta Nº ${editando.id_venta}` : 'Venta en curso'}
-          className={`pos__ticket${editando ? ' is-editando' : ''}`}>
+        <aside className={`venta-actual${editando ? ' is-editando' : ''}`} aria-label="Venta actual">
+          <p className="venta-actual__eti">{editando ? `Modificando la venta Nº ${editando.id_venta}` : 'Venta actual'}</p>
+          <h2>{editando ? 'Corregir venta' : 'Tu venta'}</h2>
           {editando && (
-            <div className="pos__editando" role="status">
-              <p>Cambiá productos, cantidades o forma de pago y guardá. El sistema devuelve lo anterior al stock y a la caja y vuelve a cargar la venta.</p>
-              <Boton variante="secundario" onClick={cancelarModificacion}>Cancelar</Boton>
-            </div>
+            <p className="venta-actual__aviso">
+              Cambiá productos, cantidades o forma de pago y guardá. Lo anterior vuelve al stock y a la caja.
+            </p>
           )}
           {hecha && (
             <p className="pos__hecha" role="status">
@@ -172,89 +205,101 @@ export default function Ventas() {
           )}
 
           {lineas.length === 0 ? (
-            <p className="suave pos__vacio">Todavía no agregaste productos.</p>
+            <div className="venta-actual__vacia">
+              <span><Icono nombre="ventas" tamano={26} /></span>
+              <strong>La venta está vacía</strong>
+              <p className="suave">Elegí un producto para empezar.</p>
+            </div>
           ) : (
-            <ul className="pos-lineas">
+            <ul className="venta-actual__lineas">
               {lineas.map((l) => (
-                <li key={l.clave} className="pos-linea">
+                <li key={l.clave}>
                   <div>
-                    <p className="pos-linea__nombre">{l.nombre}</p>
-                    <p className="suave">{moneda(l.precio)} c/u</p>
-                    {faltantes.has(l.producto) && (
-                      <p className="campo__error">Stock insuficiente: hay {numero(faltantes.get(l.producto))} bandejas.</p>
-                    )}
+                    <p className="venta-actual__nombre">{l.nombre}</p>
+                    <p className="suave">{l.detalle} · {moneda(l.precio * l.paso)} c/u</p>
+                    {faltantes.has(l.producto) && <p className="campo__error">Stock insuficiente: hay {numero(faltantes.get(l.producto))} bandejas.</p>}
                   </div>
-                  <label className="sr-only" htmlFor={`cant-${l.clave}`}>Cantidad de {l.nombre}</label>
-                  <input id={`cant-${l.clave}`} className="campo__control pos-linea__cantidad" type="number"
-                    inputMode="decimal" min="0" step="any" value={l.cantidad}
-                    onChange={(e) => cambiarCantidad(l.clave, Number(e.target.value))} />
-                  <strong className="pos-linea__subtotal">{moneda(l.cantidad * l.precio)}</strong>
-                  <button type="button" className="btn btn--fantasma pos-linea__quitar" onClick={() => quitar(l.clave)}
-                    aria-label={`Quitar ${l.nombre}`}>
-                    <Icono nombre="cerrar" />
-                  </button>
+                  <div className="paso-a-paso" role="group" aria-label={`Cantidad de ${l.nombre}`}>
+                    <button type="button" onClick={() => cambiar(l.clave, -1)} aria-label="Uno menos">−</button>
+                    <span>{l.paso === 12 ? l.cantidad / 12 : numero(l.cantidad)}</span>
+                    <button type="button" onClick={() => cambiar(l.clave, 1)} aria-label="Uno más">+</button>
+                  </div>
+                  <strong className="venta-actual__subtotal">{moneda(l.cantidad * l.precio)}</strong>
                 </li>
               ))}
             </ul>
           )}
 
-          <div className="pos__total"><span>Total</span><strong>{moneda(total)}</strong></div>
+          <div className="venta-actual__total"><span>Total a cobrar</span><strong>{moneda(total)}</strong></div>
 
-          <Opciones etiqueta="Forma de venta" valor={modalidad} alCambiar={setModalidad}
-            opciones={[['CONTADO', 'Contado'], ['FIADO', 'Fiado']]} />
+          <fieldset className="venta-actual__pagos">
+            <legend>¿Cómo paga?</legend>
+            {PAGOS.map(([valor, texto, ayuda, icono]) => (
+              <button key={valor} type="button" aria-pressed={pago === valor} onClick={() => setPago(valor)}>
+                <Icono nombre={icono} />
+                <strong>{texto}</strong>
+                <small>{ayuda}</small>
+              </button>
+            ))}
+          </fieldset>
 
-          {modalidad === 'CONTADO' ? (
-            <>
-              <Opciones etiqueta="Medio de pago" valor={medio} alCambiar={setMedio}
-                opciones={[['EFECTIVO', 'Efectivo'], ['TRANSFERENCIA', 'Transferencia']]} />
-              {medio === 'TRANSFERENCIA' && (
-                <Campo etiqueta="Referencia de la transferencia" value={referencia}
-                  onChange={(e) => setReferencia(e.target.value)} error={errores.referencia_transferencia}
-                  autoComplete="off" placeholder="Últimos números de la operación" />
-              )}
-            </>
-          ) : (
-            <ElegirCliente valor={clienteId} alCambiar={setClienteId} error={errores.cliente} />
+          {pago === 'TRANSFERENCIA' && (
+            <Campo etiqueta="Referencia de la transferencia" value={referencia} onChange={(e) => setReferencia(e.target.value)}
+              error={errores.referencia_transferencia} autoComplete="off" placeholder="Últimos números de la operación" />
           )}
-          {sinCaja && (
-            <p className="campo__error">
-              No hay caja abierta: abrila para {cobraEfectivo ? 'cobrar' : 'devolver'} en efectivo.
-            </p>
-          )}
+          {pago === 'FIADO' && <ElegirCliente valor={clienteId} alCambiar={setClienteId} error={errores.cliente} />}
 
-          <Boton className="pos__confirmar" disabled={!puedeConfirmar} cargando={registrar.isPending}
+          <Boton className="venta-actual__cobrar" disabled={!puedeConfirmar} cargando={registrar.isPending}
             textoCargando={editando ? 'Guardando…' : 'Registrando…'} onClick={() => registrar.mutate()}>
-            {editando
-              ? `Guardar cambios · ${moneda(total)}`
-              : modalidad === 'FIADO' ? `Registrar fiado · ${moneda(total)}` : `Cobrar ${moneda(total)}`}
+            {editando ? `Guardar cambios · ${moneda(total)}` : pago === 'FIADO' ? `Registrar fiado · ${moneda(total)}` : `Cobrar venta · ${moneda(total)}`}
           </Boton>
-        </Panel>
+          <Boton variante="secundario" className="venta-actual__vaciar" disabled={lineas.length === 0 && !editando} onClick={vaciar}>
+            {editando ? 'Cancelar modificación' : 'Vaciar venta'}
+          </Boton>
+          <p className={`venta-actual__nota${sinCaja || faltantes.size ? ' is-error' : ''}`}>{motivoBloqueo}</p>
+        </aside>
       </div>
 
-      <ListadoVentas esAdministrador={esAdministrador} editandoId={editando?.id_venta}
-        alModificar={modificar} alFallar={setFallo} />
+      <ResumenDelDia abierto={verLista} alAlternar={() => setVerLista((v) => !v)} />
+      {verLista && (
+        <ListadoVentas esAdministrador={esAdministrador} editandoId={editando?.id_venta}
+          alModificar={modificar} alFallar={setFallo} />
+      )}
 
       {fallo && (
         <AvisoError error={fallo} titulo={editando ? 'No se pudo modificar la venta' : 'No se pudo registrar la venta'}
           alCerrar={() => setFallo(null)} />
       )}
-    </>
+    </div>
   )
 }
 
-// Botones de opción (Contado/Fiado, Efectivo/Transferencia)
-function Opciones({ etiqueta, valor, alCambiar, opciones }) {
+// Fila de botones para filtrar (Tamaño: Todos · Mediano · Selección · Súper)
+function Chips({ etiqueta, opciones, valor, alCambiar }) {
   return (
-    <fieldset className="pos__opciones">
-      <legend className="campo__label">{etiqueta}</legend>
-      <div className="segmentado">
-        {opciones.map(([v, texto]) => (
-          <button key={v} type="button" className="segmentado__opcion" aria-pressed={valor === v} onClick={() => alCambiar(v)}>
-            {texto}
-          </button>
-        ))}
-      </div>
-    </fieldset>
+    <div className="chips" role="group" aria-label={etiqueta}>
+      <span className="chips__eti">{etiqueta}</span>
+      {opciones.map(([v, texto]) => (
+        <button key={v} type="button" className="chip" aria-pressed={valor === v} onClick={() => alCambiar(v)}>{texto}</button>
+      ))}
+    </div>
+  )
+}
+
+// Barra de abajo: lo vendido hoy y la última venta. Abre la lista para modificar o anular.
+function ResumenDelDia({ abierto, alAlternar }) {
+  const ventas = useQuery({ queryKey: ['ventas', 'dia', hoyISO()], queryFn: () => api(`/ventas/?desde=${hoyISO()}&hasta=${hoyISO()}`) })
+  const filas = (ventas.data?.results ?? []).filter((v) => v.estado !== 'ANULADA')
+  const vendido = filas.reduce((s, v) => s + Number(v.total), 0)
+  const ultima = filas[0]
+  return (
+    <div className="resumen-dia">
+      <span className="resumen-dia__icono"><Icono nombre="cuentas" /></span>
+      <div><small>Hoy</small><strong>{filas.length} {filas.length === 1 ? 'venta' : 'ventas'}</strong></div>
+      <div><small>Vendido</small><strong>{moneda(vendido)}</strong></div>
+      {ultima && <p className="suave resumen-dia__ultima">Última venta Nº {ultima.id_venta} · {hora(ultima.fecha)} · {moneda(ultima.total)}</p>}
+      <Boton variante="secundario" onClick={alAlternar}>{abierto ? 'Ocultar ventas del día' : 'Ver ventas del día'}</Boton>
+    </div>
   )
 }
 
@@ -394,6 +439,33 @@ function AnularVenta({ venta, alCerrar, alFallar }) {
     </Dialogo>
   )
 }
+
+// Una tarjeta por producto y presentación. La Unidad se ofrece como Docena (12 unidades a su precio).
+// "disponibles" se cuenta en la presentación de la tarjeta: 24 bandejas = 4 cajas = 60 docenas.
+function armarTarjetas(precios, productos, stock) {
+  const datos = new Map(productos.map((p) => [p.id_producto, p]))
+  const minimos = new Map(stock.map((s) => [s.producto, s]))
+  return precios.map((p) => {
+    const producto = datos.get(p.producto) ?? {}
+    const bandejas = Number(p.bandejas)
+    const esDocena = bandejas < 1
+    const paso = esDocena ? 12 : 1
+    const cantidad = Math.floor(Number(p.stock_bandejas) / (bandejas * paso) + 1e-9)
+    const unidad = esDocena ? (cantidad === 1 ? 'docena' : 'docenas') : bandejas >= 6 ? (cantidad === 1 ? 'caja' : 'cajas') : (cantidad === 1 ? 'bandeja' : 'bandejas')
+    return {
+      clave: `${p.producto}-${p.presentacion}`, producto: p.producto, presentacion: p.presentacion,
+      nombre: p.producto_nombre, presentacion_nombre: esDocena ? 'Docena' : p.presentacion_nombre,
+      contenido: esDocena ? '12 huevos' : contenidoDe(bandejas), precio: Number(p.precio), bandejas, paso,
+      color: producto.tipo_huevo, colorTexto: producto.tipo_huevo === 'BLANCO' ? 'Blanco' : 'Castaño',
+      tamano: producto.tamano, tamanoTexto: { MEDIANO: 'Mediano', 'SELECCIÓN': 'Selección', 'SÚPER': 'Súper' }[producto.tamano] ?? '',
+      disponibles: cantidad > 0 ? `${numero(cantidad)} ${unidad}` : 'Sin stock',
+      nivel: cantidad <= 0 ? 'agotado' : minimos.get(p.producto)?.bajo_minimo ? 'bajo' : 'ok',
+    }
+  }).sort((a, b) => a.nombre.localeCompare(b.nombre) || orden(a) - orden(b))
+}
+
+// Orden dentro de cada huevo: Bandeja, Caja y al final la Docena.
+const orden = (t) => (t.paso === 12 ? 1000 : t.bandejas)
 
 // [{producto, presentacion, ...}] → [{ producto, nombre, stock, presentaciones: [...] }]
 function agruparPorProducto(precios) {
