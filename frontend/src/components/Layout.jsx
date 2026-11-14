@@ -29,7 +29,10 @@ const GRUPOS = [
   {
     titulo: 'Administración',
     soloAdministrador: true, // el Operador no ve este grupo (S4-06)
-    items: [{ a: '/usuarios', texto: 'Usuarios y roles', icono: 'usuarios' }],
+    items: [
+      { a: '/reportes', texto: 'Reportes', icono: 'reportes' },
+      { a: '/usuarios', texto: 'Usuarios y roles', icono: 'usuarios' },
+    ],
   },
 ]
 

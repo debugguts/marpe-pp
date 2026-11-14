@@ -8,6 +8,7 @@ from apps.compras.views import CompraViewSet
 from apps.gastos.views import GastoViewSet
 from apps.inventario.views import MovimientoInventarioViewSet, StockViewSet
 from apps.proveedores.views import CostoProveedorViewSet, ProveedorViewSet
+from apps.reportes.views import ExcelReporteView, ResumenReporteView
 from apps.usuarios.gestion import ActividadViewSet, UsuarioViewSet
 from apps.usuarios.views import LoginView, LogoutView, YoView
 from apps.ventas.cuentas import CuentaCorrienteViewSet
@@ -40,4 +41,7 @@ urlpatterns = router.urls + [
     path("auth/login/", LoginView.as_view(), name="login"),
     path("auth/logout/", LogoutView.as_view(), name="logout"),
     path("auth/yo/", YoView.as_view(), name="yo"),
+    # Reportes (Sprint 6, solo administrador)
+    path("reportes/resumen/", ResumenReporteView.as_view(), name="reporte-resumen"),
+    path("reportes/excel/", ExcelReporteView.as_view(), name="reporte-excel"),
 ]

@@ -230,3 +230,22 @@ POST /api/precios/confirmar/
 ```
 
 Responde 201 con el precio nuevo y `"ganancia_estimada": "750.00"`. Si el precio queda por debajo del equilibrio responde 400 con `"codigo": "bajo_equilibrio"`; para usarlo igual se reenvía con `"confirmar_bajo_equilibrio": true`. Solo el administrador puede confirmar (403 para el operador).
+
+## Reportes (Sprint 6 · solo administrador)
+
+| Método | Dirección | Qué hace |
+|---|---|---|
+| GET | `/api/reportes/resumen/?desde=AAAA-MM-DD&hasta=AAAA-MM-DD` | Cifras del período (sin fechas: el mes en curso). Máximo un año. |
+| GET | `/api/reportes/excel/?desde=…&hasta=…` | El mismo reporte en `.xlsx`: hojas Resumen, Por huevo, Ventas, Compras y Gastos. |
+
+Respuesta de `resumen`: `ventas` (total, cantidad, ticket_promedio, por_medio {efectivo, transferencia, fiado}, anuladas {cantidad, total}),
+`compras` (total, cantidad), `gastos` (total, fijos, variables), `ganancia` (costo_vendido, bruta, neta, sin_costo),
+`balance`, `productos` (por huevo: bandejas, vendido, costo, ganancia, por_presentacion) y `evolucion` (puntos por día, o por mes si el período supera 62 días).
+
+Cuentas:
+- Ventas: solo CONFIRMADAS. Las anuladas se informan aparte y no suman.
+- Costo de lo vendido = bandejas vendidas × costo promedio por bandeja (compras del período; si no hubo, costo vigente del proveedor). Es el mismo cálculo del precio sugerido.
+- Ganancia bruta = ventas − costo de lo vendido. Ganancia neta = bruta − gastos. Balance = ventas − compras − gastos.
+- PDF: lo genera el navegador con «Imprimir / PDF» (hoja de impresión propia, sin menú ni botones).
+
+Errores: 400 con `desde`/`hasta` si la fecha es inválida, el final es anterior al inicio o el período supera un año. 403 si no es administrador.

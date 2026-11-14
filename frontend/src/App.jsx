@@ -4,6 +4,7 @@ import Layout from './components/Layout'
 import RutaPrivada from './components/RutaPrivada'
 import Login from './pages/Login'
 import Inicio from './pages/Inicio'
+import Reportes from './pages/Reportes'
 import Caja from './pages/Caja'
 import Catalogo from './pages/Catalogo'
 import Clientes from './pages/Clientes'
@@ -39,6 +40,7 @@ export default function App() {
               <Route path="gastos" element={<Gastos />} />
               <Route path="inventario" element={<Inventario />} />
               <Route path="cuentas" element={<Cuentas />} />
+              <Route path="reportes" element={<Reportes />} />
               <Route path="usuarios" element={<Usuarios />} />
               <Route path="*" element={<NoEncontrada />} />
             </Route>
