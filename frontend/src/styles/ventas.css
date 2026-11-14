@@ -32,11 +32,9 @@
 .chip[aria-pressed="true"] { background: var(--marron); border-color: var(--marron); color: var(--blanco); }
 
 /* ---------- Grupos y tarjetas ---------- */
-.mostrador__grupo { display: grid; gap: var(--espacio-2); }
-.mostrador__grupo h2 { display: flex; align-items: baseline; gap: 0.5rem; font-size: var(--texto-l); }
-.mostrador__grupo h2::after { content: ""; flex: 1; height: 1px; background: var(--borde); }
-.mostrador__grupo h2 span { font: 400 var(--texto-s) var(--fuente-ui); color: var(--texto-suave); }
-.mostrador__tarjetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: var(--espacio-3); }
+/* auto-fit (no auto-fill): las columnas que sobran se cierran y las tarjetas se estiran,
+   así nunca queda una columna vacía al costado. min(100%, 20rem) evita desbordes en el celular. */
+.mostrador__tarjetas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: var(--espacio-3); }
 .tarjeta-venta {
   display: grid; grid-template-rows: auto auto auto 1fr; gap: 0.35rem;
   padding: var(--espacio-3);
@@ -152,7 +150,6 @@
 /* ---------- Una tarjeta por huevo, una fila por presentación ----------
    Cada presentación tiene su color y su marca para reconocerla sin leer el precio:
    Bandeja (30) arena · Caja (×6) marrón · Huevos sueltos (1) rosa. El mismo color se repite en el ticket. */
-.mostrador__tarjetas { grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr)); }
 .tarjeta-huevo {
   display: grid; align-content: start; gap: var(--espacio-3);
   padding: var(--espacio-3) var(--espacio-3) var(--espacio-3);

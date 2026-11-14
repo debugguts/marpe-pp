@@ -167,11 +167,9 @@ export default function Ventas() {
               texto={tarjetas.length ? 'Probá con otro nombre o sacá los filtros.' : 'Confirmá los precios en Catálogo › Precios.'} />
           )}
 
-          {grupos.map((g) => (
-            <section key={g.nombre} className="mostrador__grupo" aria-label={g.nombre}>
-              <h2>{g.nombre} <span>{g.huevos.length} {g.huevos.length === 1 ? 'huevo' : 'huevos'}</span></h2>
-              <div className="mostrador__tarjetas">
-                {g.huevos.map((h) => (
+          {/* Todos los huevos en una sola grilla, ordenados Mediano → Selección → Súper: así no quedan huecos. */}
+          <div className="mostrador__tarjetas">
+                {grupos.flatMap((g) => g.huevos).map((h) => (
                   <article key={h.producto} className="tarjeta-huevo">
                     <header>
                       <div className="tarjeta-huevo__chips">
@@ -205,9 +203,7 @@ export default function Ventas() {
                     </ul>
                   </article>
                 ))}
-              </div>
-            </section>
-          ))}
+          </div>
         </section>
 
         <aside className={`venta-actual${editando ? ' is-editando' : ''}`} aria-label="Venta actual">
