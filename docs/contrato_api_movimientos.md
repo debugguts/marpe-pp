@@ -249,3 +249,9 @@ Cuentas:
 - PDF: lo genera el navegador con «Imprimir / PDF» (hoja de impresión propia, sin menú ni botones).
 
 Errores: 400 con `desde`/`hasta` si la fecha es inválida, el final es anterior al inicio o el período supera un año. 403 si no es administrador.
+
+## Inicio (resumen del día · cualquier usuario con sesión)
+
+`GET /api/inicio/` → `ventas` de hoy (total, cantidad, por_medio), `semana` (lo vendido en los últimos 7 días),
+`caja` abierta (o null), `stock` de cada huevo, `deudas` pendientes (total, cantidad) y `movimientos` de hoy
+(ventas, cobros de deudas, mermas y ajustes; compras y gastos solo para el administrador). La pantalla se actualiza cada minuto.

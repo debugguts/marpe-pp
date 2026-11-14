@@ -106,6 +106,16 @@ def evolucion(desde, hasta, confirmadas, compras, gastos):
     }
 
 
+def cobros(confirmadas):
+    """Cuánto entró por cada medio: efectivo y transferencia (contado) y lo que quedó fiado."""
+    pagos = PagoVenta.objects.filter(venta__in=confirmadas)
+    return {
+        "efectivo": redondear(suma(pagos.filter(medio_pago=MedioPago.EFECTIVO), "importe")),
+        "transferencia": redondear(suma(pagos.filter(medio_pago=MedioPago.TRANSFERENCIA), "importe")),
+        "fiado": redondear(suma(confirmadas.filter(modalidad=Venta.Modalidad.FIADO), "total")),
+    }
+
+
 def resumen(desde, hasta):
     todas = ventas_del_periodo(desde, hasta)
     confirmadas = todas.filter(estado=Venta.Estado.CONFIRMADA)
@@ -118,12 +128,7 @@ def resumen(desde, hasta):
     total_gastos = suma(gastos, "importe")
     cantidad_ventas = confirmadas.count()
 
-    pagos = PagoVenta.objects.filter(venta__in=confirmadas)
-    por_medio = {
-        "efectivo": redondear(suma(pagos.filter(medio_pago=MedioPago.EFECTIVO), "importe")),
-        "transferencia": redondear(suma(pagos.filter(medio_pago=MedioPago.TRANSFERENCIA), "importe")),
-        "fiado": redondear(suma(confirmadas.filter(modalidad=Venta.Modalidad.FIADO), "total")),
-    }
+    por_medio = cobros(confirmadas)
 
     productos, sin_costo = por_producto(confirmadas, desde, hasta)
     costo_vendido = sum((p["costo"] for p in productos if p["costo"] is not None), CERO)
@@ -159,7 +164,7 @@ def resumen(desde, hasta):
 
 def leer_periodo(parametros, hoy=None):
     """?desde=2026-11-01&hasta=2026-11-30. Sin fechas: el mes en curso hasta hoy."""
-    hoy = hoy or date.today()
+    hoy = hoy or timezone.localdate()
     errores = {}
     try:
         desde = date.fromisoformat(parametros.get("desde")) if parametros.get("desde") else hoy.replace(day=1)
