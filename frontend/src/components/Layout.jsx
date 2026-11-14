@@ -34,8 +34,11 @@ const GRUPOS = [
 ]
 
 export default function Layout() {
-  const [abierto, setAbierto] = useState(false)
   const { pathname } = useLocation()
+  // El menú del celular guarda en qué página se abrió: al navegar a otra, queda cerrado solo.
+  const [abiertoEn, setAbiertoEn] = useState(null)
+  const abierto = abiertoEn === pathname
+  const setAbierto = (valor) => setAbiertoEn(valor ? pathname : null)
   // Al cerrar sesión, "usuario" queda vacío un instante antes de que
   // RutaPrivada nos lleve al login: por eso se lee con "?." (sin romper).
   const { data: usuario } = useSesion()
@@ -46,11 +49,9 @@ export default function Layout() {
   const grupos = GRUPOS.filter((g) => !g.soloAdministrador || esAdministrador)
     .map((g) => ({ ...g, items: g.items.filter((i) => !i.soloAdministrador || esAdministrador) }))
 
-  useEffect(() => { setAbierto(false) }, [pathname])
-
   useEffect(() => {
     if (!abierto) return
-    const alTecla = (e) => { if (e.key === 'Escape') setAbierto(false) }
+    const alTecla = (e) => { if (e.key === 'Escape') setAbiertoEn(null) }
     document.addEventListener('keydown', alTecla)
     return () => document.removeEventListener('keydown', alTecla)
   }, [abierto])
@@ -66,7 +67,7 @@ export default function Layout() {
           aria-label={abierto ? 'Cerrar menú' : 'Abrir menú'}
           aria-expanded={abierto}
           aria-controls="lateral"
-          onClick={() => setAbierto((v) => !v)}
+          onClick={() => setAbierto(!abierto)}
         >
           <Icono nombre={abierto ? 'cerrar' : 'menu'} />
         </button>

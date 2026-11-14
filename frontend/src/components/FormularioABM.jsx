@@ -1,9 +1,12 @@
 import { erroresDe, useGuardar } from '../lib/abm'
+import AvisoError from './AvisoError'
 import Dialogo from './Dialogo'
 import { Boton } from './ui'
 
 // Formulario de alta y edición dentro de una ventana.
 // Si recibe "id" modifica ese registro; si no, da de alta uno nuevo.
+// Los errores de un campo se muestran debajo del campo; los generales (una regla del negocio,
+// sin conexión, sin permiso) se avisan en una ventana para que no pasen desapercibidos.
 // "children" es una función que recibe los errores y dibuja los campos:
 //   {(errores) => <Campo name="nombre" error={errores.nombre} ... />}
 export default function FormularioABM({ recurso, id, titulo, descripcion, alCerrar, children }) {
@@ -22,7 +25,6 @@ export default function FormularioABM({ recurso, id, titulo, descripcion, alCerr
       <form onSubmit={enviar} noValidate>
         <div className="dialogo__cuerpo">
           {children(errores)}
-          {errores.general && <p className="campo__error" role="alert">{errores.general}</p>}
         </div>
         <footer className="dialogo__pie">
           <Boton variante="secundario" onClick={alCerrar}>Cancelar</Boton>
@@ -31,6 +33,7 @@ export default function FormularioABM({ recurso, id, titulo, descripcion, alCerr
           </Boton>
         </footer>
       </form>
+      {errores.general && <AvisoError error={guardar.error} alCerrar={() => guardar.reset()} />}
     </Dialogo>
   )
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import AvisoError from '../components/AvisoError'
 import Cifra from '../components/Cifra'
 import Dialogo from '../components/Dialogo'
 import { Boton, CabeceraPagina, Campo, EstadoVacio, Insignia, Panel } from '../components/ui'
@@ -62,9 +63,10 @@ function AbrirCaja() {
       <p className="suave">Contá el efectivo con el que arrancás el día y abrí la caja.</p>
       <form className="caja-abrir__form" onSubmit={(e) => { e.preventDefault(); abrir.mutate(new FormData(e.currentTarget).get('saldo')) }}>
         <Campo etiqueta="Efectivo inicial" name="saldo" type="number" inputMode="decimal" min="0" step="any"
-          required error={errores.saldo_inicial || errores.general} placeholder="0" />
+          required error={errores.saldo_inicial} placeholder="0" />
         <Boton type="submit" icono="caja" cargando={abrir.isPending} textoCargando="Abriendo…">Abrir caja</Boton>
       </form>
+      {errores.general && <AvisoError error={abrir.error} titulo="No se pudo abrir la caja" alCerrar={() => abrir.reset()} />}
     </Panel>
   )
 }
@@ -136,13 +138,13 @@ function MovimientoManual({ tipo, caja, alCerrar }) {
         <div className="dialogo__cuerpo">
           <Campo etiqueta="Importe" name="importe" type="number" inputMode="decimal" min="0" step="any" error={errores.importe} data-foco />
           <Campo etiqueta="Motivo" name="motivo" error={errores.motivo} autoComplete="off" placeholder={esRetiro ? 'Depósito en el banco' : 'Cambio para el día'} />
-          {errores.general && <p className="campo__error" role="alert">{errores.general}</p>}
         </div>
         <footer className="dialogo__pie">
           <Boton variante="secundario" onClick={alCerrar}>Cancelar</Boton>
           <Boton type="submit" cargando={guardar.isPending} textoCargando="Guardando…">Guardar</Boton>
         </footer>
       </form>
+      {errores.general && <AvisoError error={guardar.error} alCerrar={() => guardar.reset()} />}
     </Dialogo>
   )
 }
@@ -178,7 +180,7 @@ function CerrarCaja({ caja, alCerrar }) {
         <form onSubmit={(e) => { e.preventDefault(); cerrar.mutate(new FormData(e.currentTarget).get('contado')) }} noValidate>
           <div className="dialogo__cuerpo">
             <Campo etiqueta="Efectivo contado" name="contado" type="number" inputMode="decimal" min="0" step="any"
-              error={errores.efectivo_contado || errores.general} data-foco />
+              error={errores.efectivo_contado} data-foco />
           </div>
           <footer className="dialogo__pie">
             <Boton variante="secundario" onClick={alCerrar}>Cancelar</Boton>
@@ -186,6 +188,7 @@ function CerrarCaja({ caja, alCerrar }) {
           </footer>
         </form>
       )}
+      {errores.general && <AvisoError error={cerrar.error} titulo="No se pudo cerrar la caja" alCerrar={() => cerrar.reset()} />}
     </Dialogo>
   )
 }

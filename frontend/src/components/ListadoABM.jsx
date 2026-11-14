@@ -1,6 +1,7 @@
 import { useDeferredValue, useState } from 'react'
 import { useBaja, useGuardar, useListado } from '../lib/abm'
 import { numero } from '../lib/formato'
+import AvisoError from './AvisoError'
 import Dialogo from './Dialogo'
 import Icono from './Icono'
 import { Boton, EstadoVacio, Insignia } from './ui'
@@ -145,7 +146,7 @@ export default function ListadoABM({
         </div>
       )}
 
-      {reactivar.isError && <p className="campo__error" role="alert">{reactivar.error.message}</p>}
+      {reactivar.isError && <AvisoError error={reactivar.error} titulo="No se pudo reactivar" alCerrar={() => reactivar.reset()} />}
 
       {aDarDeBaja && (
         <ConfirmarBaja
@@ -162,12 +163,12 @@ export default function ListadoABM({
 // Pide confirmación antes de la baja. Explica que no se borra: queda inactivo.
 function ConfirmarBaja({ recurso, id, nombre, alCerrar }) {
   const baja = useBaja(recurso)
+  if (baja.isError) return <AvisoError error={baja.error} titulo="No se pudo dar de baja" alCerrar={alCerrar} />
   return (
     <Dialogo titulo={`¿Dar de baja «${nombre}»?`} alCerrar={alCerrar}>
       <div className="dialogo__cuerpo">
         <p>No se borra: queda guardado como <strong>dado de baja</strong> para no perder el historial
           de compras y ventas. Lo podés reactivar cuando quieras.</p>
-        {baja.isError && <p className="campo__error" role="alert">{baja.error.message}</p>}
       </div>
       <footer className="dialogo__pie">
         <Boton variante="secundario" onClick={alCerrar}>Cancelar</Boton>

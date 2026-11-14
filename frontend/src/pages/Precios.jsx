@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import AvisoError from '../components/AvisoError'
 import { Boton, EstadoVacio, Insignia } from '../components/ui'
 import { api } from '../lib/api'
 import { contenidoDe, moneda, numero } from '../lib/formato'
@@ -165,11 +166,11 @@ function CambiarPrecio({ producto, presentacion, margen }) {
       ))}
       <p className="precios__mensaje" aria-live="polite">
         {bajoCosto && <span className="campo__error">Con ese precio perdés plata: te cuesta {moneda(presentacion.sugerido)}.</span>}
-        {confirmar.isError && !bajoCosto && (
-          <span className="campo__error">{confirmar.error.datos?.precio ?? confirmar.error.message}</span>
-        )}
         {confirmar.isSuccess && <span className="precios__ok">Precio guardado. Rige desde hoy.</span>}
       </p>
+      {confirmar.isError && !bajoCosto && (
+        <AvisoError error={confirmar.error} titulo="No se pudo guardar el precio" alCerrar={() => confirmar.reset()} />
+      )}
     </form>
   )
 }

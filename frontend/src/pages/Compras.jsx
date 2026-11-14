@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import AvisoError from '../components/AvisoError'
 import Dialogo from '../components/Dialogo'
 import Icono from '../components/Icono'
 import { Boton, CabeceraPagina, Campo, EstadoVacio, Panel } from '../components/ui'
@@ -154,9 +155,7 @@ function NuevaCompra({ proveedores, alCerrar }) {
             <Boton variante="fantasma" icono="mas" onClick={() => setLineas((ls) => [...ls, lineaVacia()])}>Agregar otra línea</Boton>
           </fieldset>
 
-          {(aviso || errores.detalles || errores.general) && (
-            <p className="campo__error" role="alert">{aviso || errores.detalles || errores.general}</p>
-          )}
+          {aviso && <p className="campo__error" role="alert">{aviso}</p>}
           <p className="total-dialogo"><span>Total</span><strong>{moneda(total)}</strong></p>
         </div>
         <footer className="dialogo__pie">
@@ -164,6 +163,7 @@ function NuevaCompra({ proveedores, alCerrar }) {
           <Boton type="submit" cargando={guardar.isPending} textoCargando="Guardando…">Registrar compra</Boton>
         </footer>
       </form>
+      {(errores.general || errores.detalles) && <AvisoError error={guardar.error} titulo="No se pudo registrar la compra" alCerrar={() => guardar.reset()} />}
     </Dialogo>
   )
 }
