@@ -31,3 +31,9 @@ export function useLogout() {
     onSuccess: () => cliente.setQueryData(['sesion'], null),
   })
 }
+
+// true si el usuario conectado es Administrador. La pantalla lo usa para esconder lo que el
+// Operador no puede hacer; igual la API rechaza (403) cualquier intento.
+export function useEsAdministrador() {
+  return useSesion().data?.rol === 'Administrador'
+}

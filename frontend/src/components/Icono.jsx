@@ -19,6 +19,13 @@ const TRAZOS = {
   editar: 'M4 20h4L19 9l-4-4L4 16z M14 6l4 4',
   archivar: 'M4 5h16v4H4z M5 9v10h14V9 M10 13h4',
   reactivar: 'M4 12a8 8 0 1 0 2.5-5.8 M4 4v4h4',
+  cuentas: 'M5 4h14v16H5z M8 8h8 M8 12h8 M8 16h4',
+  banco: 'M3 9.5 12 4l9 5.5 M5 10v7 M9.5 10v7 M14.5 10v7 M19 10v7 M3.5 20h17',
+  alerta: 'M12 4 2.5 20h19z M12 10v4.5 M12 17.5h.01',
+  reportes: 'M4 20h16 M7 16v-5 M12 16V7 M17 16v-8',
+  imprimir: 'M7 9V4h10v5 M6 18H4v-7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7h-2 M7 14h10v6H7z',
+  descargar: 'M12 4v11 M7 10l5 5 5-5 M5 20h14',
+  anular: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M5.6 5.6l12.8 12.8',
 }
 
 export default function Icono({ nombre, tamano = 20 }) {

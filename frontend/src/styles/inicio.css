@@ -78,3 +78,47 @@
 }
 @keyframes poner { from { transform: scale(0.5); opacity: 0; } }
 .maple-leyenda { margin-top: 0.75rem; font-size: var(--texto-s); color: var(--texto-suave); }
+
+/* ---------- Datos reales (Sprint 6) ---------- */
+.inicio-link { font-size: var(--texto-s); font-weight: 600; color: var(--marron); text-underline-offset: 3px; }
+
+/* Últimos 7 días */
+.semana { margin: var(--espacio-4) 0 0; }
+.semana figcaption { font-size: var(--texto-s); color: var(--texto-suave); margin-bottom: var(--espacio-2); }
+.semana ol {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--espacio-2);
+  align-items: end;
+  height: 9rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.semana li { display: grid; grid-template-rows: auto 1fr auto; gap: 0.25rem; height: 100%; min-height: 0; text-align: center; }
+.semana__valor { font: 0.7rem var(--fuente-dato); color: var(--texto-suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.semana__barra {
+  align-self: end;
+  width: 100%;
+  max-width: 2.5rem;
+  margin: 0 auto;
+  background: color-mix(in srgb, var(--marron) 30%, var(--arena));
+  border-radius: 4px 4px 0 0;
+}
+.semana li.is-hoy .semana__barra { background: var(--marron); }
+.semana li.is-hoy .semana__valor { color: var(--marron); font-weight: 600; }
+.semana__dia { font-size: var(--texto-s); color: var(--texto-suave); text-transform: capitalize; }
+.semana li.is-hoy .semana__dia { color: var(--marron); font-weight: 600; }
+
+/* Stock de cada huevo */
+.stock-lista { display: grid; gap: var(--espacio-3); margin: 0; padding: 0; list-style: none; }
+.stock-lista__fila { display: flex; justify-content: space-between; gap: var(--espacio-2); font-variant-numeric: tabular-nums; }
+.stock-lista__fila small { font-weight: 400; color: var(--texto-suave); }
+.stock-lista__barra { position: relative; height: 0.5rem; margin-top: 0.4rem; background: var(--arena); border-radius: 999px; }
+.stock-lista__barra span { display: block; height: 100%; background: var(--marron); border-radius: inherit; }
+.stock-lista__barra i { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--borde-fuerte); }
+.stock-lista li.is-bajo .stock-lista__barra span { background: var(--peligro); }
+.stock-lista__aviso { display: block; margin-top: 0.3rem; font-size: var(--texto-s); color: var(--peligro); }
+
+.tabla tr.is-anulada td { color: var(--texto-suave); text-decoration: line-through; }
+.tabla tr.is-anulada td:nth-child(2) { text-decoration: none; }

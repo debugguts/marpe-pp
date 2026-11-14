@@ -166,3 +166,17 @@ textarea.campo__control { padding-block: 0.65rem; min-height: 6rem; resize: vert
 .vacio h2 { font-size: var(--texto-l); }
 .vacio p { color: var(--texto-suave); }
 .vacio .btn { margin-top: var(--espacio-2); }
+
+/* Ventana de aviso de error (dato incorrecto, sin stock, sin caja…) */
+.aviso-error { grid-template-columns: auto minmax(0, 1fr); align-items: start; }
+.aviso-error__icono {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  color: var(--peligro);
+  background: color-mix(in srgb, var(--peligro) 12%, var(--blanco));
+  border-radius: 50%;
+}
+.aviso-error__lista { display: grid; gap: var(--espacio-1); margin: 0; padding: 0.4rem 0 0; list-style: none; }
+.aviso-error__lista strong { font-weight: 600; }

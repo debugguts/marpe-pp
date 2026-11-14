@@ -4,7 +4,8 @@ Huevería Marpe · Práctica Profesional II · Comisión 2C
 
 - Base: `http://localhost:8080/api/`
 - Formato: JSON. Fechas `AAAA-MM-DD`, fecha y hora en ISO 8601. Importes como texto con 2 decimales (`"14000.00"`).
-- Sesión: todos los movimientos piden haber iniciado sesión (`POST /api/auth/login/`), porque guardan qué usuario los hizo. Sin sesión responden **403**.
+- Sesión: toda la API pide haber iniciado sesión (`POST /api/auth/login/`); sin sesión responde **403**.
+- Roles: el **operador** vende, cobra deudas, opera la caja, carga mermas y da de alta clientes, y consulta lo demás. El **administrador** además carga proveedores, productos, presentaciones, costos, precios, compras, gastos y stock mínimo, gestiona usuarios y modifica o anula ventas. Si el operador lo intenta, la API responde **403** (la pantalla además esconde esos botones).
 - Listados paginados de a 20: `{ "count", "next", "previous", "results": [...] }` (salvo `precios`, `stock` y los movimientos de una caja, que vienen completos).
 - Errores: **400** con el problema por campo, por ejemplo `{ "cantidad": ["Asegúrese de que este valor sea mayor o igual a 0.001."] }`. Los errores que no son de un campo vienen en `non_field_errors`.
 - Cada alta queda registrada en `REGISTRO_ACTIVIDAD` (quién, qué y cuándo).
@@ -22,11 +23,14 @@ Huevería Marpe · Práctica Profesional II · Comisión 2C
 | Compras | `GET /compras/` | Lista (`?proveedor`, `?desde`, `?hasta`) | HU-04-C |
 | | `POST /compras/` | Registra la compra y suma al stock | HU-04-A/B |
 | | `GET /compras/<id>/` | Compra con su detalle | HU-04-C |
-| Ventas | `GET /ventas/` | Lista (`?cliente`, `?modalidad`, `?desde`, `?hasta`) | HU-05-H |
+| Ventas | `GET /ventas/` | Lista (`?cliente`, `?modalidad`, `?estado=CONFIRMADA\|ANULADA`, `?desde`, `?hasta`) | HU-05-H |
 | | `POST /ventas/` | Registra la venta: precio vigente, stock, cobro o fiado | HU-05-A a F |
 | | `GET /ventas/<id>/` | Venta con detalle y pagos | HU-05-H |
+| | `PUT /ventas/<id>/` | Solo administrador: modificación completa (mismos datos que el alta) | HU-05 |
+| | `POST /ventas/<id>/anular/` | Solo administrador: anula con motivo; devuelve stock y efectivo | HU-05 |
 | Cuenta corriente | `GET /cuentas-corrientes/` | Deudas (`?cliente`, `?estado=PENDIENTE\|CANCELADA`) | HU-07-C/E |
 | | `POST /cuentas-corrientes/<id>/cobrar/` | Cobra el total de la deuda | HU-05-G, HU-07-D |
+| | `GET /cuentas-corrientes/resumen/` | Total a cobrar y deuda por cliente | HU-07-E |
 | Gastos | `GET /gastos/` | Lista (`?desde`, `?hasta`, `?tipo`, `?search`) | HU-09-B |
 | | `POST /gastos/` | Alta; en efectivo sale de la caja | HU-09-A/E |
 | | `PATCH /gastos/<id>/` | Corrige fecha, concepto, categoría o tipo | HU-09-C |
@@ -38,6 +42,15 @@ Huevería Marpe · Práctica Profesional II · Comisión 2C
 | Precios | `GET /precios/` | Precios vigentes con el stock de cada producto (`?historial=1`) | HU-02-C |
 | | `GET /precios/sugeridos/` | Costo, gasto fijo, equilibrio y sugerido por producto | HU-02-C |
 | | `POST /precios/confirmar/` | Solo administrador: deja vigente un precio nuevo | HU-02-C |
+
+| Usuarios | `GET /usuarios/` | Solo administrador. Lista (`?search`, `?estado=ACTIVO\|INACTIVO`) | HU-01 |
+| | `POST /usuarios/` | Alta con `rol` (Administrador u Operador) y `clave` | HU-01-A |
+| | `PATCH /usuarios/<id>/` | Cambia nombre, rol o clave | HU-01-B |
+| | `DELETE /usuarios/<id>/` | Baja lógica: no entra más, su historial queda | HU-01-D |
+| | `POST /usuarios/<id>/reactivar/` | Lo vuelve a habilitar | HU-01-D |
+| Actividad | `GET /actividad/` | Solo administrador. Quién hizo qué y cuándo (`?usuario`, `?entidad`, `?operacion`, `?desde`, `?hasta`) | HU-01-E |
+
+Reglas de usuarios: la clave se guarda cifrada y tiene que cumplir los validadores de Django (8 caracteres, no solo números, no común); nadie se da de baja a sí mismo y siempre queda al menos un administrador activo.
 
 ## Ejemplos
 
@@ -121,7 +134,41 @@ Reglas:
 - Sin cliente, la venta es a «Consumidor final». Para **fiar** hay que elegir un cliente registrado.
 - **Contado** pide medio de pago; **transferencia** pide referencia; **efectivo** pide una caja abierta.
 - Si no alcanza el stock de algún producto no se vende nada: `"Stock insuficiente de Castaño Súper: hay 3 bandejas y se necesitan 12."`
-- Una venta confirmada no se modifica (405).
+- Una venta no se borra (`DELETE` responde 405): se modifica o se anula, y siempre queda registrada.
+
+### Modificar una venta (solo administrador)
+
+```json
+PUT /api/ventas/15/
+{
+  "modalidad": "FIADO",
+  "cliente": 3,
+  "detalles": [ { "producto": 1, "presentacion": 3, "cantidad": "1" } ]
+}
+```
+
+Se manda la venta completa, igual que en el alta (`PATCH` hace lo mismo). El sistema, en una sola transacción:
+
+1. Devuelve al stock las bandejas que había descontado la venta (movimiento `AJUSTE_POSITIVO` con motivo «Modificación de la venta 15»).
+2. Reemplaza las líneas y el cobro, y vuelve a descontar el stock y a cobrar o fiar con los datos nuevos.
+3. Si antes había entrado efectivo, lo saca de la caja abierta (movimiento `RETIRO` con el mismo motivo).
+
+Reglas:
+
+- La venta conserva su número y su fecha; se guarda `fecha_modificacion`.
+- Las líneas que ya estaban conservan su precio; las nuevas toman el precio vigente.
+- Si no alcanza el stock, no se modifica nada.
+- Cómo estaba la venta antes queda escrito en `REGISTRO_ACTIVIDAD` (operación «Modificación»).
+- No se puede modificar una venta anulada ni una venta fiada cuya deuda ya se cobró.
+
+### Anular una venta (solo administrador)
+
+```json
+POST /api/ventas/15/anular/
+{ "motivo": "El cliente devolvió la mercadería" }
+```
+
+La venta pasa a `ANULADA` con su motivo y su fecha de anulación, y conserva el detalle y los pagos. Se devuelve el stock y, si fue en efectivo, el dinero sale de la caja abierta. Si era fiada, la deuda se da de baja (saldo 0). Una venta anulada no se modifica ni se vuelve a anular. El operador recibe 403.
 
 ### Cobrar una deuda
 
@@ -183,3 +230,28 @@ POST /api/precios/confirmar/
 ```
 
 Responde 201 con el precio nuevo y `"ganancia_estimada": "750.00"`. Si el precio queda por debajo del equilibrio responde 400 con `"codigo": "bajo_equilibrio"`; para usarlo igual se reenvía con `"confirmar_bajo_equilibrio": true`. Solo el administrador puede confirmar (403 para el operador).
+
+## Reportes (Sprint 6 · solo administrador)
+
+| Método | Dirección | Qué hace |
+|---|---|---|
+| GET | `/api/reportes/resumen/?desde=AAAA-MM-DD&hasta=AAAA-MM-DD` | Cifras del período (sin fechas: el mes en curso). Máximo un año. |
+| GET | `/api/reportes/excel/?desde=…&hasta=…` | El mismo reporte en `.xlsx`: hojas Resumen, Por huevo, Ventas, Compras y Gastos. |
+
+Respuesta de `resumen`: `ventas` (total, cantidad, ticket_promedio, por_medio {efectivo, transferencia, fiado}, anuladas {cantidad, total}),
+`compras` (total, cantidad), `gastos` (total, fijos, variables), `ganancia` (costo_vendido, bruta, neta, sin_costo),
+`balance`, `productos` (por huevo: bandejas, vendido, costo, ganancia, por_presentacion) y `evolucion` (puntos por día, o por mes si el período supera 62 días).
+
+Cuentas:
+- Ventas: solo CONFIRMADAS. Las anuladas se informan aparte y no suman.
+- Costo de lo vendido = bandejas vendidas × costo promedio por bandeja (compras del período; si no hubo, costo vigente del proveedor). Es el mismo cálculo del precio sugerido.
+- Ganancia bruta = ventas − costo de lo vendido. Ganancia neta = bruta − gastos. Balance = ventas − compras − gastos.
+- PDF: lo genera el navegador con «Imprimir / PDF» (hoja de impresión propia, sin menú ni botones).
+
+Errores: 400 con `desde`/`hasta` si la fecha es inválida, el final es anterior al inicio o el período supera un año. 403 si no es administrador.
+
+## Inicio (resumen del día · cualquier usuario con sesión)
+
+`GET /api/inicio/` → `ventas` de hoy (total, cantidad, por_medio), `semana` (lo vendido en los últimos 7 días),
+`caja` abierta (o null), `stock` de cada huevo, `deudas` pendientes (total, cantidad) y `movimientos` de hoy
+(ventas, cobros de deudas, mermas y ajustes; compras y gastos solo para el administrador). La pantalla se actualiza cada minuto.

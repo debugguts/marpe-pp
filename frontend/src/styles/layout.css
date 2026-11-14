@@ -118,7 +118,7 @@
 /* ---------- Contenido ---------- */
 .contenido {
   width: 100%;
-  max-width: 78rem;
+  max-width: 140rem; /* aprovecha pantallas anchas; en monitores muy grandes igual queda un margen */
   margin-inline: auto;
   padding: var(--espacio-4) 0 var(--espacio-5);
   padding-inline: max(clamp(1rem, 3vw, 2.5rem), env(safe-area-inset-left));

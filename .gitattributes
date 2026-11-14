@@ -1,0 +1,2 @@
+# Los scripts que corren en Linux (Render, Docker) siempre con fin de línea LF, aunque se editen en Windows.
+*.sh text eol=lf

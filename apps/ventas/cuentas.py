@@ -5,6 +5,7 @@ Acá se consulta y se cobra. En esta versión la deuda se cancela en un solo pag
 """
 
 from django.db import transaction
+from django.db.models import Count, Sum
 from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -32,12 +33,13 @@ class CuentaCorrienteSerializer(serializers.ModelSerializer):
     fecha = serializers.DateTimeField(source="venta.fecha", read_only=True)
     cliente = serializers.IntegerField(source="venta.cliente_id", read_only=True)
     cliente_nombre = serializers.CharField(source="venta.cliente.nombre", read_only=True)
+    venta_estado = serializers.CharField(source="venta.estado", read_only=True)  # ANULADA: la deuda se dio de baja
     pagos = PagoCuentaSerializer(many=True, read_only=True)
 
     class Meta:
         model = CuentaCorriente
         fields = ["id_cuenta", "venta", "fecha", "cliente", "cliente_nombre",
-                  "importe_original", "saldo_pendiente", "estado", "pagos"]
+                  "importe_original", "saldo_pendiente", "estado", "venta_estado", "pagos"]
 
 
 class CobroSerializer(serializers.Serializer):
@@ -81,6 +83,7 @@ class CuentaCorrienteViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, v
     GET  /cuentas-corrientes/              lista. Filtros: ?cliente=<id>  ?estado=PENDIENTE|CANCELADA
     GET  /cuentas-corrientes/<id>/         una deuda con sus pagos (historial)
     POST /cuentas-corrientes/<id>/cobrar/  cobra el total; en efectivo entra a la caja
+    GET  /cuentas-corrientes/resumen/      total que se debe y cuánto debe cada cliente
     """
 
     serializer_class = CuentaCorrienteSerializer
@@ -95,6 +98,18 @@ class CuentaCorrienteViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, v
         if filtros.get("estado"):
             cuentas = cuentas.filter(estado=filtros["estado"].upper())
         return cuentas
+
+    @action(detail=False)
+    def resumen(self, request):
+        pendientes = CuentaCorriente.objects.filter(estado=CuentaCorriente.Estado.PENDIENTE)
+        por_cliente = (pendientes.values("venta__cliente_id", "venta__cliente__nombre")
+                       .annotate(deuda=Sum("saldo_pendiente"), ventas=Count("pk")).order_by("-deuda"))
+        return Response({
+            "total_pendiente": pendientes.aggregate(t=Sum("saldo_pendiente"))["t"] or 0,
+            "cantidad": pendientes.count(),
+            "por_cliente": [{"cliente": c["venta__cliente_id"], "cliente_nombre": c["venta__cliente__nombre"],
+                             "deuda": c["deuda"], "ventas": c["ventas"]} for c in por_cliente],
+        })
 
     @action(detail=True, methods=["post"])
     @transaction.atomic

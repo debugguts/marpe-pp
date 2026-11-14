@@ -1,0 +1,48 @@
+/* Inventario: una tarjeta por huevo y el historial de movimientos */
+.aviso-stock {
+  margin: 0 0 var(--espacio-4);
+  padding: 0.8rem 1rem;
+  color: var(--peligro);
+  background: color-mix(in srgb, var(--peligro) 9%, var(--blanco));
+  border: 1px solid color-mix(in srgb, var(--peligro) 30%, transparent);
+  border-radius: var(--radio-control);
+}
+
+.stock-tarjetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: var(--espacio-3);
+  margin-bottom: var(--espacio-4);
+}
+.stock-tarjeta {
+  display: grid;
+  gap: var(--espacio-2);
+  padding: var(--espacio-3) var(--espacio-4);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-panel);
+}
+.stock-tarjeta.is-bajo { border-color: color-mix(in srgb, var(--peligro) 45%, transparent); }
+.stock-tarjeta header { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--espacio-2); }
+.stock-tarjeta h2 { font-size: var(--texto-l); }
+.stock-tarjeta__total { margin: 0; color: var(--texto-suave); }
+.stock-tarjeta__total strong { font: 700 2.4rem/1 var(--fuente-titulo); color: var(--marron); font-variant-numeric: tabular-nums; margin-right: 0.3rem; }
+.stock-tarjeta.is-bajo .stock-tarjeta__total strong { color: var(--peligro); }
+.stock-tarjeta__reparto { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--espacio-1); margin: 0; }
+.stock-tarjeta__reparto div {
+  padding: 0.5rem 0.6rem;
+  text-align: center;
+  background: color-mix(in srgb, var(--arena) 60%, var(--blanco));
+  border-radius: var(--radio-control);
+}
+.stock-tarjeta__reparto dt { font-size: var(--texto-s); color: var(--texto-suave); }
+.stock-tarjeta__reparto dd { margin: 0; font: 600 1.25rem/1.2 var(--fuente-titulo); font-variant-numeric: tabular-nums; }
+.stock-tarjeta footer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--espacio-1); font-size: var(--texto-s); }
+.stock-tarjeta__acciones { display: flex; gap: 0.25rem; }
+.stock-tarjeta__acciones .btn { min-height: 2.25rem; padding: 0 0.7rem; font-size: var(--texto-s); }
+
+.stock-movimientos { display: grid; gap: var(--espacio-3); }
+.stock-movimientos .panel__cab { flex-wrap: wrap; gap: var(--espacio-2); }
+.stock-movimientos__filtro { min-width: 12rem; }
+.stock-movimientos .segmentado { display: flex; flex-wrap: wrap; margin: 0; }
+.paginado { display: flex; align-items: center; justify-content: flex-end; gap: var(--espacio-2); }

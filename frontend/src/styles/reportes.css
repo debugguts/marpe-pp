@@ -1,0 +1,83 @@
+/* Reportes (Sprint 6) */
+.reporte__acciones { display: flex; flex-wrap: wrap; gap: var(--espacio-2); }
+.reporte__periodo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--espacio-3);
+  margin-bottom: var(--espacio-4);
+}
+.reporte__periodo .segmentado { margin-bottom: 0; flex-wrap: wrap; }
+.reporte__fechas { display: flex; gap: var(--espacio-3); }
+.reporte__fechas .campo { min-width: 10rem; }
+
+.reporte__datos { display: grid; gap: var(--espacio-4); transition: opacity 0.2s; }
+.reporte__datos.is-actualizando { opacity: 0.6; }
+.reporte__datos > .cifras { margin-bottom: 0; }
+
+.reporte__grilla {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--espacio-4);
+}
+@media (min-width: 900px) { .reporte__grilla { grid-template-columns: 1fr 1fr; } }
+.reporte__comparacion { grid-column: 1 / -1; }
+
+.reporte__balance { margin-top: var(--espacio-3); font-size: var(--texto-m); }
+.reporte__nota { margin-top: var(--espacio-3); font-size: var(--texto-s); }
+.reporte__aviso { margin-top: var(--espacio-2); font-size: var(--texto-s); color: var(--aviso); }
+.reporte__titulo-impresion { display: none; }
+
+/* Gráfico */
+.barras { margin: 0; }
+.barras svg { display: block; max-width: 100%; }
+.barras__grilla { stroke: var(--borde); stroke-width: 1; }
+.barras__eje { font: 12px var(--fuente-dato); fill: var(--texto-suave); }
+.barras__ventas { fill: var(--marron); }
+.barras__compras { fill: var(--rosa-hover); }
+
+.leyenda { display: flex; gap: var(--espacio-3); list-style: none; margin: 0; padding: 0; font-size: var(--texto-s); color: var(--texto-suave); }
+.leyenda li { display: flex; align-items: center; gap: 0.4rem; }
+.leyenda__marca { width: 0.75rem; height: 0.75rem; border-radius: 3px; }
+.leyenda__marca.is-ventas { background: var(--marron); }
+.leyenda__marca.is-compras { background: var(--rosa-hover); }
+
+/* Cuenta de la ganancia, renglón por renglón */
+.cuenta-ganancia { display: grid; gap: 0.15rem; margin: 0; }
+.cuenta-ganancia > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+  padding: 0.55rem 0;
+  font-variant-numeric: tabular-nums;
+}
+.cuenta-ganancia dd { margin: 0; white-space: nowrap; }
+.cuenta-ganancia .resta { color: var(--texto-suave); }
+.cuenta-ganancia .subtotal { border-top: 1px solid var(--borde); font-weight: 600; }
+.cuenta-ganancia .total {
+  border-top: 2px solid var(--marron);
+  font: 600 var(--texto-l) var(--fuente-titulo);
+}
+
+/* Medios de pago */
+.medios { display: grid; gap: var(--espacio-3); list-style: none; margin: 0; padding: 0; }
+.medios li { display: grid; grid-template-columns: 1fr auto; gap: 0.3rem var(--espacio-2); align-items: center; }
+.medios__fila { grid-column: 1 / -1; display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
+.medios__barra { height: 0.5rem; background: var(--arena); border-radius: 999px; overflow: hidden; }
+.medios__barra span { display: block; height: 100%; background: var(--marron); border-radius: inherit; }
+.medios .suave { font-size: var(--texto-s); min-width: 3ch; text-align: right; }
+
+/* ---------- Impresión / PDF: solo el reporte, sin menú ni botones ---------- */
+@media print {
+  @page { size: A4; margin: 14mm; }
+  .cabecera, .lateral, .saltar, .scrim, .reporte__acciones, .reporte__periodo { display: none !important; }
+  .cuerpo { display: block; }
+  .contenido { padding: 0; max-width: none; }
+  body { background: #fff; }
+  .reporte__titulo-impresion { display: block; margin: 0 0 var(--espacio-3); font: 600 var(--texto-l) var(--fuente-titulo); color: var(--marron); }
+  .reporte__datos.is-actualizando { opacity: 1; }
+  .panel, .cifra-tarjeta { break-inside: avoid; box-shadow: none; }
+  .cifras { grid-template-columns: repeat(4, 1fr); }
+  .reporte__grilla { grid-template-columns: 1fr 1fr; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

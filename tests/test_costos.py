@@ -8,11 +8,14 @@ from rest_framework.test import APITestCase
 from apps.catalogo.models import Presentacion, Producto
 from apps.proveedores.models import CostoProveedor, Proveedor
 
+from .datos import entrar_como_admin
+
 
 class CostosProveedorAPITest(APITestCase):
     url = "/api/costos-proveedor/"
 
     def setUp(self):
+        entrar_como_admin(self)
         self.proveedor = Proveedor.objects.create(nombre="Granja Los Andes")
         self.producto = Producto.objects.create(tipo_huevo="BLANCO", tamano="MEDIANO")
         self.bandeja = Presentacion.objects.create(nombre="Bandeja", cantidad_bandejas_equivalentes=1)

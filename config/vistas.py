@@ -46,17 +46,18 @@ class ABMConBajaLogica(viewsets.ModelViewSet):
         anotar_actividad(self.request.user, operacion, registro)
 
 
-def anotar_actividad(usuario, operacion, registro):
+def anotar_actividad(usuario, operacion, registro, detalle=None):
     """Deja constancia de quién hizo qué, sobre qué registro y cuándo (HU-01-E).
 
     La usan los ABM de arriba y también los movimientos (compras, ventas, caja...).
+    detalle: texto opcional, por ejemplo cómo estaba una venta antes de modificarla.
     """
     RegistroActividad.objects.create(
         usuario=usuario if usuario.is_authenticated else None,
         operacion=operacion,
         entidad_afectada=type(registro).__name__,  # por ejemplo "Proveedor" o "Venta"
         referencia_registro=str(registro.pk),
-        detalle=str(registro),
+        detalle=detalle or str(registro),
     )
 
 

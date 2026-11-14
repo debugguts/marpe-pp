@@ -11,10 +11,11 @@ const GRUPOS = [
     items: [
       { a: '/', texto: 'Inicio', icono: 'inicio', fin: true },
       { a: '/ventas', texto: 'Ventas', icono: 'ventas' },
+      { a: '/cuentas', texto: 'Cuentas corrientes', icono: 'cuentas' },
       { a: '/caja', texto: 'Caja', icono: 'caja' },
-      { a: '/compras', texto: 'Compras', icono: 'compras' },
-      { texto: 'Inventario', icono: 'inventario' },
-      { a: '/gastos', texto: 'Gastos', icono: 'gastos' },
+      { a: '/compras', texto: 'Compras', icono: 'compras', soloAdministrador: true },
+      { a: '/inventario', texto: 'Inventario', icono: 'inventario' },
+      { a: '/gastos', texto: 'Gastos', icono: 'gastos', soloAdministrador: true },
     ],
   },
   {
@@ -28,26 +29,32 @@ const GRUPOS = [
   {
     titulo: 'Administración',
     soloAdministrador: true, // el Operador no ve este grupo (S4-06)
-    items: [{ texto: 'Usuarios y roles', icono: 'usuarios' }],
+    items: [
+      { a: '/reportes', texto: 'Reportes', icono: 'reportes' },
+      { a: '/usuarios', texto: 'Usuarios y roles', icono: 'usuarios' },
+    ],
   },
 ]
 
 export default function Layout() {
-  const [abierto, setAbierto] = useState(false)
   const { pathname } = useLocation()
+  // El menú del celular guarda en qué página se abrió: al navegar a otra, queda cerrado solo.
+  const [abiertoEn, setAbiertoEn] = useState(null)
+  const abierto = abiertoEn === pathname
+  const setAbierto = (valor) => setAbiertoEn(valor ? pathname : null)
   // Al cerrar sesión, "usuario" queda vacío un instante antes de que
   // RutaPrivada nos lleve al login: por eso se lee con "?." (sin romper).
   const { data: usuario } = useSesion()
   const salir = useLogout()
   const nombre = usuario?.nombre ?? ''
   const esAdministrador = usuario?.rol === 'Administrador'
+  // El Operador no ve lo que no puede usar (grupos o ítems marcados soloAdministrador).
   const grupos = GRUPOS.filter((g) => !g.soloAdministrador || esAdministrador)
-
-  useEffect(() => { setAbierto(false) }, [pathname])
+    .map((g) => ({ ...g, items: g.items.filter((i) => !i.soloAdministrador || esAdministrador) }))
 
   useEffect(() => {
     if (!abierto) return
-    const alTecla = (e) => { if (e.key === 'Escape') setAbierto(false) }
+    const alTecla = (e) => { if (e.key === 'Escape') setAbiertoEn(null) }
     document.addEventListener('keydown', alTecla)
     return () => document.removeEventListener('keydown', alTecla)
   }, [abierto])
@@ -63,7 +70,7 @@ export default function Layout() {
           aria-label={abierto ? 'Cerrar menú' : 'Abrir menú'}
           aria-expanded={abierto}
           aria-controls="lateral"
-          onClick={() => setAbierto((v) => !v)}
+          onClick={() => setAbierto(!abierto)}
         >
           <Icono nombre={abierto ? 'cerrar' : 'menu'} />
         </button>

@@ -1,5 +1,7 @@
 """Pruebas de la cuenta corriente y el cobro de deudas (S5-07, HU-05-G y HU-07)."""
 
+from decimal import Decimal
+
 from rest_framework.test import APITestCase
 
 from apps.caja.models import Caja, MovimientoCaja
@@ -50,3 +52,12 @@ class CuentasCorrientesAPITest(APITestCase):
     def test_transferencia_pide_referencia(self):
         self.assertIn("referencia_transferencia", self.cobrar("21000", "TRANSFERENCIA").data)
         self.assertEqual(self.cobrar("21000", "TRANSFERENCIA", referencia_transferencia="TRF-9").status_code, 200)
+
+    def test_resumen_suma_lo_que_se_debe_por_cliente(self):
+        respuesta = self.client.get(f"{self.url}resumen/")
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta.data["total_pendiente"], Decimal("21000"))
+        self.assertEqual(respuesta.data["cantidad"], 1)
+        self.assertEqual(respuesta.data["por_cliente"][0]["deuda"], Decimal("21000"))
+        self.cobrar("21000")
+        self.assertEqual(self.client.get(f"{self.url}resumen/").data["total_pendiente"], 0)

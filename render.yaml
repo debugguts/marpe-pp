@@ -1,0 +1,24 @@
+# Blueprint de Render: con este archivo Render arma el servicio solo (New → Blueprint → elegir el repo).
+# Las variables marcadas sync: false se cargan a mano en el panel (no se suben al repo).
+services:
+  - type: web
+    name: marpe
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile.render
+    healthCheckPath: /api/salud/
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL          # la de Neon (postgresql://...?sslmode=require)
+        sync: false
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "0"
+      - key: DJANGO_HTTPS
+        value: "1"
+      - key: MARPE_ADMIN_USUARIO   # primer administrador (solo se usa si la base está vacía)
+        sync: false
+      - key: MARPE_ADMIN_CLAVE
+        sync: false

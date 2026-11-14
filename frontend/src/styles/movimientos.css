@@ -58,3 +58,19 @@
 
 /* Los textos ocultos para lectores de pantalla dentro de la tabla no tienen que estirar la página */
 .tabla-wrap { position: relative; }
+
+/* ---------- Cuentas corrientes ---------- */
+.cuentas-filtros { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: var(--espacio-3); margin-bottom: var(--espacio-3); }
+.cuentas-filtros .segmentado { margin: 0; }
+.cuentas-filtros .campo { min-width: 14rem; }
+.cuenta-pagada { white-space: nowrap; font-size: var(--texto-s); }
+.pos__opciones { border: 0; padding: 0; margin: 0; display: grid; gap: var(--espacio-1); }
+.pos__opciones .segmentado { margin: 0; display: flex; }
+.pos__opciones .segmentado__opcion { flex: 1; }
+.paginado { display: flex; align-items: center; justify-content: flex-end; gap: var(--espacio-2); padding-top: var(--espacio-3); }
+
+/* ---------- Usuarios y actividad ---------- */
+.abm-barra .campo { min-width: 12rem; }
+.abm-buscar-campo { flex: 1; }
+.actividad__detalle { max-width: 32rem; font-size: var(--texto-s); color: var(--texto-suave); }
+.stock-movimientos td:first-child, .actividad td:first-child { white-space: nowrap; }

@@ -14,6 +14,7 @@ from .datos import crear_base
 class PreciosAPITest(APITestCase):
     def setUp(self):
         crear_base(self)
+        self.client.force_login(self.admin)  # compras, gastos y precios los carga el administrador
         hoy = date.today()
         # Compras del mes: 10 bandejas a $ 5.000 y 30 a $ 6.000 → promedio ponderado $ 5.750
         for cantidad, precio in [("10", "5000"), ("30", "6000")]:
@@ -54,6 +55,7 @@ class PreciosAPITest(APITestCase):
         self.assertEqual(segunda.status_code, 201)
 
     def test_el_operador_no_puede_confirmar_precios(self):
+        self.client.force_login(self.operador)
         respuesta = self.client.post("/api/precios/confirmar/", {
             "producto": self.producto.pk, "presentacion": self.bandeja.pk, "precio": "9000"}, format="json")
         self.assertEqual(respuesta.status_code, 403)

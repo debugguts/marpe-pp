@@ -4,12 +4,12 @@ from django.db import transaction
 from django.db.models import Sum
 from rest_framework import filters, mixins, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.caja.models import MovimientoCaja
 from apps.caja.servicios import mover_caja
 from apps.catalogo.precios import mes_actual
+from config.permisos import ConsultaOAdministrador
 from config.comunes import MedioPago
 from config.vistas import anotar_actividad
 
@@ -28,7 +28,7 @@ class GastoViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.Retrie
     """
 
     serializer_class = GastoSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [ConsultaOAdministrador]  # el operador consulta; carga el administrador
     filter_backends = [filters.SearchFilter]
     search_fields = ["concepto", "categoria"]
 
