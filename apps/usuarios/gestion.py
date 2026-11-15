@@ -36,7 +36,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Usuario
-        fields = ["id_usuario", "username", "first_name", "last_name", "nombre", "rol", "clave",
+        fields = ["id_usuario", "username", "first_name", "last_name", "email", "nombre", "rol", "clave",
                   "estado", "last_login", "date_joined"]
         read_only_fields = ["id_usuario", "last_login", "date_joined"]
         extra_kwargs = {"username": {"error_messages": {"unique": "Ya existe un usuario con ese nombre."}}}
@@ -56,6 +56,16 @@ class UsuarioSerializer(serializers.ModelSerializer):
         valor = valor.strip().lower()
         if len(valor) < 3:
             raise serializers.ValidationError("El usuario tiene que tener al menos 3 caracteres.")
+        return valor
+
+    def validate_email(self, valor):
+        """Con este email se entra desde la app móvil (Firebase): no puede repetirse."""
+        valor = (valor or "").strip().lower()
+        otros = Usuario.objects.filter(email__iexact=valor)
+        if self.instance:
+            otros = otros.exclude(pk=self.instance.pk)
+        if valor and otros.exists():
+            raise serializers.ValidationError("Ese email ya lo tiene otro usuario.")
         return valor
 
     def validate(self, datos):

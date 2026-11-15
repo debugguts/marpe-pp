@@ -147,9 +147,13 @@ if os.environ.get("DJANGO_HTTPS") == "1":
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_REFERRER_POLICY = "same-origin"
 # --- API REST (DRF) ---
+# Proyecto de Firebase de la app móvil (los tokens tienen que ser de este proyecto).
+FIREBASE_PROJECT_ID = os.environ.get("FIREBASE_PROJECT_ID", "")
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework.authentication.SessionAuthentication",  # la web
+        "config.firebase.FirebaseAuthentication",  # la app móvil (token de Firebase)
     ],
     # Toda la API pide sesión; cada vista agrega lo que solo puede hacer el administrador (config/permisos.py).
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
