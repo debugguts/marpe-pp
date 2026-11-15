@@ -124,6 +124,9 @@ function FormularioUsuario({ usuario, alCerrar }) {
               data-foco={!nuevo || undefined} />
             <Campo etiqueta="Apellido" name="last_name" defaultValue={usuario.last_name} error={errores.last_name} autoComplete="off" />
           </div>
+          <Campo etiqueta="Email (opcional)" name="email" type="email" defaultValue={usuario.email} error={errores.email}
+            autoComplete="off" spellCheck={false} placeholder="lucia@gmail.com"
+            ayuda="Con este email entra desde la app del celular (cuenta de Firebase)." />
           <Campo as="select" etiqueta="Rol" name="rol" defaultValue={usuario.rol ?? 'Operador'} error={errores.rol}
             ayuda="Operador: vende, cobra, opera la caja y carga mermas. Administrador: además compras, gastos, precios, catálogo y usuarios.">
             <option value="Operador">Operador</option>

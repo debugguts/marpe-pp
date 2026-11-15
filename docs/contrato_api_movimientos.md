@@ -255,3 +255,11 @@ Errores: 400 con `desde`/`hasta` si la fecha es inválida, el final es anterior 
 `GET /api/inicio/` → `ventas` de hoy (total, cantidad, por_medio), `semana` (lo vendido en los últimos 7 días),
 `caja` abierta (o null), `stock` de cada huevo, `deudas` pendientes (total, cantidad) y `movimientos` de hoy
 (ventas, cobros de deudas, mermas y ajustes; compras y gastos solo para el administrador). La pantalla se actualiza cada minuto.
+
+## App móvil (Firebase · Sprint 6)
+
+La app entra con Firebase Authentication y manda en cada pedido `Authorization: Bearer <token de Firebase>`.
+Django (`config/firebase.py`) verifica la firma con las claves públicas de Google, que el token sea del proyecto
+`FIREBASE_PROJECT_ID` y que no esté vencido, y lo asocia al usuario activo de Marpe con **el mismo email**.
+Los permisos son los del rol de ese usuario (igual que en la web). Sin usuario con ese email, o dado de baja: 403.
+El email se carga en la web, en Usuarios y roles (no se puede repetir).

@@ -28,6 +28,7 @@ const CAMPOS = {
   categoria: 'Categoría',
   tipo: 'Tipo',
   username: 'Usuario',
+  email: 'Email',
   clave: 'Clave',
   rol: 'Rol',
   telefono: 'Teléfono',
