@@ -63,6 +63,8 @@ def verificar_token(token, proyecto):
         raise exceptions.AuthenticationFailed("No se pudo verificar el token de Firebase. Probá de nuevo.") from error
     if not datos.get("email"):
         raise exceptions.AuthenticationFailed("La cuenta de Firebase no tiene email.")
+    if not datos.get("email_verified"):
+        raise exceptions.AuthenticationFailed("Primero verificá tu email (te llegó un correo de Firebase).")
     return datos
 
 

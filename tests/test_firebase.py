@@ -28,10 +28,10 @@ CERTIFICADO = (
 )
 
 
-def token(email="operador@marpe.com", proyecto=PROYECTO, vence_en=3600):
+def token(email="operador@marpe.com", proyecto=PROYECTO, vence_en=3600, verificado=True):
     ahora = int(time.time())
     datos = {"iss": f"https://securetoken.google.com/{proyecto}", "aud": proyecto, "sub": "uid-123",
-             "email": email, "iat": ahora - 5, "auth_time": ahora - 5, "exp": ahora + vence_en}
+             "email": email, "email_verified": verificado, "iat": ahora - 5, "auth_time": ahora - 5, "exp": ahora + vence_en}
     return jwt.encode(datos, CLAVE, algorithm="RS256", headers={"kid": "clave-1"})
 
 
@@ -60,6 +60,11 @@ class FirebaseTest(APITestCase):
         respuesta = self.pedir("/api/inicio/", token("otro@gmail.com"))
         self.assertEqual(respuesta.status_code, 403)
         self.assertIn("no está habilitado", respuesta.data["detail"])
+
+    def test_email_sin_verificar(self, _):
+        respuesta = self.pedir("/api/inicio/", token(verificado=False))
+        self.assertEqual(respuesta.status_code, 403)
+        self.assertIn("verificá tu email", respuesta.data["detail"])
 
     def test_usuario_dado_de_baja(self, _):
         self.operador.is_active = False
