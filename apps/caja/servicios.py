@@ -10,6 +10,7 @@ from django.db.models import Sum
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from config.comunes import MedioPago
 from config.formato import pesos
 
 from .models import Caja, MovimientoCaja
@@ -70,3 +71,32 @@ def cerrar_caja(caja, efectivo_contado, usuario):
     caja.estado = Caja.Estado.CERRADA
     caja.save()
     return caja
+
+
+def resumen_de_caja(caja):
+    """Lo que pasó mientras la caja estuvo abierta, separado por medio de pago (para el arqueo y la app móvil).
+
+    El efectivo sale de los movimientos de la caja (así coincide con el saldo). Las transferencias,
+    el fiado y la cantidad de ventas salen de las ventas confirmadas hechas en ese horario.
+    """
+    from apps.ventas.models import PagoCuenta, PagoVenta, Venta
+
+    def caja_suma(*tipos):
+        return caja.movimientos.filter(tipo_movimiento__in=tipos).aggregate(t=Sum("importe"))["t"] or Decimal("0")
+
+    hasta = caja.fecha_hora_cierre or timezone.now()
+    ventas = Venta.objects.filter(estado=Venta.Estado.CONFIRMADA, fecha__range=(caja.fecha_hora_apertura, hasta))
+    transferencias = PagoVenta.objects.filter(venta__in=ventas, medio_pago=MedioPago.TRANSFERENCIA)
+    cobros_transferencia = PagoCuenta.objects.filter(
+        fecha_hora__range=(caja.fecha_hora_apertura, hasta), medio_pago=MedioPago.TRANSFERENCIA)
+    T = MovimientoCaja.Tipo
+    return {
+        "ventas_efectivo": caja_suma(T.VENTA_EFECTIVO),
+        "ventas_transferencia": transferencias.aggregate(t=Sum("importe"))["t"] or Decimal("0"),
+        "ventas_fiado": ventas.filter(modalidad=Venta.Modalidad.FIADO).aggregate(t=Sum("total"))["t"] or Decimal("0"),
+        "cantidad_ventas": ventas.count(),
+        "cobros_efectivo": caja_suma(T.COBRO_DEUDA_EFECTIVO),
+        "cobros_transferencia": cobros_transferencia.aggregate(t=Sum("importe"))["t"] or Decimal("0"),
+        "ingresos": caja_suma(T.INGRESO_MANUAL),
+        "egresos": caja_suma(T.RETIRO, T.GASTO_EFECTIVO),
+    }

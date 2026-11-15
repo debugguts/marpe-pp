@@ -28,7 +28,7 @@ class UsuarioActualSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Usuario
-        fields = ["id_usuario", "username", "nombre", "rol"]
+        fields = ["id_usuario", "username", "nombre", "email", "rol"]
 
     def get_nombre(self, usuario):
         return usuario.get_full_name() or usuario.username

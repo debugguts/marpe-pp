@@ -3,7 +3,7 @@ from decimal import Decimal
 from rest_framework import serializers
 
 from .models import Caja, MovimientoCaja
-from .servicios import saldo_actual
+from .servicios import resumen_de_caja, saldo_actual
 
 
 def nombre_de(usuario):
@@ -29,17 +29,21 @@ class CajaSerializer(serializers.ModelSerializer):
     saldo_actual = serializers.SerializerMethodField()
     usuario_apertura_nombre = serializers.SerializerMethodField()
     usuario_cierre_nombre = serializers.SerializerMethodField()
+    resumen = serializers.SerializerMethodField()  # ventas y cobros por medio de pago en el turno
 
     class Meta:
         model = Caja
         fields = [
             "id_caja", "estado", "fecha_hora_apertura", "saldo_inicial", "saldo_actual",
             "usuario_apertura_nombre", "fecha_hora_cierre", "efectivo_contado",
-            "saldo_esperado", "diferencia", "usuario_cierre_nombre",
+            "saldo_esperado", "diferencia", "usuario_cierre_nombre", "resumen",
         ]
 
     def get_saldo_actual(self, caja):
         return str(caja.saldo_esperado if caja.estado == Caja.Estado.CERRADA else saldo_actual(caja))
+
+    def get_resumen(self, caja):
+        return {clave: str(valor) for clave, valor in resumen_de_caja(caja).items()}
 
     def get_usuario_apertura_nombre(self, caja):
         return nombre_de(caja.usuario_apertura)

@@ -63,3 +63,19 @@ class CajaAPITest(APITestCase):
     def test_sin_sesion_no_se_puede_usar(self):
         self.client.logout()
         self.assertEqual(self.abrir().status_code, 403)
+
+
+class ResumenDeCajaTest(APITestCase):
+    """La caja informa lo vendido en el turno por medio de pago (lo usan el arqueo y la app móvil)."""
+
+    def test_resumen_por_medio(self):
+        crear_base(self)
+        self.client.post("/api/cajas/", {"saldo_inicial": "1000"}, format="json")
+        linea = [{"producto": self.producto.pk, "presentacion": self.bandeja.pk, "cantidad": "1"}]
+        self.client.post("/api/ventas/", {"modalidad": "CONTADO", "medio_pago": "EFECTIVO", "detalles": linea}, format="json")
+        self.client.post("/api/ventas/", {"modalidad": "CONTADO", "medio_pago": "TRANSFERENCIA",
+                                          "referencia_transferencia": "123", "detalles": linea}, format="json")
+        resumen = self.client.get("/api/cajas/actual/").data["resumen"]
+        self.assertEqual(resumen["ventas_efectivo"], "7000.00")
+        self.assertEqual(resumen["ventas_transferencia"], "7000.00")
+        self.assertEqual(resumen["cantidad_ventas"], "2")

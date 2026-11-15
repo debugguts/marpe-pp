@@ -19,7 +19,7 @@ services:
       - key: DJANGO_HTTPS
         value: "1"
       - key: FIREBASE_PROJECT_ID   # proyecto de Firebase de la app móvil
-        value: hueveria-marpe-69683
+        value: h-marpe
       - key: MARPE_ADMIN_USUARIO   # primer administrador (solo se usa si la base está vacía)
         sync: false
       - key: MARPE_ADMIN_CLAVE
