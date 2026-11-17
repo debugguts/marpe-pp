@@ -36,6 +36,22 @@ export async function api(ruta, { metodo = 'GET', datos } = {}) {
     throw new ErrorApi(0, { detail: 'No hay conexión con el servidor. Revisá que Docker esté levantado.' })
   }
   const cuerpo = respuesta.status === 204 ? null : await respuesta.json().catch(() => null)
-  if (!respuesta.ok) throw new ErrorApi(respuesta.status, cuerpo)
+  if (!respuesta.ok) {
+    if (ruta !== '/auth/yo/' && ruta !== '/auth/login/' && sesionVencida(respuesta.status, cuerpo)) {
+      // La sesión del servidor ya no existe (venció, se cerró en otra pestaña o se reinició el servidor):
+      // avisamos a la app para que vuelva al login en vez de mostrar errores en cada pantalla.
+      window.dispatchEvent(new Event(SESION_VENCIDA))
+    }
+    throw new ErrorApi(respuesta.status, cuerpo)
+  }
   return cuerpo
+}
+
+export const SESION_VENCIDA = 'marpe:sesion-vencida'
+
+// Django responde 401, o 403 con este mensaje, cuando el pedido llega sin sesión.
+function sesionVencida(estado, cuerpo) {
+  if (estado === 401) return true
+  const detalle = String(cuerpo?.detail || '')
+  return estado === 403 && /credenciales de autenticación no se proveyeron|authentication credentials were not provided/i.test(detalle)
 }

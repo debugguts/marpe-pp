@@ -6,7 +6,7 @@ async function pedirUsuario() {
   try {
     return await api('/auth/yo/')
   } catch (error) {
-    if (error instanceof ErrorApi && error.estado === 401) return null
+    if (error instanceof ErrorApi && (error.estado === 401 || error.estado === 403)) return null
     throw error
   }
 }

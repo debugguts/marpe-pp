@@ -11,7 +11,14 @@ export default function Login() {
   const navegar = useNavigate()
   const destino = useLocation().state?.desde || '/'
   const [datos, setDatos] = useState({ usuario: '', clave: '' })
-  const [aviso, setAviso] = useState('')
+  const [aviso, setAviso] = useState(() => {
+    // Viene de una sesión vencida: se explica una sola vez.
+    if (sessionStorage.getItem('marpe-sesion-vencida')) {
+      sessionStorage.removeItem('marpe-sesion-vencida')
+      return 'Tu sesión venció. Volvé a ingresar para seguir.'
+    }
+    return ''
+  })
   const [verClave, setVerClave] = useState(false) // el «ojito»: muestra u oculta la contraseña
 
   if (usuario) return <Navigate to={destino} replace />
