@@ -98,9 +98,12 @@ textarea.campo__control { padding-block: 0.65rem; min-height: 6rem; resize: vert
 .panel {
   min-width: 0;
   padding: var(--espacio-4);
-  background: var(--superficie);
-  border: 1px solid var(--borde);
+  background: var(--vidrio);
+  border: 1px solid var(--vidrio-borde);
   border-radius: var(--radio-panel);
+  box-shadow: var(--sombra-vidrio);
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+  backdrop-filter: blur(18px) saturate(1.1);
 }
 .panel__cab {
   display: flex;
@@ -121,8 +124,8 @@ textarea.campo__control { padding-block: 0.65rem; min-height: 6rem; resize: vert
   margin-bottom: var(--espacio-4);
 }
 .cab-pagina__texto { display: grid; gap: 0.25rem; min-width: 0; }
-.cab-pagina h1 { font-size: clamp(1.75rem, 1.2rem + 1.6vw, 2.25rem); letter-spacing: -0.01em; }
-.cab-pagina__desc { color: var(--texto-suave); }
+.cab-pagina h1 { font-size: clamp(1.9rem, 1.3rem + 1.8vw, 2.6rem); font-weight: 500; letter-spacing: -0.02em; color: var(--oscuro); }
+.cab-pagina__desc { color: #6E5D52; }
 .cab-pagina__desc::first-letter { text-transform: uppercase; }
 
 /* ---------- Tabla ---------- */

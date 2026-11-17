@@ -144,7 +144,7 @@ export default function Ventas() {
         </div>
         {caja.data
           ? <Insignia variante="exito">Caja abierta</Insignia>
-          : caja.isSuccess && <Insignia variante="aviso">Caja cerrada</Insignia>}
+          : caja.isSuccess && <Insignia variante="peligro">Caja cerrada</Insignia>}
       </header>
 
       <div className="mostrador__cuerpo">

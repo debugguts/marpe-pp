@@ -93,3 +93,14 @@ class UsuariosTest(APITestCase):
         self.assertEqual(registros[0]["operacion"], "Alta")
         self.assertEqual(registros[0]["usuario_nombre"], "admin")
         self.assertTrue(RegistroActividad.objects.exists())
+
+    def test_la_actividad_se_filtra_por_usuario(self):
+        """Pantalla Actividad: elegir un usuario muestra solo lo que hizo él."""
+        RegistroActividad.objects.create(usuario=self.operador, operacion="Alta", entidad_afectada="Venta",
+                                         referencia_registro=1, detalle="Venta del operador")
+        RegistroActividad.objects.create(usuario=self.admin, operacion="Alta", entidad_afectada="Compra",
+                                         referencia_registro=1, detalle="Compra del admin")
+        del_operador = self.client.get("/api/actividad/", {"usuario": self.operador.pk}).data["results"]
+        self.assertEqual([r["detalle"] for r in del_operador], ["Venta del operador"])
+        del_admin = self.client.get("/api/actividad/", {"usuario": self.admin.pk}).data["results"]
+        self.assertEqual([r["usuario_nombre"] for r in del_admin], ["admin"])

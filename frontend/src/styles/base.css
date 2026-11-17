@@ -16,11 +16,30 @@ body {
   margin: 0;
   min-height: 100dvh;
   background: var(--arena);
+  isolation: isolate;
   color: var(--marron);
   font-family: var(--fuente-ui);
   font-size: var(--texto-m);
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Paisaje del Valle de Lerma fijo detrás de todo (con ::before para que no tiemble en el celular) */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--arena) url("/fondo-paisaje.jpg") center 65% / cover no-repeat;
+}
+
+/* Tarjetas de vidrio: blancas, un poco transparentes, con el paisaje desenfocado detrás */
+.vidrio {
+  background: var(--vidrio);
+  border: 1px solid var(--vidrio-borde);
+  box-shadow: var(--sombra-vidrio);
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+  backdrop-filter: blur(18px) saturate(1.1);
 }
 
 h1, h2, h3 {

@@ -1,29 +1,37 @@
-import { useEffect, useState } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import Logo from './Logo'
 import Icono from './Icono'
+import { api } from '../lib/api'
+import { moneda } from '../lib/formato'
 import { useLogout, useSesion } from '../lib/sesion'
 
-// Items sin "a" todavía no existen: se muestran apagados con la marca "Pronto".
+// Diseño elegido por el cliente (Sprint 9):
+//  · Arriba, una barra con el logo, las secciones del día a día en píldoras, la hora, buscar, avisos y el usuario.
+//  · A la izquierda, un menú que se abre y se cierra con ☰: Maestros y Administración.
+//    Abierto, corre las tarjetas; cerrado, las tarjetas ocupan todo el ancho. Se recuerda en este navegador.
+//  · En el celular las píldoras pasan a una fila que se desliza y el menú se abre por encima.
+
+// Operación: van en la barra de arriba, en el orden del día a día.
+const OPERACION = [
+  { a: '/', texto: 'Inicio', icono: 'inicio', fin: true },
+  { a: '/ventas', texto: 'Ventas', icono: 'ventas' },
+  { a: '/caja', texto: 'Caja', icono: 'caja' },
+  { a: '/compras', texto: 'Compras', icono: 'compras', soloAdministrador: true },
+  { a: '/inventario', texto: 'Inventario', icono: 'inventario' },
+  { a: '/gastos', texto: 'Gastos', icono: 'gastos', soloAdministrador: true },
+  { a: '/cuentas', texto: 'Cuentas', icono: 'cuentas' },
+]
+
+// Van en el menú lateral.
 const GRUPOS = [
-  {
-    titulo: 'Operación',
-    items: [
-      { a: '/', texto: 'Inicio', icono: 'inicio', fin: true },
-      { a: '/ventas', texto: 'Ventas', icono: 'ventas' },
-      { a: '/cuentas', texto: 'Cuentas corrientes', icono: 'cuentas' },
-      { a: '/caja', texto: 'Caja', icono: 'caja' },
-      { a: '/compras', texto: 'Compras', icono: 'compras', soloAdministrador: true },
-      { a: '/inventario', texto: 'Inventario', icono: 'inventario' },
-      { a: '/gastos', texto: 'Gastos', icono: 'gastos', soloAdministrador: true },
-    ],
-  },
   {
     titulo: 'Maestros',
     items: [
       { a: '/catalogo', texto: 'Catálogo', icono: 'catalogo' },
-      { a: '/clientes', texto: 'Clientes', icono: 'clientes' },
       { a: '/proveedores', texto: 'Proveedores', icono: 'proveedores' },
+      { a: '/clientes', texto: 'Clientes', icono: 'clientes' },
     ],
   },
   {
@@ -36,12 +44,17 @@ const GRUPOS = [
   },
 ]
 
+const CELULAR = '(max-width: 56.25rem)'
+const esCelular = () => window.matchMedia(CELULAR).matches
+
+// Abierto o cerrado, recordado en el navegador (en el celular siempre arranca cerrado).
+function menuInicial() {
+  if (esCelular()) return false
+  try { return localStorage.getItem('marpe-menu') !== 'cerrado' } catch { return true }
+}
+
 export default function Layout() {
-  const { pathname } = useLocation()
-  // El menú del celular guarda en qué página se abrió: al navegar a otra, queda cerrado solo.
-  const [abiertoEn, setAbiertoEn] = useState(null)
-  const abierto = abiertoEn === pathname
-  const setAbierto = (valor) => setAbiertoEn(valor ? pathname : null)
+  const [abierto, setAbierto] = useState(menuInicial)
   // Al cerrar sesión, "usuario" queda vacío un instante antes de que
   // RutaPrivada nos lleve al login: por eso se lee con "?." (sin romper).
   const { data: usuario } = useSesion()
@@ -49,94 +62,221 @@ export default function Layout() {
   const nombre = usuario?.nombre ?? ''
   const esAdministrador = usuario?.rol === 'Administrador'
   // El Operador no ve lo que no puede usar (grupos o ítems marcados soloAdministrador).
-  const grupos = GRUPOS.filter((g) => !g.soloAdministrador || esAdministrador)
-    .map((g) => ({ ...g, items: g.items.filter((i) => !i.soloAdministrador || esAdministrador) }))
+  const permitido = (x) => !x.soloAdministrador || esAdministrador
+  const operacion = OPERACION.filter(permitido)
+  const grupos = GRUPOS.filter(permitido).map((g) => ({ ...g, items: g.items.filter(permitido) }))
 
+  const cambiarMenu = (valor) => {
+    setAbierto(valor)
+    if (!esCelular()) {
+      try { localStorage.setItem('marpe-menu', valor ? 'abierto' : 'cerrado') } catch { /* sin almacenamiento: no pasa nada */ }
+    }
+  }
+
+  // En el celular el menú tapa la pantalla: se cierra al elegir una sección y con Escape.
+  const alElegir = () => { if (esCelular()) setAbierto(false) }
   useEffect(() => {
     if (!abierto) return
-    const alTecla = (e) => { if (e.key === 'Escape') setAbiertoEn(null) }
+    const alTecla = (e) => { if (e.key === 'Escape' && esCelular()) setAbierto(false) }
     document.addEventListener('keydown', alTecla)
     return () => document.removeEventListener('keydown', alTecla)
   }, [abierto])
 
   return (
-    <div className="app">
+    <div className="app" data-menu={abierto ? 'abierto' : 'cerrado'}>
       <a className="saltar" href="#contenido">Saltar al contenido</a>
 
       <header className="cabecera">
-        <button
-          type="button"
-          className="cabecera__menu"
-          aria-label={abierto ? 'Cerrar menú' : 'Abrir menú'}
-          aria-expanded={abierto}
-          aria-controls="lateral"
-          onClick={() => setAbierto(!abierto)}
-        >
-          <Icono nombre={abierto ? 'cerrar' : 'menu'} />
-        </button>
+        <NavLink to="/" className="cabecera__logo" aria-label="Huevería Marpe, ir al inicio"><Logo alto={58} /></NavLink>
 
-        <NavLink to="/" className="cabecera__logo" aria-label="Huevería Marpe, ir al inicio"><Logo /></NavLink>
+        <nav className="pestanas" aria-label="Operación">
+          {operacion.map((it) => (
+            <NavLink key={it.a} to={it.a} end={it.fin}
+              className={({ isActive }) => `pestana${isActive ? ' is-activa' : ''}`}>
+              {it.texto}
+            </NavLink>
+          ))}
+        </nav>
 
-        <div className="cabecera__usuario">
-          <span className="avatar" aria-hidden="true">{nombre.charAt(0).toUpperCase()}</span>
-          <span className="cabecera__datos">
-            <strong>{nombre}</strong>
-            <small>{usuario?.rol}</small>
+        <div className="cabecera__der">
+          <Reloj />
+          <Buscar secciones={[...operacion, ...grupos.flatMap((g) => g.items)]} />
+          <Avisos />
+          <span className="usuario-chip" title={usuario?.rol}>
+            <span className="usuario-chip__nombre">{nombre.split(' ')[0]}</span>
+            <span className="avatar" aria-hidden="true">{nombre.charAt(0).toUpperCase()}</span>
           </span>
-          <button
-            type="button"
-            className="btn btn--fantasma cabecera__salir"
-            onClick={() => salir.mutate()}
-            disabled={salir.isPending}
-            aria-label="Cerrar sesión"
-          >
-            <Icono nombre="salir" />
-            <span>Salir</span>
-          </button>
         </div>
       </header>
 
       <div className="cuerpo">
-        <aside id="lateral" className="lateral sobre-oscuro" data-abierto={abierto || undefined}>
-          <nav aria-label="Principal">
+        <aside id="lateral" className="lateral" inert={!abierto}>
+          <div className="lateral__cab">
+            <span className="lateral__titulo">Menú</span>
+            <button type="button" className="boton-redondo" aria-label="Cerrar menú" onClick={() => cambiarMenu(false)}>
+              <Icono nombre="cerrar" tamano={18} />
+            </button>
+          </div>
+          <nav aria-label="Maestros y administración">
             {grupos.map((g) => (
               <div className="nav-grupo" key={g.titulo}>
                 <p className="nav-grupo__titulo">{g.titulo}</p>
                 <ul className="nav-lista">
                   {g.items.map((it) => (
                     <li key={it.texto}>
-                      {it.a ? (
-                        <NavLink
-                          to={it.a}
-                          end={it.fin}
-                          className={({ isActive }) => `nav-item${isActive ? ' is-activo' : ''}`}
-                        >
-                          <Icono nombre={it.icono} />
-                          <span>{it.texto}</span>
-                        </NavLink>
-                      ) : (
-                        <span className="nav-item is-pronto" aria-disabled="true">
-                          <Icono nombre={it.icono} />
-                          <span>{it.texto}</span>
-                          <span className="nav-item__pronto">Pronto</span>
-                        </span>
-                      )}
+                      <NavLink to={it.a} onClick={alElegir} className={({ isActive }) => `nav-item${isActive ? ' is-activo' : ''}`}>
+                        <Icono nombre={it.icono} />
+                        <span>{it.texto}</span>
+                      </NavLink>
                     </li>
                   ))}
                 </ul>
               </div>
             ))}
+            {/* En el celular las secciones de la barra también están acá */}
+            <div className="nav-grupo nav-grupo--celular">
+              <p className="nav-grupo__titulo">Operación</p>
+              <ul className="nav-lista">
+                {operacion.map((it) => (
+                  <li key={it.a}>
+                    <NavLink to={it.a} end={it.fin} onClick={alElegir} className={({ isActive }) => `nav-item${isActive ? ' is-activo' : ''}`}>
+                      <Icono nombre={it.icono} />
+                      <span>{it.texto}</span>
+                    </NavLink>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </nav>
+          <div className="lateral__pie">
+            <button type="button" className="nav-item" onClick={() => salir.mutate()} disabled={salir.isPending}>
+              <Icono nombre="salir" />
+              <span>Salir</span>
+            </button>
+          </div>
         </aside>
 
         {abierto && (
-          <button type="button" className="scrim" aria-label="Cerrar menú" tabIndex={-1} onClick={() => setAbierto(false)} />
+          <button type="button" className="scrim" aria-label="Cerrar menú" tabIndex={-1} onClick={() => cambiarMenu(false)} />
         )}
 
         <main id="contenido" tabIndex={-1} className="contenido">
+          {!abierto && (
+            <button type="button" className="boton-redondo boton-menu" aria-label="Abrir menú"
+              aria-expanded="false" aria-controls="lateral" onClick={() => cambiarMenu(true)}>
+              <Icono nombre="menu" tamano={22} />
+            </button>
+          )}
           <Outlet />
         </main>
       </div>
+    </div>
+  )
+}
+
+// Hora y fecha de hoy; se actualiza sola cada 15 segundos.
+const HORA = new Intl.DateTimeFormat('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })
+const DIA = new Intl.DateTimeFormat('es-AR', { weekday: 'long' })
+const FECHA = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'short' })
+
+function Reloj() {
+  const [ahora, setAhora] = useState(() => new Date())
+  useEffect(() => {
+    const id = setInterval(() => setAhora(new Date()), 15_000)
+    return () => clearInterval(id)
+  }, [])
+  const dia = DIA.format(ahora)
+  return (
+    <time className="reloj" dateTime={ahora.toISOString()}>
+      <span className="reloj__icono"><Icono nombre="reloj" tamano={16} /></span>
+      <span className="reloj__hora">{HORA.format(ahora)}<small>hs</small></span>
+      <span className="reloj__fecha"><b>{dia.charAt(0).toUpperCase() + dia.slice(1)}</b>{FECHA.format(ahora).replace('.', '')}</span>
+    </time>
+  )
+}
+
+// Ventanita que se cierra al hacer clic afuera o con Escape.
+function useVentanita() {
+  const [abierta, setAbierta] = useState(false)
+  const caja = useRef(null)
+  useEffect(() => {
+    if (!abierta) return
+    const afuera = (e) => { if (!caja.current?.contains(e.target)) setAbierta(false) }
+    const tecla = (e) => { if (e.key === 'Escape') setAbierta(false) }
+    document.addEventListener('pointerdown', afuera)
+    document.addEventListener('keydown', tecla)
+    return () => { document.removeEventListener('pointerdown', afuera); document.removeEventListener('keydown', tecla) }
+  }, [abierta])
+  return { abierta, setAbierta, caja }
+}
+
+// Buscar: escribís parte del nombre de una sección y vas directo (Enter abre la primera).
+function Buscar({ secciones }) {
+  const { abierta, setAbierta, caja } = useVentanita()
+  const [texto, setTexto] = useState('')
+  const navegar = useNavigate()
+  const normal = (t) => t.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
+  const encontradas = secciones.filter((s) => normal(s.texto).includes(normal(texto)))
+  const ir = (a) => { setAbierta(false); setTexto(''); navegar(a) }
+  return (
+    <div className="ventanita" ref={caja}>
+      <button type="button" className="boton-redondo" aria-label="Buscar sección" aria-expanded={abierta}
+        onClick={() => setAbierta(!abierta)}>
+        <Icono nombre="buscar" tamano={19} />
+      </button>
+      {abierta && (
+        <div className="ventanita__caja" role="dialog" aria-label="Buscar sección">
+          <input className="ventanita__buscar" autoFocus placeholder="Ir a… (ventas, clientes)" value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && encontradas[0]) ir(encontradas[0].a) }} />
+          <ul>
+            {encontradas.map((s) => (
+              <li key={s.a}><button type="button" onClick={() => ir(s.a)}><Icono nombre={s.icono} tamano={18} />{s.texto}</button></li>
+            ))}
+            {encontradas.length === 0 && <li className="ventanita__vacio">No hay una sección con ese nombre.</li>}
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Avisos reales del negocio: huevos bajo el mínimo y fiado sin cobrar (del mismo resumen que usa Inicio).
+function Avisos() {
+  const { abierta, setAbierta, caja } = useVentanita()
+  const navegar = useNavigate()
+  const { data } = useQuery({ queryKey: ['inicio'], queryFn: () => api('/inicio/'), refetchInterval: 60_000 })
+  const bajos = data?.stock.filter((s) => s.bajo_minimo) ?? []
+  const deudas = data?.deudas.cantidad ?? 0
+  const lista = [
+    bajos.length > 0 && { a: '/inventario', icono: 'inventario', titulo: `${bajos.length} ${bajos.length === 1 ? 'huevo' : 'huevos'} bajo el mínimo`, texto: bajos.map((s) => s.producto_nombre).join(', ') },
+    deudas > 0 && { a: '/cuentas', icono: 'cuentas', titulo: `${deudas} ${deudas === 1 ? 'deuda' : 'deudas'} sin cobrar`, texto: `Total ${moneda(data.deudas.total)}` },
+  ].filter(Boolean)
+  const ir = (a) => { setAbierta(false); navegar(a) }
+  return (
+    <div className="ventanita" ref={caja}>
+      <button type="button" className="boton-redondo avisos" aria-expanded={abierta}
+        aria-label={lista.length ? `Avisos: ${lista.length}` : 'Avisos: no hay'} onClick={() => setAbierta(!abierta)}>
+        <Icono nombre="sobre" tamano={19} />
+        {lista.length > 0 && <i className="avisos__punto" aria-hidden="true" />}
+      </button>
+      {abierta && (
+        <div className="ventanita__caja ventanita__caja--der" role="dialog" aria-label="Avisos">
+          <p className="ventanita__titulo">Avisos</p>
+          {lista.length === 0 ? <p className="ventanita__vacio">Todo en orden: no hay avisos.</p> : (
+            <ul>
+              {lista.map((x) => (
+                <li key={x.a}>
+                  <button type="button" className="aviso" onClick={() => ir(x.a)}>
+                    <span className="aviso__icono"><Icono nombre={x.icono} tamano={18} /></span>
+                    <span><b>{x.titulo}</b><small>{x.texto}</small></span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   )
 }

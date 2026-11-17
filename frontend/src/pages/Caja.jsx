@@ -59,7 +59,7 @@ function AbrirCaja() {
   const errores = erroresDe(abrir.error)
 
   return (
-    <Panel titulo="La caja está cerrada" className="caja-abrir">
+    <Panel titulo="La caja está cerrada" className="caja-abrir is-cerrada">
       <p className="suave">Contá el efectivo con el que arrancás el día y abrí la caja.</p>
       <form className="caja-abrir__form" onSubmit={(e) => { e.preventDefault(); abrir.mutate(new FormData(e.currentTarget).get('saldo')) }}>
         <Campo etiqueta="Efectivo inicial" name="saldo" type="number" inputMode="decimal" min="0" step="any"

@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import Layout from './components/Layout'
@@ -16,12 +17,25 @@ import Proveedores from './pages/Proveedores'
 import Usuarios from './pages/Usuarios'
 import Ventas from './pages/Ventas'
 import { NoEncontrada } from './pages/Pendiente'
+import { SESION_VENCIDA } from './lib/api'
 
 const cliente = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false } },
 })
 
 export default function App() {
+  // Si el servidor dice que la sesión ya no existe, se olvida el usuario guardado:
+  // RutaPrivada lleva al login, que explica qué pasó.
+  useEffect(() => {
+    const alVencer = () => {
+      cliente.setQueryData(['sesion'], null)
+      cliente.removeQueries({ predicate: (q) => q.queryKey[0] !== 'sesion' }) // datos del usuario anterior
+      sessionStorage.setItem('marpe-sesion-vencida', '1')
+    }
+    window.addEventListener(SESION_VENCIDA, alVencer)
+    return () => window.removeEventListener(SESION_VENCIDA, alVencer)
+  }, [])
+
   return (
     <QueryClientProvider client={cliente}>
       <BrowserRouter>
