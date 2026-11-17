@@ -228,3 +228,12 @@
 }
 .paso-a-paso input::-webkit-inner-spin-button, .paso-a-paso input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .paso-a-paso input:focus { outline: 2px solid var(--marron); outline-offset: -2px; }
+
+/* S9: tarjetas de vidrio sobre el paisaje */
+.tarjeta-venta, .venta-actual, .resumen-dia, .tarjeta-huevo, .mostrador__buscar {
+  background: var(--vidrio);
+  border-color: var(--vidrio-borde);
+  box-shadow: var(--sombra-vidrio);
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+  backdrop-filter: blur(18px) saturate(1.1);
+}

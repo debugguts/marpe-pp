@@ -46,3 +46,12 @@
 .stock-movimientos__filtro { min-width: 12rem; }
 .stock-movimientos .segmentado { display: flex; flex-wrap: wrap; margin: 0; }
 .paginado { display: flex; align-items: center; justify-content: flex-end; gap: var(--espacio-2); }
+
+/* S9: tarjetas de vidrio sobre el paisaje */
+.stock-tarjeta {
+  background: var(--vidrio);
+  border-color: var(--vidrio-borde);
+  box-shadow: var(--sombra-vidrio);
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+  backdrop-filter: blur(18px) saturate(1.1);
+}

@@ -14,6 +14,14 @@
   --borde-fuerte: color-mix(in srgb, var(--marron) 60%, var(--arena));
   --superficie: var(--blanco);
 
+  /* Diseño elegido por el cliente (S9): paisaje de fondo y tarjetas de vidrio */
+  --oscuro: #2B211C;              /* píldora activa, botones fuertes */
+  --cab-fondo: #F6ECEB;           /* barra superior */
+  --pestanas-fondo: #EFE2E0;      /* caja de las pestañas, reloj */
+  --vidrio: rgb(255 255 255 / 0.8);
+  --vidrio-borde: rgb(255 255 255 / 0.65);
+  --sombra-vidrio: 0 18px 40px rgb(46 36 30 / 0.14);
+
   /* Estados funcionales (el manual no los define; solo error, éxito y aviso) */
   --peligro: #B3261E;
   --exito: #2E7D4F;
@@ -41,11 +49,11 @@
 
   /* Radios por jerarquía: control < panel < píldora */
   --radio-control: 10px;
-  --radio-panel: 16px;
+  --radio-panel: 24px;
   --radio-pildora: 999px;
 
   /* Medidas de estructura */
   --alto-control: 2.75rem; /* 44px: objetivo táctil mínimo */
-  --alto-cabecera: 4.5rem;
-  --ancho-lateral: 15.5rem;
+  --alto-cabecera: 5.25rem;
+  --ancho-lateral: 15rem;
 }

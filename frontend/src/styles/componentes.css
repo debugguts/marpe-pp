@@ -98,9 +98,12 @@ textarea.campo__control { padding-block: 0.65rem; min-height: 6rem; resize: vert
 .panel {
   min-width: 0;
   padding: var(--espacio-4);
-  background: var(--superficie);
-  border: 1px solid var(--borde);
+  background: var(--vidrio);
+  border: 1px solid var(--vidrio-borde);
   border-radius: var(--radio-panel);
+  box-shadow: var(--sombra-vidrio);
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+  backdrop-filter: blur(18px) saturate(1.1);
 }
 .panel__cab {
   display: flex;

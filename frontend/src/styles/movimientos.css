@@ -10,9 +10,12 @@
 }
 .cifra-tarjeta {
   padding: var(--espacio-3) var(--espacio-4);
-  background: var(--superficie);
-  border: 1px solid var(--borde);
+  background: var(--vidrio);
+  border: 1px solid var(--vidrio-borde);
   border-radius: var(--radio-panel);
+  box-shadow: var(--sombra-vidrio);
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+  backdrop-filter: blur(18px) saturate(1.1);
 }
 .cifra-tarjeta.is-destacada { background: var(--marron); border-color: var(--marron); color: var(--blanco); }
 /* Caja cerrada: en rojo para que se note */
