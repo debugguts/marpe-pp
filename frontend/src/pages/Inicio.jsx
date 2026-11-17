@@ -42,7 +42,7 @@ export default function Inicio() {
           <div className="cifras">
             <Cifra titulo="Vendido hoy" valor={moneda(d.ventas.total)} destacada
               nota={`${numero(d.ventas.cantidad)} ${d.ventas.cantidad === 1 ? 'venta' : 'ventas'}`} />
-            <Cifra titulo="En la caja" valor={d.caja ? moneda(d.caja.saldo_actual) : 'Cerrada'}
+            <Cifra titulo="En la caja" valor={d.caja ? moneda(d.caja.saldo_actual) : 'Cerrada'} tono={d.caja ? undefined : 'peligro'}
               nota={d.caja ? `Abrió ${d.caja.usuario_apertura_nombre} a las ${hora(d.caja.fecha_hora_apertura)}` : 'Abrila para cobrar en efectivo'} />
             <Cifra titulo="Fiado sin cobrar" valor={moneda(d.deudas.total)}
               nota={`${numero(d.deudas.cantidad)} ${d.deudas.cantidad === 1 ? 'deuda' : 'deudas'}`} />

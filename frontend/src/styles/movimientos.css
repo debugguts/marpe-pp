@@ -15,6 +15,9 @@
   border-radius: var(--radio-panel);
 }
 .cifra-tarjeta.is-destacada { background: var(--marron); border-color: var(--marron); color: var(--blanco); }
+/* Caja cerrada: en rojo para que se note */
+.cifra-tarjeta.is-peligro { background: color-mix(in srgb, var(--peligro) 8%, var(--blanco)); border-color: color-mix(in srgb, var(--peligro) 45%, var(--blanco)); }
+.cifra-tarjeta.is-peligro .cifra-tarjeta__valor { color: var(--peligro); }
 .cifra-tarjeta__titulo { font-size: var(--texto-s); color: var(--texto-suave); }
 .cifra-tarjeta.is-destacada .cifra-tarjeta__titulo,
 .cifra-tarjeta.is-destacada .cifra-tarjeta__nota { color: color-mix(in srgb, var(--blanco) 75%, transparent); }
@@ -26,6 +29,8 @@
 
 /* ---------- Caja ---------- */
 .caja-abrir { max-width: 32rem; margin-bottom: var(--espacio-4); }
+.caja-abrir.is-cerrada { border-color: color-mix(in srgb, var(--peligro) 45%, var(--blanco)); border-left: 6px solid var(--peligro); }
+.caja-abrir.is-cerrada h2 { color: var(--peligro); }
 .caja-abrir__form { display: grid; gap: var(--espacio-3); margin-top: var(--espacio-3); }
 .caja-historial { margin-top: var(--espacio-4); }
 .arqueo { display: grid; gap: var(--espacio-2); margin: 0; }
