@@ -17,6 +17,7 @@ const TRAZOS = {
   chevron: 'm9 6 6 6-6 6',
   salir: 'M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4 M15 8l4 4-4 4 M19 12H9',
   mas: 'M12 5v14 M5 12h14',
+  flecha: 'M7 17 17 7 M9 7h8v8',
   buscar: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z M20 20l-4-4',
   editar: 'M4 20h4L19 9l-4-4L4 16z M14 6l4 4',
   archivar: 'M4 5h16v4H4z M5 9v10h14V9 M10 13h4',

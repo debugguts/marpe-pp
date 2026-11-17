@@ -14,7 +14,7 @@ const fechaCompleta = new Intl.DateTimeFormat('es-AR', {
 export const moneda = (n) => ars.format(n)
 export const numero = (n) => entero.format(n)
 export const fechaLarga = (d) => fechaCompleta.format(d)
-const horaMinutos = new Intl.DateTimeFormat('es-AR', { hour: '2-digit', minute: '2-digit' })
+const horaMinutos = new Intl.DateTimeFormat('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })
 const diaMes = new Intl.DateTimeFormat('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
 export const hora = (iso) => horaMinutos.format(new Date(iso))

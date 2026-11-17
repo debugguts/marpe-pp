@@ -1,0 +1,246 @@
+/* Inicio con el diseño elegido por el cliente (Sprint 9): tablero de tarjetas de vidrio. */
+
+/* Saludo: «Hola,» oscuro y el nombre en gris */
+.inicio-cab { align-items: center; }
+.inicio-cab h1 { font: 500 clamp(2.2rem, 1.6rem + 2vw, 3.2rem) / 1.1 var(--fuente-titulo); letter-spacing: -0.02em; color: var(--oscuro); }
+.inicio-cab h1 span { color: #8C7B70; }
+
+/* Botón en píldora oscura (Nueva venta, Cobrar) */
+.boton-pildora {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-height: 3.1rem;
+  padding: 0 1.6rem;
+  border-radius: var(--radio-pildora);
+  background: #4A3A30;
+  color: var(--blanco);
+  font: 500 1rem / 1 var(--fuente-titulo);
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: 0 8px 20px rgb(46 36 30 / 0.18);
+  transition: background-color 0.15s ease;
+}
+.boton-pildora:hover { background: var(--oscuro); }
+.boton-pildora--claro { background: var(--blanco); color: var(--oscuro); box-shadow: 0 4px 14px rgb(46 36 30 / 0.08); }
+.boton-pildora--claro:hover { background: var(--cab-fondo); }
+
+/* Grilla: izquierda (caja + vendido), centro (gráfico), derecha (fiado + reponer), abajo movimientos */
+.tablero {
+  display: grid;
+  grid-template-columns: minmax(16rem, 0.95fr) minmax(0, 1.55fr) minmax(16rem, 1fr);
+  grid-template-areas:
+    "izq graf der"
+    "mov mov der";
+  gap: 1.25rem;
+  align-items: stretch;
+}
+.tablero__col { grid-area: izq; display: grid; gap: 1.25rem; align-content: start; }
+.ventas-graf { grid-area: graf; }
+.tablero__der { grid-area: der; display: flex; flex-direction: column; overflow: hidden; }
+.tablero__mov { grid-area: mov; }
+
+/* Tarjeta base (vidrio) */
+.tarjeta {
+  position: relative;
+  min-width: 0;
+  padding: 1.4rem 1.5rem;
+  border-radius: 28px;
+  background: var(--vidrio);
+  border: 1px solid var(--vidrio-borde);
+  box-shadow: var(--sombra-vidrio);
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+  backdrop-filter: blur(18px) saturate(1.1);
+  color: var(--oscuro);
+}
+.tarjeta h2 { font: 600 1.15rem / 1.25 var(--fuente-titulo); color: var(--oscuro); }
+.tarjeta__cab { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0.75rem; margin-bottom: 1rem; }
+.tarjeta__cab > div:first-child { margin-right: auto; min-width: 0; }
+.tarjeta__sub { margin-top: 0.15rem; font: 400 0.85rem / 1.35 var(--fuente-titulo); color: #8C7B70; }
+.flecha {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--blanco) 75%, transparent);
+  color: var(--oscuro);
+  box-shadow: 0 2px 8px rgb(46 36 30 / 0.06);
+}
+.flecha:hover { background: var(--blanco); }
+
+.etiqueta {
+  flex: none;
+  padding: 0.35rem 0.8rem;
+  border-radius: var(--radio-pildora);
+  background: #4A3A30;
+  color: var(--blanco);
+  font: 600 0.78rem / 1 var(--fuente-titulo);
+  white-space: nowrap;
+}
+.etiqueta--roja { background: #C0392B; }
+.etiqueta--verde { background: var(--exito); }
+
+/* Caja de hoy: la tarjeta marrón */
+.caja-marron {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: 22px;
+  background: #654E3F;
+  color: var(--blanco);
+  font: 400 0.9rem / 1.3 var(--fuente-titulo);
+}
+.caja-marron__saldo { font: 600 clamp(2rem, 1.4rem + 1.4vw, 2.6rem) / 1.1 var(--fuente-titulo); letter-spacing: -0.01em; }
+.caja-marron__pie { display: flex; justify-content: space-between; gap: 1rem; margin-top: 0.4rem; font-size: 0.85rem; opacity: 0.92; }
+.caja-marron__pie a { color: inherit; }
+.caja-marron.is-cerrada { background: var(--peligro); }
+
+/* Vendido hoy */
+.vendido { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.vendido__total { margin-top: 0.2rem; font: 600 clamp(1.8rem, 1.3rem + 1.2vw, 2.3rem) / 1.1 var(--fuente-titulo); letter-spacing: -0.01em; }
+
+/* Selector Semana / Meses */
+.segmento { display: flex; padding: 4px; border-radius: var(--radio-pildora); background: color-mix(in srgb, var(--cab-fondo) 80%, transparent); }
+.segmento button {
+  min-height: 2.4rem;
+  padding: 0 1.1rem;
+  border: 0;
+  border-radius: var(--radio-pildora);
+  background: transparent;
+  color: #8C7B70;
+  font: 500 0.88rem / 1 var(--fuente-titulo);
+  cursor: pointer;
+}
+.segmento button[aria-pressed="true"] { background: #5A4538; color: var(--blanco); }
+
+/* Gráfico de barras redondeadas y rayadas (CSS puro) */
+.ventas-graf { display: flex; flex-direction: column; }
+.barras { flex: 1; display: grid; grid-template-columns: auto 1fr; gap: 0.75rem; margin: 0.5rem 0 0; min-height: 15rem; }
+.barras__escala {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  margin: 0 0 1.9rem;
+  padding: 0;
+  list-style: none;
+  font: 400 0.75rem / 1 var(--fuente-titulo);
+  color: #8C7B70;
+  text-align: right;
+}
+.barras__lista {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: clamp(0.5rem, 1.5vw, 1.4rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: repeating-linear-gradient(to bottom, transparent 0 calc(25% - 1px), rgb(101 78 63 / 0.1) calc(25% - 1px) 25%) 0 0 / 100% calc(100% - 1.9rem) no-repeat;
+}
+.barras__lista li { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.barras__hueco { flex: 1; width: 100%; display: flex; align-items: flex-end; justify-content: center; padding-top: 2.6rem; }
+.barras__barra {
+  position: relative;
+  width: min(100%, 4.2rem);
+  border-radius: 999px;
+  background: repeating-linear-gradient(135deg, #C7B2A3 0 7px, #BBA493 7px 9px);
+  transition: height 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.is-actual .barras__barra { background: repeating-linear-gradient(135deg, #5A4538 0 7px, #4E3B2F 7px 9px); }
+.is-actual .barras__barra::before {
+  content: "";
+  position: absolute;
+  top: -0.55rem;
+  left: 50%;
+  width: 1.1rem;
+  height: 1.1rem;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: #5A4538;
+  border: 3px solid var(--blanco);
+}
+.barras__globo {
+  position: absolute;
+  bottom: calc(100% + 0.9rem);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.35rem 0.7rem;
+  border-radius: var(--radio-pildora);
+  background: #4A3A30;
+  color: var(--blanco);
+  font: 600 0.78rem / 1 var(--fuente-titulo);
+  white-space: nowrap;
+}
+.barras__texto { height: 1.9rem; display: grid; align-items: end; font: 500 0.82rem / 1 var(--fuente-titulo); color: var(--oscuro); }
+
+/* Fiado sin cobrar */
+.fiado { text-align: center; }
+.fiado__total { margin: 0.2rem 0; font: 600 clamp(1.9rem, 1.3rem + 1.3vw, 2.5rem) / 1.1 var(--fuente-titulo); letter-spacing: -0.01em; }
+.curva { display: block; width: calc(100% + 3rem); height: 7rem; margin: 0.5rem -1.5rem 0; }
+.fiado__botones { display: flex; justify-content: center; gap: 0.6rem; margin-top: -1.6rem; }
+.fiado__botones .boton-pildora { min-height: 2.8rem; padding: 0 1.3rem; font-size: 0.92rem; }
+
+/* Para reponer */
+.reponer { margin-top: 1.4rem; padding-top: 1.2rem; border-top: 1px solid rgb(101 78 63 / 0.12); }
+.reponer__cuenta { display: flex; align-items: center; gap: 0.75rem; margin: 0.6rem 0 0.8rem; }
+.reponer__cuenta > span:first-child { font: 600 2.6rem / 1 var(--fuente-titulo); }
+.reponer__cuenta .is-rojo { color: #C0392B; }
+.reponer ul { display: grid; gap: 0.85rem; margin: 0; padding: 0; list-style: none; }
+.reponer li { display: grid; grid-template-columns: 1fr auto; row-gap: 0.4rem; font: 400 0.92rem / 1.2 var(--fuente-titulo); }
+.reponer li b { font-weight: 500; color: #C0392B; }
+.reponer__barra { grid-column: 1 / -1; height: 0.4rem; border-radius: 9px; background: rgb(101 78 63 / 0.1); overflow: hidden; }
+.reponer__barra i { display: block; height: 100%; border-radius: 9px; background: #C0392B; }
+.reponer__link { display: inline-block; margin-top: 1rem; font: 500 0.88rem / 1 var(--fuente-titulo); color: var(--marron); }
+
+/* Movimientos: tabla liviana con iniciales */
+.tabla-suave { width: 100%; border-collapse: separate; border-spacing: 0; font: 400 0.92rem / 1.3 var(--fuente-titulo); color: var(--oscuro); }
+.tabla-suave th { padding: 0 0.75rem 0.6rem; font-weight: 400; font-size: 0.82rem; color: #8C7B70; text-align: left; }
+.tabla-suave td { padding: 0.55rem 0.75rem; white-space: nowrap; }
+.tabla-suave tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--blanco) 60%, transparent); }
+.tabla-suave tbody tr:nth-child(even) td:first-child { border-radius: 16px 0 0 16px; }
+.tabla-suave tbody tr:nth-child(even) td:last-child { border-radius: 0 16px 16px 0; }
+.tabla-suave .num { text-align: right; }
+.tabla-suave tr.is-anulada b { text-decoration: line-through; color: #8C7B70; }
+.persona { display: flex; align-items: center; gap: 0.75rem; }
+.persona__ini {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  background: var(--rosa);
+  color: var(--marron);
+  font: 600 0.72rem / 1 var(--fuente-titulo);
+}
+.persona b { display: block; font-weight: 500; }
+.persona small { display: block; max-width: 22rem; overflow: hidden; text-overflow: ellipsis; color: var(--exito); font-size: 0.78rem; }
+.punto::before { content: "●"; margin-right: 0.4rem; font-size: 0.6rem; vertical-align: 0.15em; }
+.punto--verde::before { color: var(--exito); }
+.punto--rojo::before { color: #C0392B; }
+.punto--gris::before { color: #B8A89C; }
+
+/* Pantallas medianas: la columna derecha baja */
+@media (max-width: 80rem) {
+  .tablero {
+    grid-template-columns: minmax(15rem, 1fr) minmax(0, 1.6fr);
+    grid-template-areas: "izq graf" "der der" "mov mov";
+  }
+  .tablero__der { display: grid; grid-template-columns: 1fr 1fr; column-gap: 2rem; }
+  .tablero__der > .tarjeta__cab, .tablero__der > .fiado, .tablero__der > .curva, .tablero__der > .fiado__botones { grid-column: 1; }
+  .tablero__der > .curva { width: 100%; margin: 0.5rem 0 0; }
+  .reponer { grid-column: 2; grid-row: 1 / span 4; margin-top: 0; padding-top: 0; border-top: 0; padding-left: 2rem; border-left: 1px solid rgb(101 78 63 / 0.12); }
+}
+/* Celular: una sola columna */
+@media (max-width: 47.5rem) {
+  .tablero { grid-template-columns: minmax(0, 1fr); grid-template-areas: "izq" "graf" "der" "mov"; }
+  .tablero__der { display: flex; }
+  .tablero__der > .curva { width: calc(100% + 3rem); margin: 0.5rem -1.5rem 0; }
+  .tarjeta__cab .segmento { order: 3; flex-basis: 100%; }
+  .segmento button { flex: 1; }
+  .reponer { margin-top: 1.4rem; padding: 1.2rem 0 0; border-left: 0; border-top: 1px solid rgb(101 78 63 / 0.12); }
+  .inicio-cab .boton-pildora { width: 100%; }
+}
