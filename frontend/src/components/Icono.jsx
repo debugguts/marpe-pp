@@ -11,6 +11,8 @@ const TRAZOS = {
   proveedores: 'M3 6h11v10H3z M14 10h4l3 3v3h-7z M7 19.5h.01 M17 19.5h.01',
   usuarios: 'M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6z M9.5 12l2 2 3.5-4',
   menu: 'M4 7h16 M4 12h16 M4 17h16',
+  sobre: 'M3.5 6h17v12h-17z M3.5 7l8.5 6 8.5-6',
+  reloj: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M12 7.5V12l3 2',
   cerrar: 'M6 6l12 12 M18 6 6 18',
   chevron: 'm9 6 6 6-6 6',
   salir: 'M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4 M15 8l4 4-4 4 M19 12H9',
