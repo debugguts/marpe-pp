@@ -5,6 +5,7 @@ from datetime import date
 from rest_framework.test import APITestCase
 
 from apps.caja.models import Caja
+from apps.ventas.models import Venta
 
 from .datos import crear_base
 
@@ -48,3 +49,23 @@ class InicioAPITest(APITestCase):
     def test_sin_sesion_no(self):
         self.client.logout()
         self.assertEqual(self.client.get(self.url).status_code, 403)
+
+    def test_compara_con_ayer_y_muestra_los_meses(self):
+        datos = self.client.get(self.url).data
+        self.assertEqual((datos["ayer"]["total"], datos["ayer"]["cantidad"]), (0, 0))
+        self.assertEqual(len(datos["meses"]), 6)
+        self.assertEqual(datos["meses"][-1], {"mes": date.today().strftime("%Y-%m"), "total": 14000})
+        self.assertEqual(len(datos["deudas"]["fiado_por_dia"]), 14)
+
+    def test_cada_movimiento_dice_quien_y_que(self):
+        venta = next(m for m in self.client.get(self.url).data["movimientos"] if m["tipo"] == "Venta")
+        self.assertEqual(venta["quien"], Venta.objects.get().cliente.nombre)
+        self.assertIn(self.bandeja.nombre, venta["que"])
+        self.assertNotIn(venta["quien"], venta["que"])  # el cliente no se repite en el detalle
+
+
+class MesesTest(APITestCase):
+    def test_cambio_de_anio(self):
+        from apps.reportes.inicio import inicio_de_mes
+        self.assertEqual(inicio_de_mes(date(2026, 2, 15), 3), date(2025, 11, 1))
+        self.assertEqual(inicio_de_mes(date(2026, 12, 31), -1), date(2027, 1, 1))
