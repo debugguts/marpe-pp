@@ -166,11 +166,15 @@ const ENTIDADES = ['', 'Venta', 'Compra', 'Gasto', 'Caja', 'MovimientoInventario
 
 function Actividad() {
   const [entidad, setEntidad] = useState('')
+  const [quien, setQuien] = useState('') // id del usuario para ver solo su historial; vacío = todos
   const [pagina, setPagina] = useState(1)
   const parametros = new URLSearchParams({ page: pagina })
   if (entidad) parametros.set('entidad', entidad)
+  if (quien) parametros.set('usuario', quien)
+  // Todos los usuarios, también los dados de baja: lo que hicieron sigue en el registro.
+  const usuarios = useQuery({ queryKey: ['usuarios', 'todos'], queryFn: () => api('/usuarios/') })
   const registros = useQuery({
-    queryKey: ['actividad', entidad, pagina],
+    queryKey: ['actividad', entidad, quien, pagina],
     queryFn: () => api(`/actividad/?${parametros}`),
     placeholderData: keepPreviousData,
   })
@@ -179,9 +183,17 @@ function Actividad() {
   return (
     <Panel titulo="Registro de actividad" className="actividad"
       accion={(
-        <Campo as="select" etiqueta="Sobre" value={entidad} onChange={(e) => { setEntidad(e.target.value); setPagina(1) }}>
-          {ENTIDADES.map((e) => <option key={e} value={e}>{e || 'Todo'}</option>)}
-        </Campo>
+        <div className="actividad__filtros">
+          <Campo as="select" etiqueta="Usuario" value={quien} onChange={(e) => { setQuien(e.target.value); setPagina(1) }}>
+            <option value="">Todos</option>
+            {(usuarios.data?.results ?? []).map((u) => (
+              <option key={u.id_usuario} value={u.id_usuario}>{u.nombre || u.username}{u.estado === 'INACTIVO' ? ' (de baja)' : ''}</option>
+            ))}
+          </Campo>
+          <Campo as="select" etiqueta="Sobre" value={entidad} onChange={(e) => { setEntidad(e.target.value); setPagina(1) }}>
+            {ENTIDADES.map((e) => <option key={e} value={e}>{e || 'Todo'}</option>)}
+          </Campo>
+        </div>
       )}>
       <div className="tabla-wrap">
         <table className="tabla">

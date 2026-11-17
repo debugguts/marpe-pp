@@ -77,5 +77,7 @@
 /* ---------- Usuarios y actividad ---------- */
 .abm-barra .campo { min-width: 12rem; }
 .abm-buscar-campo { flex: 1; }
+.actividad__filtros { display: flex; flex-wrap: wrap; gap: var(--espacio-3); }
+.actividad__filtros .campo { min-width: 11rem; }
 .actividad__detalle { max-width: 32rem; font-size: var(--texto-s); color: var(--texto-suave); }
 .stock-movimientos td:first-child, .actividad td:first-child { white-space: nowrap; }
