@@ -22,9 +22,9 @@ const GRUPOS = [
   {
     titulo: 'Maestros',
     items: [
+      { a: '/proveedores', texto: 'Proveedores', icono: 'proveedores' },
       { a: '/catalogo', texto: 'Catálogo', icono: 'catalogo' },
       { a: '/clientes', texto: 'Clientes', icono: 'clientes' },
-      { a: '/proveedores', texto: 'Proveedores', icono: 'proveedores' },
     ],
   },
   {
