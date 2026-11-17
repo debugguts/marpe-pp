@@ -8,14 +8,15 @@ import { useLogout, useSesion } from '../lib/sesion'
 const GRUPOS = [
   {
     titulo: 'Operación',
+    // Orden del día a día: vender, cobrar en caja, comprar, controlar stock, gastos y fiado.
     items: [
       { a: '/', texto: 'Inicio', icono: 'inicio', fin: true },
       { a: '/ventas', texto: 'Ventas', icono: 'ventas' },
-      { a: '/cuentas', texto: 'Cuentas corrientes', icono: 'cuentas' },
       { a: '/caja', texto: 'Caja', icono: 'caja' },
       { a: '/compras', texto: 'Compras', icono: 'compras', soloAdministrador: true },
       { a: '/inventario', texto: 'Inventario', icono: 'inventario' },
       { a: '/gastos', texto: 'Gastos', icono: 'gastos', soloAdministrador: true },
+      { a: '/cuentas', texto: 'Cuentas corrientes', icono: 'cuentas' },
     ],
   },
   {
