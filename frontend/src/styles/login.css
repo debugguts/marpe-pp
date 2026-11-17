@@ -23,6 +23,26 @@
 .login__error:empty { min-height: 0; }
 .login__boton { width: 100%; }
 
+/* Contraseña con el «ojito» para mostrarla u ocultarla */
+.campo-clave { position: relative; }
+.campo-clave .campo__control { padding-right: 3.25rem; }
+.campo-clave__ojo {
+  position: absolute;
+  right: 0.25rem;
+  bottom: 0;
+  display: grid;
+  place-items: center;
+  width: var(--alto-control);
+  height: var(--alto-control);
+  border: 0;
+  border-radius: var(--radio-control);
+  background: transparent;
+  color: var(--texto-suave);
+  cursor: pointer;
+}
+.campo-clave__ojo:hover { color: var(--marron); }
+.campo-clave__ojo:focus-visible { outline: 2px solid var(--marron); outline-offset: -4px; }
+
 .cargando { padding: var(--espacio-5); text-align: center; color: var(--texto-suave); }
 
 /* Botón de salir en la cabecera */

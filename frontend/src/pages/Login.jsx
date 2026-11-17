@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import Logo from '../components/Logo'
+import Icono from '../components/Icono'
 import { Boton, Campo } from '../components/ui'
 import { useLogin, useSesion } from '../lib/sesion'
 
@@ -11,6 +12,7 @@ export default function Login() {
   const destino = useLocation().state?.desde || '/'
   const [datos, setDatos] = useState({ usuario: '', clave: '' })
   const [aviso, setAviso] = useState('')
+  const [verClave, setVerClave] = useState(false) // el «ojito»: muestra u oculta la contraseña
 
   if (usuario) return <Navigate to={destino} replace />
 
@@ -46,14 +48,25 @@ export default function Login() {
           spellCheck={false}
           autoFocus
         />
-        <Campo
-          etiqueta="Contraseña"
-          name="clave"
-          type="password"
-          value={datos.clave}
-          onChange={cambiar}
-          autoComplete="current-password"
-        />
+        <div className="campo-clave">
+          <Campo
+            etiqueta="Contraseña"
+            name="clave"
+            type={verClave ? 'text' : 'password'}
+            value={datos.clave}
+            onChange={cambiar}
+            autoComplete="current-password"
+          />
+          <button
+            type="button"
+            className="campo-clave__ojo"
+            onClick={() => setVerClave(!verClave)}
+            aria-label={verClave ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+            aria-pressed={verClave}
+          >
+            <Icono nombre={verClave ? 'ojo-tachado' : 'ojo'} />
+          </button>
+        </div>
         <p className="login__error" role="alert">{error}</p>
         <Boton type="submit" cargando={login.isPending} textoCargando="Ingresando…" className="login__boton">
           Ingresar
