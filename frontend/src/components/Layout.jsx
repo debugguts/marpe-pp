@@ -3,14 +3,17 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import Logo from './Logo'
 import Icono from './Icono'
+import EditarPerfil from './EditarPerfil'
 import { api } from '../lib/api'
 import { moneda } from '../lib/formato'
 import { useLogout, useSesion } from '../lib/sesion'
 
 // Diseño elegido por el cliente (Sprint 9):
 //  · Arriba, una barra con el logo, las secciones del día a día en píldoras, la hora, buscar, avisos y el usuario.
-//  · A la izquierda, un menú que se abre y se cierra con ☰: Maestros y Administración.
-//    Abierto, corre las tarjetas; cerrado, las tarjetas ocupan todo el ancho. Se recuerda en este navegador.
+//  · A la izquierda, un menú en grupos redondeados con cada ícono en una "redondela" (Sprint 11).
+//    Se abre y se cierra con "Menú": abierto muestra los nombres; cerrado quedan solo las redondelas
+//    y el nombre aparece al pasar el mouse. Se recuerda en este navegador.
+//    Letra pedida por el cliente: de Menú a Clientes, Roboto; de Reportes a Salir, Inter.
 //  · En el celular las píldoras pasan a una fila que se desliza y el menú se abre por encima.
 
 // Operación: van en la barra de arriba, en el orden del día a día.
@@ -28,6 +31,7 @@ const OPERACION = [
 const GRUPOS = [
   {
     titulo: 'Maestros',
+    letra: 'roboto',
     items: [
       { a: '/catalogo', texto: 'Catálogo', icono: 'catalogo' },
       { a: '/proveedores', texto: 'Proveedores', icono: 'proveedores' },
@@ -36,6 +40,7 @@ const GRUPOS = [
   },
   {
     titulo: 'Administración',
+    letra: 'inter',
     soloAdministrador: true, // el Operador no ve este grupo (S4-06)
     items: [
       { a: '/reportes', texto: 'Reportes', icono: 'reportes' },
@@ -53,8 +58,33 @@ function menuInicial() {
   try { return localStorage.getItem('marpe-menu') !== 'cerrado' } catch { return true }
 }
 
+// true en el celular; se actualiza si cambia el ancho de la ventana.
+function useCelular() {
+  const [celular, setCelular] = useState(esCelular)
+  useEffect(() => {
+    const consulta = window.matchMedia(CELULAR)
+    const alCambiar = () => setCelular(consulta.matches)
+    consulta.addEventListener('change', alCambiar)
+    return () => consulta.removeEventListener('change', alCambiar)
+  }, [])
+  return celular
+}
+
+// Un renglón del menú: la redondela con el ícono y el nombre (que, cerrado, aparece al pasar el mouse).
+function ItemMenu({ it, alElegir }) {
+  return (
+    <NavLink to={it.a} end={it.fin} onClick={alElegir} data-texto={it.texto}
+      className={({ isActive }) => `nav-item${isActive ? ' is-activo' : ''}`}>
+      <span className="redondela"><Icono nombre={it.icono} tamano={18} /></span>
+      <span className="nav-item__texto">{it.texto}</span>
+    </NavLink>
+  )
+}
+
 export default function Layout() {
   const [abierto, setAbierto] = useState(menuInicial)
+  const [perfil, setPerfil] = useState(false)
+  const celular = useCelular()
   // Al cerrar sesión, "usuario" queda vacío un instante antes de que
   // RutaPrivada nos lleve al login: por eso se lee con "?." (sin romper).
   const { data: usuario } = useSesion()
@@ -110,48 +140,39 @@ export default function Layout() {
       </header>
 
       <div className="cuerpo">
-        <aside id="lateral" className="lateral" inert={!abierto}>
-          <div className="lateral__cab">
-            <span className="lateral__titulo">Menú</span>
-            <button type="button" className="boton-redondo" aria-label="Cerrar menú" onClick={() => cambiarMenu(false)}>
-              <Icono nombre="cerrar" tamano={18} />
+        <aside id="lateral" className="lateral" inert={celular && !abierto}>
+          <div className="lat-grupo letra-roboto">
+            <button type="button" className="nav-item nav-item--menu" data-texto={abierto ? 'Cerrar menú' : 'Abrir menú'}
+              aria-expanded={abierto} aria-controls="lateral" onClick={() => cambiarMenu(!abierto)}>
+              <span className="redondela"><Icono nombre={celular ? 'cerrar' : 'menu'} tamano={18} /></span>
+              <span className="nav-item__texto">Menú</span>
             </button>
           </div>
-          <nav aria-label="Maestros y administración">
+          <nav className="lateral__nav" aria-label="Maestros y administración">
             {grupos.map((g) => (
-              <div className="nav-grupo" key={g.titulo}>
+              <div className={`lat-grupo letra-${g.letra}`} key={g.titulo}>
                 <p className="nav-grupo__titulo">{g.titulo}</p>
                 <ul className="nav-lista">
-                  {g.items.map((it) => (
-                    <li key={it.texto}>
-                      <NavLink to={it.a} onClick={alElegir} className={({ isActive }) => `nav-item${isActive ? ' is-activo' : ''}`}>
-                        <Icono nombre={it.icono} />
-                        <span>{it.texto}</span>
-                      </NavLink>
-                    </li>
-                  ))}
+                  {g.items.map((it) => <li key={it.texto}><ItemMenu it={it} alElegir={alElegir} /></li>)}
                 </ul>
               </div>
             ))}
             {/* En el celular las secciones de la barra también están acá */}
-            <div className="nav-grupo nav-grupo--celular">
+            <div className="lat-grupo letra-roboto nav-grupo--celular">
               <p className="nav-grupo__titulo">Operación</p>
               <ul className="nav-lista">
-                {operacion.map((it) => (
-                  <li key={it.a}>
-                    <NavLink to={it.a} end={it.fin} onClick={alElegir} className={({ isActive }) => `nav-item${isActive ? ' is-activo' : ''}`}>
-                      <Icono nombre={it.icono} />
-                      <span>{it.texto}</span>
-                    </NavLink>
-                  </li>
-                ))}
+                {operacion.map((it) => <li key={it.a}><ItemMenu it={it} alElegir={alElegir} /></li>)}
               </ul>
             </div>
           </nav>
-          <div className="lateral__pie">
-            <button type="button" className="nav-item" onClick={() => salir.mutate()} disabled={salir.isPending}>
-              <Icono nombre="salir" />
-              <span>Salir</span>
+          <div className="lat-grupo letra-inter lateral__pie">
+            <button type="button" className="nav-item" data-texto="Editar perfil" onClick={() => { alElegir(); setPerfil(true) }}>
+              <span className="redondela"><Icono nombre="lapiz" tamano={18} /></span>
+              <span className="nav-item__texto">Editar perfil</span>
+            </button>
+            <button type="button" className="nav-item nav-item--salir" data-texto="Salir" onClick={() => salir.mutate()} disabled={salir.isPending}>
+              <span className="redondela"><Icono nombre="salir" tamano={18} /></span>
+              <span className="nav-item__texto">Salir</span>
             </button>
           </div>
         </aside>
@@ -161,7 +182,8 @@ export default function Layout() {
         )}
 
         <main id="contenido" tabIndex={-1} className="contenido">
-          {!abierto && (
+          {/* Solo en el celular: con el menú escondido, este botón lo abre */}
+          {celular && !abierto && (
             <button type="button" className="boton-redondo boton-menu" aria-label="Abrir menú"
               aria-expanded="false" aria-controls="lateral" onClick={() => cambiarMenu(true)}>
               <Icono nombre="menu" tamano={22} />
@@ -170,6 +192,7 @@ export default function Layout() {
           <Outlet />
         </main>
       </div>
+      {perfil && usuario && <EditarPerfil usuario={usuario} alCerrar={() => setPerfil(false)} />}
     </div>
   )
 }

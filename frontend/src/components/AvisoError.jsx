@@ -30,6 +30,8 @@ const CAMPOS = {
   username: 'Usuario',
   email: 'Email',
   clave: 'Clave',
+  clave_actual: 'Clave actual',
+  clave_nueva: 'Clave nueva',
   rol: 'Rol',
   telefono: 'Teléfono',
   cuit: 'CUIT',
