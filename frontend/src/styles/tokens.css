@@ -55,5 +55,6 @@
   /* Medidas de estructura */
   --alto-control: 2.75rem; /* 44px: objetivo táctil mínimo */
   --alto-cabecera: 5.25rem;
-  --ancho-lateral: 15rem;
+  --ancho-lateral: 13.5rem;
+  --ancho-riel: 3.65rem; /* menú cerrado: solo las redondelas */
 }
