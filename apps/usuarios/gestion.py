@@ -7,8 +7,6 @@ porque sus ventas, compras y movimientos quedan a su nombre.
 """
 
 from django.contrib.auth.models import Group
-from django.contrib.auth.password_validation import validate_password
-from django.core.exceptions import ValidationError as ErrorDjango
 from django.db import transaction
 from rest_framework import filters, mixins, serializers, status, viewsets
 from rest_framework.decorators import action
@@ -21,6 +19,8 @@ from config.vistas import anotar_actividad
 
 from .models import RegistroActividad, Usuario
 from .serializers import rol_de
+from .actividad import detalle_legible, nombre_entidad
+from .validaciones import limpiar_nombre, limpiar_usuario, validar_clave
 
 ROLES = [("Administrador", "Administrador"), ("Operador", "Operador")]
 
@@ -39,7 +39,12 @@ class UsuarioSerializer(serializers.ModelSerializer):
         fields = ["id_usuario", "username", "first_name", "last_name", "email", "nombre", "rol", "clave",
                   "estado", "last_login", "date_joined"]
         read_only_fields = ["id_usuario", "last_login", "date_joined"]
-        extra_kwargs = {"username": {"error_messages": {"unique": "Ya existe un usuario con ese nombre."}}}
+        extra_kwargs = {
+            "username": {"error_messages": {"unique": "Ya existe un usuario con ese nombre."}},
+            # Nombre y apellido obligatorios: se muestran en la cabecera, la actividad y los reportes.
+            "first_name": {"required": True, "allow_blank": True},
+            "last_name": {"required": True, "allow_blank": True},
+        }
 
     def to_representation(self, usuario):
         datos = super().to_representation(usuario)
@@ -53,10 +58,20 @@ class UsuarioSerializer(serializers.ModelSerializer):
         return Estado.ACTIVO if usuario.is_active else Estado.INACTIVO
 
     def validate_username(self, valor):
-        valor = valor.strip().lower()
-        if len(valor) < 3:
-            raise serializers.ValidationError("El usuario tiene que tener al menos 3 caracteres.")
+        valor = limpiar_usuario(valor)
+        # Se compara sin distinguir mayúsculas: «Lucia» y «lucia» son el mismo usuario.
+        otros = Usuario.objects.filter(username__iexact=valor)
+        if self.instance:
+            otros = otros.exclude(pk=self.instance.pk)
+        if otros.exists():
+            raise serializers.ValidationError("Ya existe un usuario con ese nombre.")
         return valor
+
+    def validate_first_name(self, valor):
+        return limpiar_nombre(valor, "nombre")
+
+    def validate_last_name(self, valor):
+        return limpiar_nombre(valor, "apellido")
 
     def validate_email(self, valor):
         """Con este email se entra desde la app móvil (Firebase): no puede repetirse."""
@@ -73,10 +88,16 @@ class UsuarioSerializer(serializers.ModelSerializer):
         if self.instance is None and not nueva:
             raise serializers.ValidationError({"clave": "Escribí una clave para el usuario nuevo."})
         if nueva:
+            # Usuario como va a quedar (todavía sin guardar), para comparar la clave con sus datos.
+            actual = self.instance or Usuario()
+            futuro = Usuario(username=datos.get("username", actual.username),
+                             first_name=datos.get("first_name", actual.first_name),
+                             last_name=datos.get("last_name", actual.last_name),
+                             email=datos.get("email", actual.email))
             try:
-                validate_password(nueva)
-            except ErrorDjango as error:
-                raise serializers.ValidationError({"clave": list(error.messages)})
+                validar_clave(nueva, futuro)
+            except serializers.ValidationError as error:
+                raise serializers.ValidationError({"clave": error.detail})
         # No dejar el sistema sin administrador.
         if (self.instance and datos.get("rol") == "Operador" and rol_de(self.instance) == "Administrador"
                 and not otros_administradores(self.instance)):
@@ -106,12 +127,27 @@ class UsuarioSerializer(serializers.ModelSerializer):
 
 
 class ActividadSerializer(serializers.ModelSerializer):
-    usuario_nombre = serializers.CharField(source="usuario.username", read_only=True, default=None)
+    """Lo que muestra la pantalla Actividad: el nombre de la persona y textos que entiende el negocio."""
+
+    usuario_nombre = serializers.SerializerMethodField()
+    usuario_username = serializers.CharField(source="usuario.username", read_only=True, default=None)
+    entidad_nombre = serializers.SerializerMethodField()
 
     class Meta:
         model = RegistroActividad
-        fields = ["id_actividad", "fecha_hora", "usuario", "usuario_nombre", "operacion",
-                  "entidad_afectada", "referencia_registro", "detalle"]
+        fields = ["id_actividad", "fecha_hora", "usuario", "usuario_nombre", "usuario_username", "operacion",
+                  "entidad_afectada", "entidad_nombre", "referencia_registro", "detalle"]
+
+    def get_usuario_nombre(self, registro):
+        return (registro.usuario.get_full_name() or registro.usuario.username) if registro.usuario else None
+
+    def get_entidad_nombre(self, registro):
+        return nombre_entidad(registro.entidad_afectada)
+
+    def to_representation(self, registro):
+        datos = super().to_representation(registro)
+        datos["detalle"] = detalle_legible(registro.entidad_afectada, registro.detalle)
+        return datos
 
 
 # ---------- Reglas ----------

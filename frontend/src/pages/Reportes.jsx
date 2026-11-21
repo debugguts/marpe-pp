@@ -15,7 +15,7 @@ import '../styles/reportes.css'
 
 const iso = (d) => d.toLocaleDateString('en-CA')
 function periodo(clave) {
-  const hoy = new Date()
+  const hoy = new Date(`${hoyISO()}T00:00`) // el día de hoy en Salta, aunque la PC tenga otra zona
   if (clave === 'hoy') return [iso(hoy), iso(hoy)]
   if (clave === 'semana') {
     const lunes = new Date(hoy)

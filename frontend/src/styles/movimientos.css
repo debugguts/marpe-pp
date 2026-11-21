@@ -80,7 +80,36 @@
 /* ---------- Usuarios y actividad ---------- */
 .abm-barra .campo { min-width: 12rem; }
 .abm-buscar-campo { flex: 1; }
-.actividad__filtros { display: flex; flex-wrap: wrap; gap: var(--espacio-3); }
-.actividad__filtros .campo { min-width: 11rem; }
+.actividad__filtros { display: flex; flex-wrap: wrap; align-items: end; gap: var(--espacio-3); margin-bottom: var(--espacio-3); }
+.actividad__filtros .campo { flex: 1 1 10rem; min-width: 10rem; max-width: 16rem; }
+.actividad__limpiar { min-height: var(--alto-control); }
 .actividad__detalle { max-width: 32rem; font-size: var(--texto-s); color: var(--texto-suave); }
+.actividad__fecha { font-variant-numeric: tabular-nums; }
+.actividad__quien { display: grid; line-height: 1.3; }
+.actividad__quien small { font-size: var(--texto-s); }
+
+/* Lista de usuarios */
+.usuarios tbody tr.is-baja td { color: var(--texto-suave); }
+.usuarios__sin-nombre { display: inline-flex; align-items: baseline; gap: var(--espacio-2); }
+.usuarios__app { display: inline-flex; align-items: center; gap: 0.35rem; font-size: var(--texto-s); font-weight: 600; }
+.usuarios__acciones { display: inline-grid; grid-template-columns: auto auto; justify-content: end; }
+
+/* Botón con aspecto de enlace (acciones chicas dentro de una celda) */
+.enlace {
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--marron);
+  font: inherit;
+  font-size: var(--texto-s);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.enlace:hover { color: var(--marron-hover); }
+
+/* Dar de baja: misma forma que Editar, pero se pone roja al pasar el mouse (es la acción que saca acceso) */
+.btn--baja:hover:not(:disabled) { color: var(--peligro); background: color-mix(in srgb, var(--peligro) 10%, transparent); }
+.btn--baja:disabled { opacity: 0.4; cursor: not-allowed; }
 .stock-movimientos td:first-child, .actividad td:first-child { white-space: nowrap; }

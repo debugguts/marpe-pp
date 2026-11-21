@@ -5,7 +5,7 @@ import Logo from './Logo'
 import Icono from './Icono'
 import EditarPerfil from './EditarPerfil'
 import { api } from '../lib/api'
-import { moneda } from '../lib/formato'
+import { moneda, ZONA } from '../lib/formato'
 import { useLogout, useSesion } from '../lib/sesion'
 
 // Diseño elegido por el cliente (Sprint 9):
@@ -198,9 +198,10 @@ export default function Layout() {
 }
 
 // Hora y fecha de hoy; se actualiza sola cada 15 segundos.
-const HORA = new Intl.DateTimeFormat('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })
-const DIA = new Intl.DateTimeFormat('es-AR', { weekday: 'long' })
-const FECHA = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'short' })
+// Con la zona del negocio: si la PC está en otra zona, el reloj igual muestra la hora de Salta.
+const HORA = new Intl.DateTimeFormat('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: ZONA })
+const DIA = new Intl.DateTimeFormat('es-AR', { weekday: 'long', timeZone: ZONA })
+const FECHA = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'short', timeZone: ZONA })
 
 function Reloj() {
   const [ahora, setAhora] = useState(() => new Date())

@@ -6,7 +6,7 @@ import Dialogo from '../components/Dialogo'
 import Icono from '../components/Icono'
 import { erroresDe } from '../lib/abm'
 import { api } from '../lib/api'
-import { contenidoDe, hora, hoyISO, moneda, numero } from '../lib/formato'
+import { contenidoDe, hora, hoyISO, moneda, numero, ZONA } from '../lib/formato'
 import { useSesion } from '../lib/sesion'
 import '../styles/ventas.css'
 
@@ -24,7 +24,7 @@ const PAGOS = [
   ['TRANSFERENCIA', 'Transferencia', 'QR o banco', 'banco'],
   ['FIADO', 'Fiado', 'Cuenta corriente', 'cuentas'],
 ]
-const fechaHoy = new Intl.DateTimeFormat('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })
+const fechaHoy = new Intl.DateTimeFormat('es-AR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: ZONA })
 
 export default function Ventas() {
   const cliente = useQueryClient()
