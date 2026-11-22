@@ -12,7 +12,10 @@ class ClienteSerializer(serializers.ModelSerializer):
         read_only_fields = ["id_cliente"]
 
     def validate_nombre(self, valor):
-        return limpiar_nombre(valor)
+        repetidos = Cliente.objects.all()
+        if self.instance:
+            repetidos = repetidos.exclude(pk=self.instance.pk)
+        return limpiar_nombre(valor, repetidos)
 
     def validate_telefono(self, valor):
         return limpiar_telefono(valor)

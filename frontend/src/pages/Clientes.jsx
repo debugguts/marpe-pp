@@ -2,6 +2,7 @@ import { useState } from 'react'
 import FormularioABM from '../components/FormularioABM'
 import ListadoABM from '../components/ListadoABM'
 import { Boton, CabeceraPagina, Campo } from '../components/ui'
+import { soloTelefono, validarContacto } from '../lib/reglasContacto'
 
 // Pantalla ABM de Clientes (S4-12 · HU-07).
 // «Consumidor final» (id 1) es del sistema: se muestra, pero sin Editar ni Dar de baja.
@@ -37,13 +38,14 @@ export default function Clientes() {
           id={editando.id_cliente}
           titulo={editando.id_cliente ? 'Editar cliente' : 'Nuevo cliente'}
           alCerrar={() => setEditando(null)}
+          validar={validarContacto}
         >
           {(errores) => (
             <>
               <Campo etiqueta="Nombre" name="nombre" defaultValue={editando.nombre} error={errores.nombre}
-                required autoComplete="off" data-foco />
+                required maxLength={80} autoComplete="off" data-foco />
               <Campo etiqueta="Teléfono (opcional)" name="telefono" type="tel" defaultValue={editando.telefono ?? ''}
-                error={errores.telefono} inputMode="tel" autoComplete="off" placeholder="387-4001001" />
+                error={errores.telefono} inputMode="tel" maxLength={20} onKeyDown={soloTelefono} autoComplete="off" placeholder="387-4001001" />
             </>
           )}
         </FormularioABM>

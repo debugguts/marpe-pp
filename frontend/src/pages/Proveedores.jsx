@@ -2,6 +2,7 @@ import { useState } from 'react'
 import FormularioABM from '../components/FormularioABM'
 import ListadoABM from '../components/ListadoABM'
 import { Boton, CabeceraPagina, Campo } from '../components/ui'
+import { soloTelefono, validarContacto } from '../lib/reglasContacto'
 import { useEsAdministrador } from '../lib/sesion'
 
 // Pantalla ABM de Proveedores (S4-08 · HU-03).
@@ -38,13 +39,14 @@ export default function Proveedores() {
           id={editando.id_proveedor}
           titulo={editando.id_proveedor ? 'Editar proveedor' : 'Nuevo proveedor'}
           alCerrar={() => setEditando(null)}
+          validar={validarContacto}
         >
           {(errores) => (
             <>
               <Campo etiqueta="Nombre" name="nombre" defaultValue={editando.nombre} error={errores.nombre}
-                required autoComplete="off" data-foco />
+                required maxLength={80} autoComplete="off" data-foco />
               <Campo etiqueta="Teléfono (opcional)" name="telefono" type="tel" defaultValue={editando.telefono ?? ''}
-                error={errores.telefono} inputMode="tel" autoComplete="off" placeholder="387-4001001" />
+                error={errores.telefono} inputMode="tel" maxLength={20} onKeyDown={soloTelefono} autoComplete="off" placeholder="387-4001001" />
               <Campo etiqueta="Dirección (opcional)" name="direccion" defaultValue={editando.direccion ?? ''}
                 error={errores.direccion} autoComplete="off" />
             </>

@@ -13,7 +13,10 @@ class ProveedorSerializer(serializers.ModelSerializer):
         read_only_fields = ["id_proveedor"]
 
     def validate_nombre(self, valor):
-        return limpiar_nombre(valor)
+        repetidos = Proveedor.objects.all()
+        if self.instance:
+            repetidos = repetidos.exclude(pk=self.instance.pk)
+        return limpiar_nombre(valor, repetidos)
 
     def validate_telefono(self, valor):
         return limpiar_telefono(valor)
