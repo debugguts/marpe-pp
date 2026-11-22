@@ -46,12 +46,27 @@ class Producto(models.Model):
         return f"{self.get_tipo_huevo_display()} {self.get_tamano_display()}"
 
 
+class Formato(models.TextChoices):
+    # Cómo se muestra en el mostrador: la venta elige Caja, Bandeja o Unidad.
+    UNIDAD = "UNIDAD", "Unidad"
+    BANDEJA = "BANDEJA", "Bandeja"
+    CAJA = "CAJA", "Caja"
+
+
 class Presentacion(models.Model):
+    """Una forma de vender el huevo. El stock se lleva en bandejas de 30 (equivalencia).
+
+    El Súper además se vende en bandejas de 20 huevos y en cajas de 9 bandejas de 20 (180 huevos):
+    esas presentaciones tienen huevos_por_bandeja = 20 y solo se usan con huevos Súper.
+    """
+
     id_presentacion = models.AutoField(primary_key=True)
     nombre = models.CharField(max_length=50, unique=True)
     cantidad_bandejas_equivalentes = models.DecimalField(
         max_digits=12, decimal_places=6
     )
+    formato = models.CharField(max_length=20, choices=Formato.choices, default=Formato.BANDEJA)
+    huevos_por_bandeja = models.PositiveSmallIntegerField(default=30)
     estado = models.CharField(
         max_length=20, choices=Estado.choices, default=Estado.ACTIVO
     )
@@ -68,10 +83,30 @@ class Presentacion(models.Model):
                 condition=models.Q(estado__in=Estado.values),
                 name="presentacion_estado_valido",
             ),
+            models.CheckConstraint(
+                condition=models.Q(formato__in=["UNIDAD", "BANDEJA", "CAJA"]),
+                name="presentacion_formato_valido",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(huevos_por_bandeja__in=[20, 30]),
+                name="presentacion_bandeja_20_o_30",
+            ),
         ]
+
+    @property
+    def solo_super(self):
+        return self.huevos_por_bandeja == 20
 
     def __str__(self):
         return self.nombre
+
+
+def presentacion_permitida(producto, presentacion):
+    """Las presentaciones de bandejas de 20 son solo para huevos Súper."""
+    return not presentacion.solo_super or producto.tamano == Tamano.SUPER
+
+
+SOLO_SUPER = "Esa presentación (bandejas de 20) es solo para huevos Súper."
 
 
 class PrecioProducto(models.Model):

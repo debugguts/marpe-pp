@@ -32,10 +32,13 @@ PRODUCTOS = [
     ("CASTAÑO", "MEDIANO", "40", "10", "1.05"),
     ("CASTAÑO", "SÚPER", "3", "8", "1.20"),
 ]
+# (nombre, equivalencia en bandejas de 30, precio base, formato, huevos por bandeja)
 PRESENTACIONES = [
-    ("Unidad", "0.033333", 250),
-    ("Bandeja", "1", 7000),  # 30 huevos
-    ("Caja", "6", 40000),  # 6 bandejas
+    ("Unidad", "0.033333", 250, "UNIDAD", 30),
+    ("Bandeja", "1", 7000, "BANDEJA", 30),  # 30 huevos
+    ("Caja", "6", 40000, "CAJA", 30),  # 6 bandejas
+    ("Bandeja de 20", "0.666666", 4700, "BANDEJA", 20),  # solo Súper: 20 huevos
+    ("Caja Súper", "6", 40000, "CAJA", 20),  # solo Súper: 9 bandejas de 20
 ]
 
 
@@ -77,10 +80,11 @@ class Command(BaseCommand):
 
     def cargar_catalogo_y_stock(self):
         presentaciones = []
-        for nombre, equiv, base in PRESENTACIONES:
+        for nombre, equiv, base, formato, huevos in PRESENTACIONES:
             p, _ = Presentacion.objects.get_or_create(
                 nombre=nombre,
-                defaults={"cantidad_bandejas_equivalentes": Decimal(equiv)},
+                defaults={"cantidad_bandejas_equivalentes": Decimal(equiv), "formato": formato,
+                          "huevos_por_bandeja": huevos},
             )
             presentaciones.append((p, base))
         for tipo, tamano, stock, minimo, factor in PRODUCTOS:
@@ -93,6 +97,8 @@ class Command(BaseCommand):
                 },
             )
             for pres, base in presentaciones:
+                if pres.solo_super and tamano != "SÚPER":
+                    continue  # las bandejas de 20 son solo del Súper
                 PrecioProducto.objects.get_or_create(
                     producto=prod,
                     presentacion=pres,
