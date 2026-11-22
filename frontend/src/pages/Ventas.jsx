@@ -6,7 +6,7 @@ import Dialogo from '../components/Dialogo'
 import Icono from '../components/Icono'
 import { erroresDe } from '../lib/abm'
 import { api } from '../lib/api'
-import { contenidoDe, hora, hoyISO, moneda, numero, ZONA } from '../lib/formato'
+import { hora, hoyISO, moneda, numero, ZONA } from '../lib/formato'
 import { useSesion } from '../lib/sesion'
 import '../styles/ventas.css'
 
@@ -17,8 +17,6 @@ import '../styles/ventas.css'
 // El administrador además puede modificar una venta (se carga en el ticket) o anularla.
 // Una venta nunca se borra: anulada, queda en la lista con su motivo.
 const CONSUMIDOR_FINAL_ID = 1
-const TAMANOS = [['', 'Todos'], ['MEDIANO', 'Mediano'], ['SELECCIÓN', 'Selección'], ['SÚPER', 'Súper']]
-const COLORES = [['', 'Todos'], ['BLANCO', 'Blanco'], ['CASTAÑO', 'Castaño']]
 const PAGOS = [
   ['EFECTIVO', 'Efectivo', 'Entra a la caja', 'caja'],
   ['TRANSFERENCIA', 'Transferencia', 'QR o banco', 'banco'],
@@ -32,14 +30,14 @@ export default function Ventas() {
   const productosApi = useQuery({ queryKey: ['productos', 'activos'], queryFn: () => api('/productos/?estado=ACTIVO') })
   const stock = useQuery({ queryKey: ['stock'], queryFn: () => api('/stock/') })
   const caja = useQuery({ queryKey: ['caja', 'actual'], queryFn: () => api('/cajas/actual/') })
+  const presentacionesApi = useQuery({ queryKey: ['presentaciones', 'activas'], queryFn: () => api('/presentaciones/?estado=ACTIVO') })
 
   const [lineas, setLineas] = useState([]) // [{ clave, producto, presentacion, nombre, detalle, precio, bandejas, cantidad }]
   const [pago, setPago] = useState('EFECTIVO') // EFECTIVO · TRANSFERENCIA · FIADO
   const [referencia, setReferencia] = useState('')
   const [clienteId, setClienteId] = useState('')
   const [buscar, setBuscar] = useState('')
-  const [tamano, setTamano] = useState('')
-  const [color, setColor] = useState('')
+  const [formato, setFormato] = useState('CAJA') // presentación que muestran las dos tarjetas
   const [hecha, setHecha] = useState(null) // última venta registrada o modificada
   const [editando, setEditando] = useState(null) // venta que se está modificando (o null si es una venta nueva)
   const [fallo, setFallo] = useState(null) // error de la API para mostrar en la ventana de aviso
@@ -49,19 +47,16 @@ export default function Ventas() {
 
   const modalidad = pago === 'FIADO' ? 'FIADO' : 'CONTADO'
   const productos = agruparPorProducto(precios.data ?? [])
-  const tarjetas = armarTarjetas(precios.data ?? [], productosApi.data?.results ?? [], stock.data ?? [])
-  const texto = buscar.trim().toLowerCase()
-  const visibles = tarjetas.filter((t) => (!tamano || t.tamano === tamano) && (!color || t.color === color)
-    && (!texto || `${t.nombre} ${t.presentacion_nombre}`.toLowerCase().includes(texto)))
-  // Una tarjeta por huevo; adentro, una fila por presentación (Bandeja, Caja y huevos sueltos).
-  const grupos = TAMANOS.slice(1).map(([v, nombre]) => ({ nombre, huevos: porHuevo(visibles.filter((t) => t.tamano === v)) }))
-    .filter((g) => g.huevos.length > 0)
-  const cantidadHuevos = grupos.reduce((s, g) => s + g.huevos.length, 0)
+  const busqueda = leerBusqueda(buscar)
+  const formatoVisto = busqueda.formato ?? formato
 
   const total = lineas.reduce((s, l) => s + l.cantidad * l.precio, 0)
   // Al modificar, las bandejas que ya tenía la venta vuelven al stock: cuentan como disponibles.
   const reservado = reservadoPor(editando, precios.data ?? [])
   const faltantes = sinStock(lineas, productos, reservado)
+  // Bandejas de un huevo que ya ocupa la venta (al modificar, lo que tenía la venta vuelve a quedar libre).
+  const bandejasUsadas = (producto) => lineas.filter((l) => l.producto === producto)
+    .reduce((suma, l) => suma + l.cantidad * l.bandejas, 0) - (reservado.get(producto) ?? 0)
   const cobraEfectivo = pago === 'EFECTIVO'
   const devuelveEfectivo = editando?.pagos.some((p) => p.medio_pago === 'EFECTIVO')
   const sinCaja = (cobraEfectivo || devuelveEfectivo) && caja.isSuccess && !caja.data
@@ -94,7 +89,7 @@ export default function Ventas() {
       ? actuales.map((l) => (l.clave === t.clave ? { ...l, cantidad: l.cantidad + cuantas } : l))
       : [...actuales, {
         clave: t.clave, producto: t.producto, presentacion: t.presentacion, nombre: t.nombre,
-        detalle: t.presentacion_nombre, precio: t.precio, bandejas: t.bandejas, cantidad: cuantas,
+        detalle: t.presentacion_nombre, precio: t.precio, bandejas: t.bandejas, tipo: t.tipo, cantidad: cuantas,
       }])
   }
   const cambiar = (clave, delta) => setLineas((actuales) => actuales
@@ -110,13 +105,14 @@ export default function Ventas() {
   // Carga una venta ya hecha en el ticket para corregirla.
   function modificar(venta) {
     const bandejasDe = equivalencias(precios.data ?? [])
+    const formatoDe = new Map((presentacionesApi.data?.results ?? []).map((p) => [p.id_presentacion, p.formato]))
     setHecha(null); registrar.reset()
     setEditando(venta)
     setLineas(venta.detalles.map((d) => ({
       clave: `${d.producto}-${d.presentacion}`, producto: d.producto, presentacion: d.presentacion,
       nombre: d.producto_nombre, detalle: d.presentacion_nombre,
       precio: Number(d.precio_unitario_aplicado), // la línea que ya estaba conserva su precio
-      bandejas: bandejasDe.get(d.presentacion) ?? 1, cantidad: Number(d.cantidad),
+      bandejas: bandejasDe.get(d.presentacion) ?? 1, tipo: formatoDe.get(d.presentacion)?.toLowerCase(), cantidad: Number(d.cantidad),
     })))
     setPago(venta.modalidad === 'FIADO' ? 'FIADO' : venta.pagos[0]?.medio_pago ?? 'EFECTIVO')
     setReferencia(venta.pagos[0]?.referencia_transferencia ?? '')
@@ -154,56 +150,26 @@ export default function Ventas() {
             <span className="sr-only">Buscar producto</span>
             <input type="search" value={buscar} onChange={(e) => setBuscar(e.target.value)} placeholder="Buscar producto…" autoComplete="off" />
           </label>
-          <div className="mostrador__filtros">
-            <Chips etiqueta="Tamaño" opciones={TAMANOS} valor={tamano} alCambiar={setTamano} />
-            <Chips etiqueta="Color" opciones={COLORES} valor={color} alCambiar={setColor} />
-            <span className="mostrador__cuenta">{cantidadHuevos} {cantidadHuevos === 1 ? 'huevo' : 'huevos'}</span>
+          <div className="mostrador__presentacion" role="radiogroup" aria-label="Presentación">
+            <span className="mostrador__presentacion-eti">Presentación</span>
+            {PRESENTACIONES_MOSTRADOR.map(([v, texto]) => (
+              <button key={v} type="button" role="radio" aria-checked={formatoVisto === v} className="mostrador__pildora"
+                onClick={() => { setFormato(v); if (busqueda.formato) setBuscar('') }}>{texto}</button>
+            ))}
           </div>
 
-          {precios.isPending && <p className="abm-cargando">Cargando productos…</p>}
+          {(precios.isPending || presentacionesApi.isPending) && <p className="abm-cargando">Cargando productos…</p>}
           {precios.isError && <EstadoVacio icono="cerrar" titulo="No se pudieron cargar los precios" texto={precios.error.message} />}
-          {precios.isSuccess && visibles.length === 0 && (
-            <EstadoVacio icono="catalogo" titulo={tarjetas.length ? 'Nada coincide con la búsqueda' : 'No hay precios cargados'}
-              texto={tarjetas.length ? 'Probá con otro nombre o sacá los filtros.' : 'Confirmá los precios en Catálogo › Precios.'} />
-          )}
 
-          {/* Todos los huevos en una sola grilla, ordenados Mediano → Selección → Súper: así no quedan huecos. */}
-          <div className="mostrador__tarjetas">
-                {grupos.flatMap((g) => g.huevos).map((h) => (
-                  <article key={h.producto} className="tarjeta-huevo">
-                    <header>
-                      <div className="tarjeta-huevo__chips">
-                        <span className="tarjeta-venta__chip">{h.colorTexto}</span>
-                        <span className="tarjeta-venta__chip">{h.tamanoTexto}</span>
-                      </div>
-                      <h3>{h.nombre}</h3>
-                      <p className={`tarjeta-huevo__stock is-${h.nivel}`}>
-                        {h.nivel === 'agotado' ? 'Sin stock' : `Hay ${h.stockTexto}`}{h.nivel === 'bajo' && ' · reponer'}
-                      </p>
-                    </header>
-                    <ul className="tarjeta-huevo__opciones">
-                      {h.opciones.map((t) => (
-                        <li key={t.clave}>
-                          {t.tipo === 'unidad'
-                            ? <HuevosSueltos t={t} alAgregar={(n) => agregar(t, n)} />
-                            : (
-                              <button type="button" className={`opcion-venta is-${t.tipo}`} onClick={() => agregar(t)} disabled={t.nivel === 'agotado'}
-                                aria-label={`Agregar ${t.nombre}, ${t.presentacion_nombre}, ${moneda(t.precio)}`}>
-                                <span className="opcion-venta__marca" aria-hidden="true">{t.sigla}</span>
-                                <span className="opcion-venta__texto">
-                                  <strong>{t.presentacion_nombre}</strong>
-                                  <small>{t.contenido} · {t.nivel === 'agotado' ? 'sin stock' : `${t.disponibles} disp.`}</small>
-                                </span>
-                                <span className="opcion-venta__precio">{moneda(t.precio)}</span>
-                                <span className="opcion-venta__mas" aria-hidden="true"><Icono nombre="mas" /></span>
-                              </button>
-                            )}
-                        </li>
-                      ))}
-                    </ul>
-                  </article>
-                ))}
-          </div>
+          {precios.isSuccess && presentacionesApi.isSuccess && (
+            <div className="mostrador__colores">
+              {COLORES_MOSTRADOR.map((c) => (
+                <TarjetaColor key={c[0]} color={c} formato={formatoVisto} tamanoBuscado={busqueda.tamano}
+                  productos={productosApi.data?.results ?? []} presentaciones={presentacionesApi.data?.results ?? []}
+                  precios={precios.data ?? []} stock={stock.data ?? []} bandejasUsadas={bandejasUsadas} alAgregar={agregar} />
+              ))}
+            </div>
+          )}
         </section>
 
         <aside className={`venta-actual${editando ? ' is-editando' : ''}`} aria-label="Venta actual">
@@ -293,19 +259,6 @@ export default function Ventas() {
   )
 }
 
-// Fila de botones para filtrar (Tamaño: Todos · Mediano · Selección · Súper)
-function Chips({ etiqueta, opciones, valor, alCambiar }) {
-  return (
-    <div className="chips" role="group" aria-label={etiqueta}>
-      <span className="chips__eti">{etiqueta}</span>
-      {opciones.map(([v, texto]) => (
-        <button key={v} type="button" className="chip" aria-pressed={valor === v} onClick={() => alCambiar(v)}>{texto}</button>
-      ))}
-    </div>
-  )
-}
-
-// Barra de abajo: lo vendido hoy y la última venta. Abre la lista para modificar o anular.
 function ResumenDelDia({ abierto, alAlternar }) {
   const ventas = useQuery({ queryKey: ['ventas', 'dia', hoyISO()], queryFn: () => api(`/ventas/?desde=${hoyISO()}&hasta=${hoyISO()}`) })
   const filas = (ventas.data?.results ?? []).filter((v) => v.estado !== 'ANULADA')
@@ -459,86 +412,8 @@ function AnularVenta({ venta, alCerrar, alFallar }) {
   )
 }
 
-// Una opción por producto y presentación. La Unidad se vende como «huevos sueltos»: se escribe cuántos.
-// "disponibles" se cuenta en la unidad de cada opción: 24 bandejas = 4 cajas = 720 huevos.
-function armarTarjetas(precios, productos, stock) {
-  const datos = new Map(productos.map((p) => [p.id_producto, p]))
-  const minimos = new Map(stock.map((s) => [s.producto, s]))
-  return precios.map((p) => {
-    const producto = datos.get(p.producto) ?? {}
-    const bandejas = Number(p.bandejas)
-    const tipo = bandejas < 1 ? 'unidad' : bandejas >= 6 ? 'caja' : 'bandeja'
-    const cantidad = Math.floor(Number(p.stock_bandejas) / bandejas + 1e-6)
-    const unidad = { unidad: ['huevo', 'huevos'], caja: ['caja', 'cajas'], bandeja: ['bandeja', 'bandejas'] }[tipo][cantidad === 1 ? 0 : 1]
-    return {
-      clave: `${p.producto}-${p.presentacion}`, producto: p.producto, presentacion: p.presentacion,
-      nombre: p.producto_nombre, presentacion_nombre: tipo === 'unidad' ? 'Huevos sueltos' : p.presentacion_nombre,
-      contenido: contenidoDe(bandejas), precio: Number(p.precio), bandejas, tipo, maximo: cantidad,
-      color: producto.tipo_huevo, colorTexto: producto.tipo_huevo === 'BLANCO' ? 'Blanco' : 'Castaño',
-      tamano: producto.tamano, tamanoTexto: { MEDIANO: 'Mediano', 'SELECCIÓN': 'Selección', 'SÚPER': 'Súper' }[producto.tamano] ?? '',
-      disponibles: `${numero(cantidad)} ${unidad}`,
-      sigla: tipo === 'unidad' ? '1' : tipo === 'caja' ? `×${numero(bandejas)}` : '30',
-      stockBandejas: Number(p.stock_bandejas),
-      nivel: cantidad <= 0 ? 'agotado' : minimos.get(p.producto)?.bajo_minimo ? 'bajo' : 'ok',
-    }
-  }).sort((a, b) => a.nombre.localeCompare(b.nombre) || orden(a) - orden(b))
-}
-
-// Huevos sueltos: se escribe la cantidad (por defecto 12, una docena) y se agrega.
-// Botones rápidos para lo más común: media docena, docena y 30.
-function HuevosSueltos({ t, alAgregar }) {
-  const [cantidad, setCantidad] = useState('12')
-  const n = Math.floor(Number(cantidad) || 0)
-  const sinStock = t.nivel === 'agotado'
-  const enviar = (valor) => { if (valor > 0) alAgregar(valor) }
-  return (
-    <div className={`opcion-venta is-unidad opcion-venta--sueltos${sinStock ? ' is-apagada' : ''}`}>
-      <span className="opcion-venta__marca" aria-hidden="true">{t.sigla}</span>
-      <span className="opcion-venta__texto">
-        <strong>Huevos sueltos</strong>
-        <small>{moneda(t.precio)} el huevo · {sinStock ? 'sin stock' : `${t.disponibles} disp.`}</small>
-      </span>
-      <form className="sueltos" onSubmit={(e) => { e.preventDefault(); enviar(n) }}>
-        <label className="sr-only" htmlFor={`sueltos-${t.clave}`}>Cantidad de huevos de {t.nombre}</label>
-        <input id={`sueltos-${t.clave}`} type="number" inputMode="numeric" min="1" max={t.maximo || undefined} step="1"
-          value={cantidad} onChange={(e) => setCantidad(e.target.value)} disabled={sinStock} />
-        <span className="sueltos__total">{n > 0 ? moneda(n * t.precio) : '—'}</span>
-        <button type="submit" className="opcion-venta__mas" disabled={sinStock || n <= 0} aria-label={`Agregar ${n} huevos de ${t.nombre}`}>
-          <Icono nombre="mas" />
-        </button>
-      </form>
-      <div className="sueltos__rapidos">
-        {[[6, 'Media docena'], [12, 'Docena'], [30, '30']].map(([v, texto]) => (
-          <button key={v} type="button" disabled={sinStock} onClick={() => enviar(v)} aria-label={`Agregar ${texto.toLowerCase()} de ${t.nombre}`}>
-            + {texto}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// Agrupa las opciones por huevo: [{ producto, nombre, stockTexto, nivel, opciones: [Bandeja, Caja, Huevos sueltos] }]
-function porHuevo(tarjetas) {
-  const huevos = new Map()
-  for (const t of tarjetas) {
-    if (!huevos.has(t.producto)) {
-      huevos.set(t.producto, {
-        producto: t.producto, nombre: t.nombre, colorTexto: t.colorTexto, tamanoTexto: t.tamanoTexto,
-        stockTexto: `${numero(Math.floor(t.stockBandejas * 100) / 100)} bandejas`, opciones: [],
-        nivel: t.stockBandejas <= 0 ? 'agotado' : t.nivel === 'bajo' ? 'bajo' : 'ok',
-      })
-    }
-    huevos.get(t.producto).opciones.push(t)
-  }
-  return [...huevos.values()]
-}
-
 // Tipo de presentación de una línea del ticket, para pintarla igual que su botón.
-const tipoDe = (l) => (l.bandejas < 1 ? 'unidad' : l.bandejas >= 6 ? 'caja' : 'bandeja')
-
-// Orden dentro de cada huevo: Bandeja, Caja y al final los huevos sueltos.
-const orden = (t) => (t.tipo === 'unidad' ? 1000 : t.bandejas)
+const tipoDe = (l) => l.tipo ?? (l.bandejas < 1 ? 'unidad' : l.bandejas >= 6 ? 'caja' : 'bandeja')
 
 // [{producto, presentacion, ...}] → [{ producto, nombre, stock, presentaciones: [...] }]
 function agruparPorProducto(precios) {
@@ -577,4 +452,130 @@ function sinStock(lineas, productos, reservado = new Map()) {
     if (necesarias > disponible + 1e-6) faltan.set(producto.producto, disponible)
   }
   return faltan
+}
+
+// ---------- Mostrador por presentación (Caja · Bandeja · Unidad) y una tarjeta por color ----------
+const PRESENTACIONES_MOSTRADOR = [['CAJA', 'Caja'], ['BANDEJA', 'Bandeja'], ['UNIDAD', 'Unidad']]
+const TAMANOS_MOSTRADOR = [['SELECCIÓN', 'Selección'], ['MEDIANO', 'Mediano'], ['SÚPER', 'Súper']]
+const COLORES_MOSTRADOR = [['BLANCO', 'Blanco', 'blanco'], ['CASTAÑO', 'Castaño', 'castano']]
+const UNIDADES_STOCK = { CAJA: ['caja', 'cajas'], BANDEJA: ['bandeja', 'bandejas'], UNIDAD: ['unidad', 'unidades'] }
+const huevosDe = (bandejas) => Math.round(Number(bandejas) * 30) // la equivalencia está en bandejas de 30
+const sinLetras = (e) => { if (['-', '+', 'e', 'E', '.', ','].includes(e.key)) e.preventDefault() }
+
+// Lo que se escribe en el buscador: un tamaño o una presentación cambia lo que muestran las tarjetas.
+function leerBusqueda(texto) {
+  const t = texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+  return {
+    tamano: /super/.test(t) ? 'SÚPER' : /selec/.test(t) ? 'SELECCIÓN' : /median/.test(t) ? 'MEDIANO' : null,
+    formato: /caj|cajon/.test(t) ? 'CAJA' : /bandej|maple/.test(t) ? 'BANDEJA' : /unidad|suelt/.test(t) ? 'UNIDAD' : null,
+  }
+}
+
+// Qué presentación corresponde: el Súper va en bandejas de 20 o 30 y en cajas de 9 bandejas de 20.
+function presentacionPara(presentaciones, formato, tamano, variante) {
+  const del = (huevos) => presentaciones.find((p) => p.formato === formato && Number(p.huevos_por_bandeja) === huevos)
+  if (formato === 'UNIDAD') return presentaciones.find((p) => p.formato === 'UNIDAD')
+  if (formato === 'BANDEJA') return del(tamano === 'SÚPER' ? Number(variante) : 30)
+  return tamano === 'SÚPER' ? del(20) ?? del(30) : del(30)
+}
+
+function TarjetaColor({ color, formato, tamanoBuscado, productos, presentaciones, precios, stock, bandejasUsadas, alAgregar }) {
+  const [nombreColor, textoColor, slug] = color
+  const [tamanoPropio, setTamano] = useState('MEDIANO')
+  const [variante, setVariante] = useState('30') // solo Súper en bandeja: 20 o 30 huevos
+  const [cantidad, setCantidad] = useState('1')
+  const tamano = tamanoBuscado ?? tamanoPropio
+
+  const producto = productos.find((p) => p.tipo_huevo === nombreColor && p.tamano === tamano)
+  const pres = presentacionPara(presentaciones, formato, tamano, variante)
+  const precio = producto && pres && precios.find((p) => p.producto === producto.id_producto && p.presentacion === pres.id_presentacion)
+  const fila = producto && stock.find((s) => s.producto === producto.id_producto)
+  const huevosPres = pres ? huevosDe(pres.cantidad_bandejas_equivalentes) : 0
+  // Lo que ya está en la venta no se puede volver a ofrecer.
+  const huevosLibres = Math.max(0, huevosDe(Number(fila?.cantidad_bandejas ?? 0) - (producto ? bandejasUsadas(producto.id_producto) : 0)))
+  const disponibles = huevosPres ? Math.floor(huevosLibres / huevosPres) : 0
+  const estado = !producto || !pres ? 'nodisp' : !precio ? 'sinprecio' : disponibles <= 0 ? 'agotado' : fila?.bajo_minimo ? 'bajo' : 'ok'
+  const bloqueada = ['nodisp', 'sinprecio', 'agotado'].includes(estado)
+
+  const n = bloqueada ? 0 : Math.min(disponibles, Math.max(1, Math.floor(Number(cantidad) || 0)))
+  const fijar = (valor) => setCantidad(String(Math.min(disponibles, Math.max(1, valor))))
+  const unidad = UNIDADES_STOCK[formato][disponibles === 1 ? 0 : 1]
+  const textoTamano = TAMANOS_MOSTRADOR.find(([v]) => v === tamano)?.[1] ?? ''
+  const titulo = `${textoColor} ${textoTamano}`
+  const huevosBandeja = Number(pres?.huevos_por_bandeja ?? 30)
+  const imagen = formato === 'UNIDAD' ? `/presentaciones/unidad-${slug}.webp` : `/presentaciones/${formato.toLowerCase()}-${slug}-${huevosBandeja}.webp`
+
+  const insignia = {
+    ok: ['exito', `Stock: ${numero(disponibles)} ${unidad}`],
+    bajo: ['aviso', `Poco stock: ${numero(disponibles)} ${unidad}`],
+    agotado: ['peligro', 'Sin stock'],
+    sinprecio: ['aviso', 'Sin precio: confirmalo en Precios'],
+    nodisp: ['peligro', 'No está en el catálogo'],
+  }[estado]
+
+  function anadir() {
+    if (bloqueada || n <= 0) return
+    alAgregar({
+      clave: `${producto.id_producto}-${pres.id_presentacion}`, producto: producto.id_producto, presentacion: pres.id_presentacion,
+      nombre: titulo, presentacion_nombre: formato === 'UNIDAD' ? 'Huevos sueltos' : pres.nombre,
+      precio: Number(precio.precio), bandejas: Number(pres.cantidad_bandejas_equivalentes), tipo: formato.toLowerCase(),
+    }, n)
+    setCantidad('1')
+  }
+
+  return (
+    <article className={`tarjeta-color${bloqueada ? ' is-apagada' : ''}`} aria-label={titulo}>
+      <h3>{titulo.toUpperCase()}</h3>
+      <div className="tarjeta-color__sub">
+        {formato === 'CAJA' && `Caja · ${numero(huevosPres / huevosBandeja)} bandejas (${numero(huevosPres)} huevos)`}
+        {formato === 'UNIDAD' && 'Venta por unidad · Huevos sueltos'}
+        {formato === 'BANDEJA' && tamano !== 'SÚPER' && 'Bandeja · 30 unidades'}
+        {formato === 'BANDEJA' && tamano === 'SÚPER' && (
+          <>
+            <span>Bandeja ·</span>
+            <span className="tarjeta-color__variantes" role="group" aria-label="Huevos por bandeja">
+              {['20', '30'].map((v) => (
+                <button key={v} type="button" aria-pressed={variante === v} onClick={() => setVariante(v)}>{v} Unidades</button>
+              ))}
+            </span>
+          </>
+        )}
+      </div>
+      <p><Insignia variante={insignia[0]}>{insignia[1]}</Insignia></p>
+
+      <div className="tarjeta-color__imagen">
+        <img src={imagen} alt={`${titulo} en ${formato === 'UNIDAD' ? 'huevos sueltos' : `${formato.toLowerCase()} de ${huevosBandeja}`}`} loading="lazy" />
+      </div>
+
+      <div className="tarjeta-color__tamanos" role="group" aria-label={`Tamaño del huevo ${textoColor.toLowerCase()}`}>
+        {TAMANOS_MOSTRADOR.map(([v, texto]) => (
+          <button key={v} type="button" aria-pressed={tamano === v} onClick={() => setTamano(v)}>{texto}</button>
+        ))}
+      </div>
+
+      <div className="tarjeta-color__precio">
+        <strong>{precio ? moneda(Number(precio.precio)) : '—'}{formato === 'UNIDAD' && precio && <small> c/u</small>}</strong>
+        {formato === 'UNIDAD' && (
+          <span className="tarjeta-color__atajos">
+            {[[6, 'Media docena'], [12, 'Docena']].map(([v, texto]) => (
+              <button key={v} type="button" disabled={bloqueada} onClick={() => fijar(v)}>{texto}</button>
+            ))}
+          </span>
+        )}
+      </div>
+
+      <div className="tarjeta-color__accion">
+        <div className="paso-a-paso" role="group" aria-label={`Cantidad de ${titulo}`}>
+          <button type="button" disabled={bloqueada || n <= 1} onClick={() => fijar(n - 1)} aria-label="Uno menos">−</button>
+          <input type="number" inputMode="numeric" min="1" max={disponibles || undefined} step="1" value={bloqueada ? 0 : cantidad}
+            disabled={bloqueada} onKeyDown={sinLetras} onWheel={(e) => e.currentTarget.blur()}
+            onChange={(e) => setCantidad(e.target.value)} onBlur={() => !bloqueada && fijar(n)} aria-label={`Cantidad de ${titulo}`} />
+          <button type="button" disabled={bloqueada || n >= disponibles} onClick={() => fijar(n + 1)} aria-label="Uno más">+</button>
+        </div>
+        <button type="button" className="btn btn--primario tarjeta-color__anadir" disabled={bloqueada} onClick={anadir}>
+          <Icono nombre="mas" /><span>Añadir</span>
+        </button>
+      </div>
+    </article>
+  )
 }

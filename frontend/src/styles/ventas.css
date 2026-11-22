@@ -149,7 +149,8 @@
 
 /* ---------- Una tarjeta por huevo, una fila por presentación ----------
    Cada presentación tiene su color y su marca para reconocerla sin leer el precio:
-   Bandeja (30) arena · Caja (×6) marrón · Huevos sueltos (1) rosa. El mismo color se repite en el ticket. */
+   Bandeja (30) arena · Caja (×6) marrón · Huevos sueltos (1) rosa. El mismo color se repite en el ticket.
+   El stock se dice una sola vez, arriba; las filas solo avisan cuando queda poco o no hay. */
 .tarjeta-huevo {
   display: grid; align-content: start; gap: var(--espacio-3);
   padding: var(--espacio-3) var(--espacio-3) var(--espacio-3);
@@ -188,8 +189,10 @@
 .opcion-venta__texto { display: grid; min-width: 0; }
 .opcion-venta__texto strong { font: 600 1rem/1.2 var(--fuente-titulo); }
 .opcion-venta__texto small { font-size: 0.75rem; color: var(--texto-suave); }
+.opcion-venta__falta { color: var(--aviso); font-weight: 600; }
 .opcion-venta__precio { font: 700 1.15rem/1 var(--fuente-titulo); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .opcion-venta__mas { display: grid; place-items: center; width: 2rem; height: 2rem; color: var(--exito); background: color-mix(in srgb, var(--exito) 12%, var(--blanco)); border-radius: 50%; }
+.opcion-venta:hover:not(:disabled) .opcion-venta__mas { color: var(--blanco); background: var(--exito); }
 
 .etiqueta-pres { display: inline-block; margin-right: 0.3rem; padding: 0.05rem 0.45rem; font-size: 0.72rem; font-weight: 600; border-radius: var(--radio-pildora); }
 .etiqueta-pres.is-bandeja { background: #E9D9C8; color: #654E3F; }
@@ -200,18 +203,28 @@
 .venta-actual__lineas li > div:first-child { grid-column: 1 / -1; }
 .venta-actual__lineas .paso-a-paso { justify-self: start; }
 .venta-actual__nombre { display: flex; flex-wrap: wrap; align-items: center; gap: 0.2rem; }
-/* Huevos sueltos: se escribe la cantidad o se usan los botones rápidos */
+/* Huevos sueltos: cantidad con − y + (o escrita), total y el + verde; abajo los atajos que suman directo */
 .opcion-venta--sueltos { cursor: default; grid-template-columns: auto minmax(0, 1fr); row-gap: 0.5rem; }
+.opcion-venta--sueltos:hover { border-color: color-mix(in srgb, var(--tono) 70%, var(--borde)); background: color-mix(in srgb, var(--tono) 28%, var(--blanco)); }
 .opcion-venta--sueltos.is-apagada { opacity: 0.5; }
-.sueltos { grid-column: 1 / -1; display: grid; grid-template-columns: 5.5rem minmax(0, 1fr) auto; align-items: center; gap: 0.6rem; }
-.sueltos input {
-  width: 100%; min-height: 2.5rem; padding: 0 0.6rem; text-align: center;
-  font: 600 1.05rem var(--fuente-ui); font-variant-numeric: tabular-nums; color: var(--marron);
-  background: var(--blanco); border: 1px solid var(--borde); border-radius: 8px;
+.sueltos { grid-column: 1 / -1; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 0.6rem; }
+.sueltos__paso { display: flex; align-items: center; background: var(--blanco); border: 1px solid var(--borde); border-radius: 8px; }
+.sueltos__paso button {
+  width: 2.4rem; height: 2.6rem; border: 0; background: none; cursor: pointer;
+  font: 600 1.2rem/1 var(--fuente-ui); color: var(--marron);
 }
-.sueltos input:focus { outline: 2px solid var(--marron); outline-offset: 1px; }
+.sueltos__paso button:hover:not(:disabled) { background: color-mix(in srgb, var(--rosa) 35%, transparent); }
+.sueltos__paso button:disabled { cursor: not-allowed; opacity: 0.4; }
+.sueltos__paso input {
+  width: 3rem; height: 2.6rem; padding: 0; border: 0; text-align: center; background: none;
+  font: 700 1.1rem var(--fuente-titulo); font-variant-numeric: tabular-nums; color: var(--marron);
+  -moz-appearance: textfield; appearance: textfield;
+}
+.sueltos__paso input::-webkit-inner-spin-button, .sueltos__paso input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.sueltos__paso input:focus { outline: 2px solid var(--marron); outline-offset: -2px; }
 .sueltos__total { font: 700 1.15rem/1 var(--fuente-titulo); font-variant-numeric: tabular-nums; text-align: right; }
 .sueltos .opcion-venta__mas { border: 0; cursor: pointer; }
+.sueltos .opcion-venta__mas:hover:not(:disabled) { color: var(--blanco); background: var(--exito); }
 .sueltos .opcion-venta__mas:disabled { cursor: not-allowed; opacity: 0.5; }
 .sueltos__rapidos { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 0.35rem; }
 .sueltos__rapidos button {
@@ -236,4 +249,70 @@
   box-shadow: var(--sombra-vidrio);
   -webkit-backdrop-filter: blur(18px) saturate(1.1);
   backdrop-filter: blur(18px) saturate(1.1);
+}
+
+/* ---------- Mostrador por presentación: Caja · Bandeja · Unidad y una tarjeta por color ---------- */
+.mostrador__presentacion { display: flex; flex-wrap: wrap; align-items: center; gap: var(--espacio-2); }
+.mostrador__presentacion-eti { margin-right: var(--espacio-2); font: 600 0.72rem/1 var(--fuente-ui); letter-spacing: 0.08em; text-transform: uppercase; color: var(--texto-suave); }
+.mostrador__pildora {
+  min-height: var(--alto-control); padding: 0 1.25rem; border-radius: var(--radio-pildora);
+  border: 1px solid var(--borde); background: var(--blanco); color: var(--oscuro);
+  font: 600 var(--texto-m)/1 var(--fuente-ui); cursor: pointer; transition: background .15s, color .15s;
+}
+.mostrador__pildora:hover { background: var(--arena); }
+.mostrador__pildora[aria-checked="true"] { background: var(--oscuro); color: var(--blanco); border-color: var(--oscuro); box-shadow: 0 0 0 3px color-mix(in srgb, var(--oscuro) 18%, transparent); }
+
+.mostrador__colores { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--espacio-3); }
+.tarjeta-color {
+  display: flex; flex-direction: column; gap: var(--espacio-2);
+  padding: 1.25rem 1.25rem 1.1rem; border-radius: var(--radio-panel);
+  background: var(--blanco); box-shadow: var(--sombra-vidrio); transition: background .2s;
+}
+.tarjeta-color h3 { margin: 0; font: 700 1.35rem/1.15 var(--fuente-titulo); letter-spacing: .02em; color: var(--oscuro); }
+.tarjeta-color__sub { display: flex; flex-wrap: wrap; align-items: center; gap: var(--espacio-2); min-height: 1.9rem; font-size: var(--texto-s); color: var(--texto-suave); }
+.tarjeta-color__variantes { display: inline-flex; gap: var(--espacio-1); }
+.tarjeta-color__variantes button, .tarjeta-color__atajos button {
+  border: 1px solid var(--borde); background: var(--blanco); color: var(--oscuro); border-radius: var(--radio-pildora);
+  padding: .35rem .75rem; font: 600 var(--texto-s)/1 var(--fuente-ui); cursor: pointer;
+}
+.tarjeta-color__variantes button[aria-pressed="true"] { background: var(--oscuro); color: var(--blanco); border-color: var(--oscuro); }
+.tarjeta-color__atajos { display: inline-flex; gap: var(--espacio-1); }
+.tarjeta-color__atajos button:hover:not(:disabled) { background: var(--arena); }
+.tarjeta-color > p { margin: 0; }
+
+.tarjeta-color__imagen { height: 15rem; display: grid; place-items: center; }
+.tarjeta-color__imagen img { max-width: 88%; max-height: 14.5rem; object-fit: contain; mix-blend-mode: multiply; transition: opacity .2s, filter .2s; }
+
+.tarjeta-color__tamanos {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--espacio-1);
+  padding: var(--espacio-1); border: 1px solid var(--borde); border-radius: var(--radio-control);
+  background: color-mix(in srgb, var(--arena) 55%, var(--blanco));
+}
+.tarjeta-color__tamanos button {
+  min-height: 2.4rem; border: 0; border-radius: calc(var(--radio-control) - 2px); background: transparent;
+  color: var(--oscuro); font: 600 var(--texto-s)/1 var(--fuente-ui); cursor: pointer;
+}
+.tarjeta-color__tamanos button[aria-pressed="true"] { background: var(--oscuro); color: var(--blanco); }
+
+.tarjeta-color__precio { display: flex; align-items: center; justify-content: space-between; gap: var(--espacio-2); min-height: 2.5rem; }
+.tarjeta-color__precio strong { font: 700 1.7rem/1 var(--fuente-titulo); font-variant-numeric: tabular-nums; color: var(--oscuro); }
+.tarjeta-color__precio small { font-size: var(--texto-m); font-weight: 600; }
+
+.tarjeta-color__accion { display: flex; align-items: center; justify-content: space-between; gap: var(--espacio-3); }
+.tarjeta-color__accion .paso-a-paso input {
+  width: 3.5rem; height: 2.25rem; border: 0; text-align: center; font: 600 var(--texto-m)/1 var(--fuente-ui);
+  appearance: textfield; -moz-appearance: textfield; background: var(--blanco); color: var(--oscuro);
+}
+.tarjeta-color__accion .paso-a-paso input::-webkit-inner-spin-button,
+.tarjeta-color__accion .paso-a-paso input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.tarjeta-color__accion .paso-a-paso button:disabled { opacity: .45; cursor: not-allowed; }
+.tarjeta-color__anadir { flex: 1; max-width: 13rem; min-height: var(--alto-control); justify-content: center; }
+
+/* Sin stock (o sin precio): la tarjeta se apaga, pero se puede cambiar de tamaño o de variante */
+.tarjeta-color.is-apagada { background: #E6E5E3; }
+.tarjeta-color.is-apagada h3, .tarjeta-color.is-apagada .tarjeta-color__precio strong, .tarjeta-color.is-apagada .tarjeta-color__sub { color: #9A9590; }
+.tarjeta-color.is-apagada .tarjeta-color__imagen img { opacity: .45; filter: grayscale(.7); }
+
+@media (max-width: 60rem) {
+  .mostrador__colores { grid-template-columns: minmax(0, 1fr); }
 }
