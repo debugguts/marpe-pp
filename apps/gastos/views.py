@@ -3,7 +3,9 @@ from datetime import date
 from django.db import transaction
 from django.db.models import Sum
 from rest_framework import filters, mixins, viewsets
+from django.utils import timezone
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from apps.caja.models import MovimientoCaja
@@ -11,10 +13,10 @@ from apps.caja.servicios import mover_caja
 from apps.catalogo.precios import mes_actual
 from config.permisos import ConsultaOAdministrador
 from config.comunes import MedioPago
-from config.vistas import anotar_actividad
+from config.vistas import anotar_actividad, validar
 
 from .models import Gasto, GastoMovCaja
-from .serializers import GastoSerializer
+from .serializers import AnularGastoSerializer, GastoSerializer
 
 
 class GastoViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin,
@@ -24,6 +26,8 @@ class GastoViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.Retrie
     GET   /gastos/            lista. Filtros: ?desde ?hasta (AAAA-MM-DD)  ?tipo=FIJO|VARIABLE  ?search=texto
     POST  /gastos/            alta; si se paga en efectivo, sale de la caja abierta
     PATCH /gastos/<id>/       corrige fecha, concepto, categoría o tipo (el importe no)
+    POST  /gastos/<id>/anular/ anula con motivo; si fue en efectivo, la plata vuelve a la caja abierta
+    ?estado=CONFIRMADO|ANULADO en la lista. DELETE no existe (405): se anula y queda el registro.
     GET   /gastos/resumen/    totales del mes: fijos, variables y por categoría (?mes=AAAA-MM)
     """
 
@@ -41,6 +45,8 @@ class GastoViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.Retrie
             gastos = gastos.filter(fecha__lte=filtros["hasta"])
         if filtros.get("tipo"):
             gastos = gastos.filter(tipo=filtros["tipo"].upper())
+        if filtros.get("estado"):
+            gastos = gastos.filter(estado=filtros["estado"].upper())
         return gastos
 
     @transaction.atomic
@@ -52,14 +58,31 @@ class GastoViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.Retrie
         anotar_actividad(self.request.user, "Alta", gasto)
 
     def perform_update(self, serializer):
-        anotar_actividad(self.request.user, "Modificación", serializer.save())
+        anotar_actividad(self.request.user, "Modificación", serializer.save(fecha_modificacion=timezone.now()))
+
+    @action(detail=True, methods=["post"])
+    @transaction.atomic
+    def anular(self, request, pk=None):
+        gasto = Gasto.objects.select_for_update().get(pk=self.get_object().pk)
+        motivo = validar(AnularGastoSerializer, request.data)["motivo"]
+        if gasto.estado == Gasto.Estado.ANULADO:
+            raise ValidationError({"non_field_errors": "Este gasto ya está anulado."})
+        if gasto.medio_pago == MedioPago.EFECTIVO:  # la plata que salió de la caja vuelve a entrar
+            mover_caja(MovimientoCaja.Tipo.INGRESO_MANUAL, gasto.importe, request.user,
+                       f"Anulación del gasto {gasto.pk}: {motivo}"[:200])
+        gasto.estado = Gasto.Estado.ANULADO
+        gasto.motivo_anulacion = motivo
+        gasto.fecha_anulacion = timezone.now()
+        gasto.save(update_fields=["estado", "motivo_anulacion", "fecha_anulacion"])
+        anotar_actividad(request.user, "Anulación", gasto, detalle=f"Motivo: {motivo}")
+        return Response(GastoSerializer(gasto).data)
 
     @action(detail=False)
     def resumen(self, request):
         mes = request.query_params.get("mes")  # "2026-11"
         dia = date.fromisoformat(f"{mes}-01") if mes else date.today()
         desde, hasta = mes_actual(dia)
-        gastos = Gasto.objects.filter(fecha__range=(desde, hasta))
+        gastos = Gasto.objects.filter(fecha__range=(desde, hasta)).exclude(estado=Gasto.Estado.ANULADO)
 
         def total(registros):
             return registros.aggregate(t=Sum("importe"))["t"] or 0
