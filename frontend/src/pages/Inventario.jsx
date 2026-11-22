@@ -95,15 +95,29 @@ export default function Inventario() {
 
       {minimo && (
         <FormularioABM recurso="stock" id={minimo.producto} alCerrar={() => { setMinimo(null); cliente.invalidateQueries({ queryKey: ['stock'] }) }}
-          titulo={`Stock mínimo de ${minimo.producto_nombre}`} descripcion="Cuando el stock baja de este número, aparece el aviso para reponer.">
+          titulo={`Stock mínimo de ${minimo.producto_nombre}`} descripcion="Cuando el stock baja de este número, aparece el aviso para reponer." validar={validarMinimo}>
           {(errores) => (
-            <Campo etiqueta="Mínimo en bandejas" name="stock_minimo_bandejas" type="number" inputMode="decimal" min="0" step="any"
+            <Campo etiqueta="Mínimo en bandejas" name="stock_minimo_bandejas" type="number" inputMode="decimal" min="0" step="1" max={CANTIDAD_MAX}
+              className="campo--importe" onKeyDown={sinSignos} onWheel={sinRueda}
               defaultValue={Number(minimo.stock_minimo_bandejas)} error={errores.stock_minimo_bandejas} data-foco />
           )}
         </FormularioABM>
       )}
     </>
   )
+}
+
+const CANTIDAD_MAX = 100000
+const soloEnteros = (e) => { if (['-', '+', 'e', 'E', '.', ','].includes(e.key)) e.preventDefault() }
+const sinSignos = (e) => { if (['-', '+', 'e', 'E'].includes(e.key)) e.preventDefault() }
+const sinRueda = (e) => e.currentTarget.blur() // la rueda del mouse no cambia el número
+
+function validarMinimo(d) {
+  const v = d.stock_minimo_bandejas
+  if (v === '' || v === undefined) return { stock_minimo_bandejas: 'Indicá el mínimo (puede ser 0).' }
+  if (!/^\d+(\.\d{1,3})?$/.test(v)) return { stock_minimo_bandejas: 'El mínimo tiene que ser 0 o más.' }
+  if (Number(v) > CANTIDAD_MAX) return { stock_minimo_bandejas: 'El mínimo no puede pasar de 100.000 bandejas.' }
+  return {}
 }
 
 // Merma (rotura, vencimiento) o ajuste por conteo físico. Siempre con motivo.
@@ -113,8 +127,31 @@ function CargarMerma({ inicial, productos, alCerrar }) {
     queryFn: () => api('/presentaciones/?estado=ACTIVO'),
   }).data?.results ?? []
 
+  // Revisa antes de mandar. Si saca huevos, controla que haya stock suficiente.
+  function validar(d) {
+    const e = {}
+    if (!d.tipo_movimiento) e.tipo_movimiento = 'Elegí qué pasó.'
+    if (!d.producto) e.producto = 'Elegí el huevo.'
+    if (!d.presentacion) e.presentacion = 'Elegí en qué se cuenta.'
+    if (!d.cantidad) e.cantidad = 'Indicá la cantidad.'
+    else if (!/^\d+$/.test(d.cantidad) || Number(d.cantidad) < 1) e.cantidad = 'La cantidad va en números enteros mayores a 0.'
+    else if (Number(d.cantidad) > CANTIDAD_MAX) e.cantidad = 'La cantidad no puede pasar de 100.000.'
+    else if (d.tipo_movimiento !== 'AJUSTE_POSITIVO' && d.producto && d.presentacion) {
+      const stock = productos.find((s) => String(s.producto) === d.producto)
+      const pres = presentaciones.find((p) => String(p.id_presentacion) === d.presentacion)
+      const hay = Number(stock?.cantidad_bandejas ?? 0)
+      if (pres && Number(d.cantidad) * Number(pres.cantidad_bandejas_equivalentes) > hay + 1e-9) {
+        e.cantidad = `No hay tanto: quedan ${bandejas(hay)} bandejas de ${stock?.producto_nombre ?? 'ese huevo'}.`
+      }
+    }
+    const motivo = (d.motivo ?? '').trim()
+    if (!motivo) e.motivo = 'Escribí el motivo.'
+    else if (motivo.length < 3) e.motivo = 'El motivo tiene que tener al menos 3 letras.'
+    return e
+  }
+
   return (
-    <FormularioABM recurso="movimientos-inventario" alCerrar={alCerrar} titulo="Registrar merma o ajuste"
+    <FormularioABM recurso="movimientos-inventario" alCerrar={alCerrar} titulo="Registrar merma o ajuste" validar={validar}
       descripcion="Las compras y las ventas mueven el stock solas: acá van las roturas, pérdidas y correcciones por conteo.">
       {(errores) => (
         <>
@@ -128,14 +165,15 @@ function CargarMerma({ inicial, productos, alCerrar }) {
             {productos.map((s) => <option key={s.producto} value={s.producto}>{s.producto_nombre}</option>)}
           </Campo>
           <div className="fila-2">
-            <Campo etiqueta="Cantidad" name="cantidad" type="number" inputMode="decimal" min="0" step="any"
+            <Campo etiqueta="Cantidad" name="cantidad" type="number" inputMode="numeric" min="1" step="1" max={CANTIDAD_MAX}
+              className="campo--importe" placeholder="0" onKeyDown={soloEnteros} onWheel={sinRueda}
               error={errores.cantidad} data-foco />
             <Campo as="select" etiqueta="En" name="presentacion" defaultValue="" error={errores.presentacion}>
               <option value="" disabled>Elegí</option>
               {presentaciones.map((p) => <option key={p.id_presentacion} value={p.id_presentacion}>{p.nombre}</option>)}
             </Campo>
           </div>
-          <Campo etiqueta="Motivo" name="motivo" error={errores.motivo} maxLength={200} autoComplete="off"
+          <Campo etiqueta="Motivo" name="motivo" error={errores.motivo} maxLength={200} minLength={3} autoComplete="off"
             placeholder="Por ejemplo: 4 huevos rotos en la descarga" />
         </>
       )}

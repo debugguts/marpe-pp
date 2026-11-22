@@ -34,7 +34,8 @@ def bandejas_de(detalles):
 
 
 def compras_del_mes(desde, hasta, producto=None):
-    detalles = DetalleCompra.objects.filter(compra__fecha__range=(desde, hasta)).select_related("presentacion")
+    detalles = (DetalleCompra.objects.filter(compra__fecha__range=(desde, hasta))
+                .exclude(compra__estado="ANULADA").select_related("presentacion"))
     return detalles.filter(producto=producto) if producto else detalles
 
 
@@ -55,7 +56,7 @@ def costo_por_bandeja(producto, desde, hasta):
 
 def gasto_fijo_por_bandeja(desde, hasta):
     """Devuelve (gasto fijo por bandeja, total de gastos fijos, bandejas compradas en el mes)."""
-    fijos = Gasto.objects.filter(tipo=Gasto.Tipo.FIJO, fecha__range=(desde, hasta)).aggregate(t=Sum("importe"))["t"]
+    fijos = Gasto.objects.filter(tipo=Gasto.Tipo.FIJO, fecha__range=(desde, hasta)).exclude(estado=Gasto.Estado.ANULADO).aggregate(t=Sum("importe"))["t"]
     fijos = fijos or Decimal("0")
     bandejas = bandejas_de(compras_del_mes(desde, hasta))
     return (fijos / bandejas if bandejas else Decimal("0")), fijos, bandejas

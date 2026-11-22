@@ -20,7 +20,7 @@ def crear_base(prueba):
 
     prueba.producto = Producto.objects.create(tipo_huevo="BLANCO", tamano="MEDIANO")
     prueba.bandeja = Presentacion.objects.create(nombre="Bandeja", cantidad_bandejas_equivalentes=1)
-    prueba.caja = Presentacion.objects.create(nombre="Caja", cantidad_bandejas_equivalentes=6)
+    prueba.caja = Presentacion.objects.create(nombre="Caja", cantidad_bandejas_equivalentes=6, formato="CAJA")
     Stock.objects.create(producto=prueba.producto, cantidad_bandejas=20, stock_minimo_bandejas=5)
     for presentacion, precio in [(prueba.bandeja, "7000"), (prueba.caja, "40000")]:
         PrecioProducto.objects.create(producto=prueba.producto, presentacion=presentacion,

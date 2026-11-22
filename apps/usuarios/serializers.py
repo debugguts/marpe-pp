@@ -1,8 +1,7 @@
-from django.contrib.auth.password_validation import validate_password
-from django.core.exceptions import ValidationError as ErrorDjango
 from rest_framework import serializers
 
 from .models import Usuario
+from .validaciones import limpiar_nombre, validar_clave
 
 
 def rol_de(usuario):
@@ -56,15 +55,23 @@ class PerfilSerializer(serializers.ModelSerializer):
         fields = ["first_name", "last_name", "clave_actual", "clave_nueva"]
         extra_kwargs = {"first_name": {"max_length": 150}, "last_name": {"max_length": 150}}
 
+    def validate_first_name(self, valor):
+        return limpiar_nombre(valor, "nombre")
+
+    def validate_last_name(self, valor):
+        return limpiar_nombre(valor, "apellido")
+
     def validate(self, datos):
         nueva = datos.get("clave_nueva")
         if nueva:
             if not self.instance.check_password(datos.get("clave_actual") or ""):
                 raise serializers.ValidationError({"clave_actual": "La clave actual no es correcta."})
+            if nueva == datos.get("clave_actual"):
+                raise serializers.ValidationError({"clave_nueva": "Tiene que ser distinta de la actual."})
             try:
-                validate_password(nueva, self.instance)
-            except ErrorDjango as error:
-                raise serializers.ValidationError({"clave_nueva": list(error.messages)})
+                validar_clave(nueva, self.instance)
+            except serializers.ValidationError as error:
+                raise serializers.ValidationError({"clave_nueva": error.detail})
         return datos
 
     def update(self, usuario, datos):

@@ -1,35 +1,31 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import AvisoError from '../components/AvisoError'
-import { Boton, EstadoVacio, Insignia } from '../components/ui'
+import Dialogo from '../components/Dialogo'
+import Icono from '../components/Icono'
+import { Boton, EstadoVacio } from '../components/ui'
 import { api } from '../lib/api'
 import { contenidoDe, moneda, numero } from '../lib/formato'
 import { useSesion } from '../lib/sesion'
 import '../styles/precios.css'
 
 // Solapa Precios del Catálogo (S5-10 · HU-02-C), pensada para un administrador nuevo:
-// 1) cuánto te cuesta cada bandeja, 2) a cuánto lo vendés hoy y cuánto ganás,
-// 3) un precio sugerido = lo que te cuesta + la ganancia que elijas.
-const MARGEN_GUARDADO = 'marpe.margen'
-
-function leerMargen() {
-  try { return Number(localStorage.getItem(MARGEN_GUARDADO)) || 0 } catch { return 0 }
-}
+// cada presentación trae su precio actual en el casillero; se edita encima o con un atajo
+// (Mínimo, +20 %, +30 %) y al lado se ve en vivo cuánto se gana. Se guarda todo junto por huevo.
+const PRECIO_MAXIMO = 100000000
+const ATAJOS = [[0, 'Mínimo'], [20, '+20 %'], [30, '+30 %']]
 
 // Precio con ganancia, redondeado para arriba a $ 10 (precios fáciles de cobrar).
 const conGanancia = (cuesta, margen) => Math.ceil((Number(cuesta) * (1 + margen / 100)) / 10) * 10
+const comoTexto = (valor) => (valor === null || valor === undefined || valor === '' ? '' : String(Math.round(Number(valor))))
+const conPuntos = (digitos) => (digitos ? Number(digitos).toLocaleString('es-AR') : '')
 
 export default function Precios() {
   const sugeridos = useQuery({ queryKey: ['precios', 'sugeridos'], queryFn: () => api('/precios/sugeridos/') })
   const { data: usuario } = useSesion()
   const esAdministrador = usuario?.rol === 'Administrador'
-  const [margen, setMargen] = useState(leerMargen)
-
-  function cambiarMargen(valor) {
-    const numeroMargen = Math.max(0, Number(valor) || 0)
-    setMargen(numeroMargen)
-    try { localStorage.setItem(MARGEN_GUARDADO, String(numeroMargen)) } catch { /* sin almacenamiento: no pasa nada */ }
-  }
+  const [soloNumeros, setSoloNumeros] = useState(false) // ventana "solo se pueden escribir números"
+  const [guardadoEn, setGuardadoEn] = useState(null) // huevo cuyos precios se acaban de guardar
 
   if (sugeridos.isPending) return <p className="abm-cargando">Calculando precios…</p>
   if (sugeridos.isError) {
@@ -38,139 +34,211 @@ export default function Precios() {
 
   return (
     <div className="precios">
-      <div className="precios__intro">
-        <p>
-          Para cada producto ves <strong>cuánto te cuesta</strong> (lo que le pagaste al proveedor más los gastos
-          fijos del mes), <strong>a cuánto lo vendés hoy</strong> y <strong>cuánto ganás</strong>.
-          {!esAdministrador && ' Solo el administrador puede cambiar precios.'}
-        </p>
-        {esAdministrador && (
-          <label className="precios__margen">
-            <span>Ganancia que querés sumar</span>
-            <span className="precios__margen-campo">
-              <input className="campo__control" type="number" inputMode="numeric" min="0" step="1"
-                value={margen} onChange={(e) => cambiarMargen(e.target.value)} />
-              <span aria-hidden="true">%</span>
-            </span>
-          </label>
-        )}
-      </div>
+      <p className="precios__intro">
+        {esAdministrador
+          ? <>Escribí el precio nuevo en el casillero o tocá un atajo. Al lado ves <strong>cuánto ganás</strong> con ese precio. Solo se guarda lo que cambiaste.</>
+          : <>Para cada producto ves <strong>cuánto te cuesta</strong>, a cuánto se vende y cuánto se gana. Solo el administrador puede cambiar precios.</>}
+      </p>
 
       {sugeridos.data.map((fila) => (
-        <ProductoPrecios key={fila.producto} fila={fila} margen={margen} puedeCambiar={esAdministrador} />
+        <ProductoPrecios key={`${fila.producto}-${fila.presentaciones.map((p) => p.precio_vigente).join('|')}`}
+          fila={fila} puedeCambiar={esAdministrador} alTeclaInvalida={() => setSoloNumeros(true)}
+          guardado={guardadoEn === fila.producto} alGuardar={() => setGuardadoEn(fila.producto)} />
       ))}
+
+      {soloNumeros && (
+        <Dialogo titulo="Solo se pueden escribir números" alCerrar={() => setSoloNumeros(false)}>
+          <div className="dialogo__cuerpo precios__aviso-numeros">
+            <span className="precios__aviso-icono" aria-hidden="true"><Icono nombre="alerta" /></span>
+            <p>El precio va en pesos y sin centavos: escribí solo números, por ejemplo <strong>5850</strong>.
+              No se pueden usar letras, signos (- + , .) ni espacios.</p>
+          </div>
+          <footer className="dialogo__pie">
+            <Boton onClick={() => setSoloNumeros(false)} data-foco>Entendido</Boton>
+          </footer>
+        </Dialogo>
+      )}
     </div>
   )
 }
 
-function ProductoPrecios({ fila, margen, puedeCambiar }) {
+function ProductoPrecios({ fila, puedeCambiar, alTeclaInvalida, guardado, alGuardar }) {
+  const cliente = useQueryClient()
   const { calculo } = fila
   const tituloId = `precio-${fila.producto}`
+  const originales = Object.fromEntries(fila.presentaciones.map((p) => [p.presentacion, comoTexto(p.precio_vigente)]))
+  const [valores, setValores] = useState(originales)
+  const [confirmando, setConfirmando] = useState(null) // precios bajo el costo que hay que confirmar
+
+  const cambiados = fila.presentaciones.filter((p) => valores[p.presentacion] && valores[p.presentacion] !== originales[p.presentacion])
+  const bajoCosto = cambiados.filter((p) => p.sugerido && Number(valores[p.presentacion]) < Number(p.sugerido))
+
+  const guardar = useMutation({
+    // Uno por uno: si alguno falla, los anteriores quedan guardados y se avisa cuál no.
+    mutationFn: async () => {
+      for (const p of cambiados) {
+        await api('/precios/confirmar/', {
+          metodo: 'POST',
+          datos: { producto: fila.producto, presentacion: p.presentacion, precio: valores[p.presentacion], confirmar_bajo_equilibrio: true },
+        })
+      }
+    },
+    onSuccess: () => { setConfirmando(null); alGuardar(); cliente.invalidateQueries({ queryKey: ['precios'] }) },
+    onError: () => setConfirmando(null),
+  })
+
+  function pedirGuardar() {
+    if (bajoCosto.length > 0) setConfirmando(bajoCosto)
+    else guardar.mutate()
+  }
 
   return (
     <section className="panel precios__producto" aria-labelledby={tituloId}>
       <header className="precios__cab">
-        <h2 id={tituloId}>{fila.producto_nombre}</h2>
-        {calculo.error ? (
-          <p className="campo__error">{calculo.error}</p>
-        ) : (
-          <>
-            <p className="precios__costo">Cada bandeja te cuesta <strong>{moneda(calculo.equilibrio_bandeja)}</strong></p>
+        <div>
+          <h2 id={tituloId}>{fila.producto_nombre}</h2>
+          {calculo.error ? (
+            <p className="campo__error">{calculo.error}</p>
+          ) : (
             <p className="precios__detalle">
-              {moneda(calculo.costo_bandeja)} que le pagaste al proveedor
-              {' + '}{moneda(calculo.gasto_fijo_bandeja)} de gastos fijos
-              <span className="suave">
-                {' '}(los {moneda(calculo.gastos_fijos_mes)} de alquiler, combustible, etc. de este mes, repartidos entre las{' '}
-                {numero(Number(calculo.bandejas_compradas_mes))} bandejas que compraste)
-              </span>
+              Lo que te cuesta = lo que le pagás al proveedor ({moneda(calculo.costo_bandeja)} la bandeja) + gastos fijos del mes
+              ({moneda(calculo.gasto_fijo_bandeja)} por bandeja: {moneda(calculo.gastos_fijos_mes)} repartidos entre {numero(Number(calculo.bandejas_compradas_mes))} bandejas).
             </p>
-          </>
+          )}
+        </div>
+        {!calculo.error && (
+          <p className="precios__costo"><small>Cada bandeja te cuesta</small><strong>{moneda(calculo.equilibrio_bandeja)}</strong></p>
         )}
       </header>
 
-      <div className="tabla-wrap">
-        <table className="tabla precios__tabla">
-          <thead>
-            <tr>
-              <th scope="col">Presentación</th>
-              <th scope="col" className="num">Te cuesta</th>
-              <th scope="col" className="num">La vendés a</th>
-              <th scope="col" className="num">Ganás</th>
-              {puedeCambiar && <th scope="col">Precio nuevo</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {fila.presentaciones.map((p) => (
-              <tr key={p.presentacion}>
-                <td>
-                  <strong>{p.presentacion_nombre}</strong>
-                  <span className="precios__contenido">{contenidoDe(p.bandejas)}</span>
-                </td>
-                <td className="num">{p.sugerido ? moneda(p.sugerido) : '—'}</td>
-                <td className="num">
-                  {p.precio_vigente ? moneda(p.precio_vigente) : <Insignia variante="aviso">Sin precio</Insignia>}
-                </td>
-                <td className="num"><Ganancia cuesta={p.sugerido} precio={p.precio_vigente} /></td>
-                {puedeCambiar && (
-                  <td><CambiarPrecio producto={fila.producto} presentacion={p} margen={margen} /></td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ul className="precios__filas">
+        {fila.presentaciones.map((p) => (
+          <FilaPrecio key={p.presentacion} p={p} valor={valores[p.presentacion]} original={originales[p.presentacion]}
+            puedeCambiar={puedeCambiar} alTeclaInvalida={alTeclaInvalida}
+            alCambiar={(v) => { guardar.reset(); setValores((actual) => ({ ...actual, [p.presentacion]: v })) }} />
+        ))}
+      </ul>
+
+      {puedeCambiar && (
+        <footer className="precios__pie">
+          <p aria-live="polite">
+            {guardado && cambiados.length === 0 ? <span className="precios__ok">Precios guardados. Rigen desde hoy.</span>
+              : cambiados.length === 0 ? 'Sin cambios.'
+                : `${cambiados.length === 1 ? '1 precio cambiado' : `${cambiados.length} precios cambiados`}`
+                  + (bajoCosto.length ? ` · ${bajoCosto.length === 1 ? 'uno queda' : `${bajoCosto.length} quedan`} por debajo de lo que te cuesta` : '')}
+          </p>
+          <div className="precios__botones">
+            <Boton variante="secundario" disabled={cambiados.length === 0 || guardar.isPending} onClick={() => setValores(originales)}>Deshacer</Boton>
+            <Boton disabled={cambiados.length === 0} cargando={guardar.isPending} textoCargando="Guardando…" onClick={pedirGuardar}>
+              {cambiados.length > 1 ? `Guardar ${cambiados.length} precios` : 'Guardar precio'}
+            </Boton>
+          </div>
+        </footer>
+      )}
+
+      {confirmando && (
+        <Dialogo titulo="¿Guardar precios que no cubren el costo?" descripcion={fila.producto_nombre} alCerrar={() => setConfirmando(null)}>
+          <div className="dialogo__cuerpo">
+            <p>Con estos precios <strong>perdés plata</strong> en cada venta:</p>
+            <ul className="precios__lista-perdida">
+              {confirmando.map((p) => (
+                <li key={p.presentacion}>
+                  <strong>{p.presentacion_nombre}</strong>: lo vendés a {moneda(Number(valores[p.presentacion]))} y te cuesta {moneda(p.sugerido)}
+                  {' '}(perdés {moneda(Number(p.sugerido) - Number(valores[p.presentacion]))}).
+                </li>
+              ))}
+            </ul>
+          </div>
+          <footer className="dialogo__pie">
+            <Boton variante="secundario" onClick={() => setConfirmando(null)}>Revisar</Boton>
+            <Boton variante="peligro" cargando={guardar.isPending} textoCargando="Guardando…" onClick={() => guardar.mutate()}>Guardar igual</Boton>
+          </footer>
+        </Dialogo>
+      )}
+      {guardar.isError && <AvisoError error={guardar.error} titulo="No se pudo guardar el precio" alCerrar={() => guardar.reset()} />}
     </section>
   )
 }
 
-function Ganancia({ cuesta, precio }) {
-  if (!cuesta || !precio) return '—'
-  const diferencia = Number(precio) - Number(cuesta)
-  if (diferencia >= 0) return <span className="ganancia ganancia--si">+{moneda(diferencia)}</span>
-  return <span className="ganancia ganancia--no" title="Lo vendés por debajo de lo que te cuesta">Perdés {moneda(-diferencia)}</span>
-}
+function FilaPrecio({ p, valor, original, puedeCambiar, alCambiar, alTeclaInvalida }) {
+  const campoId = `precio-${p.presentacion}-${p.presentacion_nombre}`
+  const cuesta = p.sugerido ? Number(p.sugerido) : null
+  const precio = valor ? Number(valor) : null
+  const cambiado = Boolean(valor) && valor !== original
+  const unidad = Number(p.bandejas) < 0.1 ? 'huevo' : p.presentacion_nombre.toLowerCase()
 
-// Campo para el precio nuevo. "Usar sugerido" lo completa con lo que cuesta + la ganancia elegida.
-// Si queda por debajo de lo que cuesta, el sistema pide confirmarlo otra vez.
-function CambiarPrecio({ producto, presentacion, margen }) {
-  const cliente = useQueryClient()
-  const [precio, setPrecio] = useState('')
-  const sugerido = presentacion.sugerido ? conGanancia(presentacion.sugerido, margen) : null
-  const confirmar = useMutation({
-    mutationFn: (forzar) => api('/precios/confirmar/', {
-      metodo: 'POST',
-      datos: { producto, presentacion: presentacion.presentacion, precio, confirmar_bajo_equilibrio: forzar },
-    }),
-    onSuccess: () => { setPrecio(''); cliente.invalidateQueries({ queryKey: ['precios'] }) },
-  })
-  const bajoCosto = confirmar.error?.datos?.codigo === 'bajo_equilibrio'
-  const campoId = `p-${producto}-${presentacion.presentacion}`
+  // Solo dígitos: cualquier otra tecla (letras, signos, coma, punto) abre el aviso.
+  function teclear(e) {
+    if (e.ctrlKey || e.metaKey || e.altKey || e.key.length !== 1) return
+    if (!/\d/.test(e.key)) { e.preventDefault(); alTeclaInvalida() }
+  }
+  function escribir(texto) {
+    const limpio = texto.replace(/\./g, '').trim()
+    if (limpio && !/^\d+$/.test(limpio)) { alTeclaInvalida(); return }
+    alCambiar(limpio && Number(limpio) > PRECIO_MAXIMO ? String(PRECIO_MAXIMO) : limpio.replace(/^0+(?=\d)/, ''))
+  }
 
   return (
-    <form className="precios__cambiar" onSubmit={(e) => { e.preventDefault(); confirmar.mutate(false) }}>
-      <label className="sr-only" htmlFor={campoId}>Precio nuevo de {presentacion.presentacion_nombre}</label>
-      <span className="precios__pesos">
-        <span aria-hidden="true">$</span>
-        <input id={campoId} className="campo__control" type="number" inputMode="decimal" min="0" step="any"
-          placeholder={sugerido ? String(sugerido) : ''} value={precio}
-          onChange={(e) => { setPrecio(e.target.value); confirmar.reset() }}
-          aria-invalid={confirmar.isError || undefined} />
-      </span>
-      {sugerido && !precio && (
-        <Boton variante="fantasma" onClick={() => setPrecio(String(sugerido))}>Usar {moneda(sugerido)}</Boton>
-      )}
-      {precio && (bajoCosto ? (
-        <Boton variante="peligro" cargando={confirmar.isPending} onClick={() => confirmar.mutate(true)}>Guardar igual</Boton>
-      ) : (
-        <Boton type="submit" variante="secundario" cargando={confirmar.isPending}>Guardar</Boton>
-      ))}
-      <p className="precios__mensaje" aria-live="polite">
-        {bajoCosto && <span className="campo__error">Con ese precio perdés plata: te cuesta {moneda(presentacion.sugerido)}.</span>}
-        {confirmar.isSuccess && <span className="precios__ok">Precio guardado. Rige desde hoy.</span>}
-      </p>
-      {confirmar.isError && !bajoCosto && (
-        <AvisoError error={confirmar.error} titulo="No se pudo guardar el precio" alCerrar={() => confirmar.reset()} />
-      )}
-    </form>
+    <li className={`precios__fila${cambiado ? ' is-cambiada' : ''}`}>
+      <div className="precios__pres">
+        <strong>{p.presentacion_nombre}</strong>
+        <small>{contenidoDe(p.bandejas)}</small>
+        <span>Te cuesta <b>{cuesta ? moneda(cuesta) : '—'}</b></span>
+      </div>
+
+      <div className="precios__entrada">
+        {puedeCambiar ? (
+          <>
+            <div className="precios__campo-fila">
+              <label className="precios__campo" htmlFor={campoId}>
+                <span aria-hidden="true">$</span>
+                <input id={campoId} type="text" inputMode="numeric" autoComplete="off" placeholder="Sin precio"
+                  value={conPuntos(valor)} onKeyDown={teclear} onChange={(e) => escribir(e.target.value)}
+                  onPaste={(e) => { e.preventDefault(); escribir(e.clipboardData.getData('text')) }}
+                  aria-label={`Precio de ${p.presentacion_nombre}`} />
+              </label>
+              <span className="precios__antes">
+                {cambiado ? (original ? <><s>{moneda(Number(original))}</s> antes</> : 'Precio nuevo') : original ? 'Precio actual' : 'Todavía no tiene precio'}
+              </span>
+            </div>
+            {cuesta && (
+              <div className="precios__atajos" role="group" aria-label={`Atajos de precio para ${p.presentacion_nombre}`}>
+                {ATAJOS.map(([margen, texto]) => {
+                  const sugerido = conGanancia(cuesta, margen)
+                  return (
+                    <button key={margen} type="button" aria-pressed={valor === String(sugerido)} onClick={() => alCambiar(String(sugerido))}>
+                      {texto} <small>{moneda(sugerido)}</small>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="precios__vigente">{original ? moneda(Number(original)) : 'Sin precio'}</p>
+        )}
+      </div>
+
+      <Ganancia cuesta={cuesta} precio={precio} unidad={unidad} />
+    </li>
+  )
+}
+
+function Ganancia({ cuesta, precio, unidad }) {
+  if (!cuesta) return <div className="precios__gana is-neutra">Cargá el costo en Proveedores para ver cuánto ganás.</div>
+  if (!precio) return <div className="precios__gana is-neutra">Escribí un precio para ver cuánto ganás.</div>
+  const diferencia = precio - cuesta
+  const porcentaje = Math.round((diferencia / cuesta) * 100)
+  if (diferencia >= 0) {
+    return (
+      <div className="precios__gana is-gana" aria-live="polite">
+        Ganás por {unidad}<b>{moneda(diferencia)}</b>{porcentaje} % sobre lo que te cuesta
+      </div>
+    )
+  }
+  return (
+    <div className="precios__gana is-pierde" aria-live="polite">
+      Perdés por {unidad}<b>− {moneda(-diferencia)}</b>No cubre lo que te cuesta
+    </div>
   )
 }

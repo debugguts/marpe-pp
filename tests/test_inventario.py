@@ -45,3 +45,9 @@ class InventarioAPITest(APITestCase):
         self.client.force_login(self.admin)
         self.client.patch(f"/api/stock/{self.producto.pk}/", {"stock_minimo_bandejas": "30"}, format="json")
         self.assertTrue(self.client.get("/api/stock/").data[0]["bajo_minimo"])
+
+    def test_merma_con_coma_negativa_o_motivo_corto_se_rechaza(self):
+        self.assertIn("enteros, sin coma", str(self.mover("MERMA", "1.5").data))
+        self.assertIn("cantidad", self.mover("MERMA", "-2").data)
+        self.assertIn("motivo", self.mover("MERMA", "1", motivo="ab").data)
+        self.assertEqual(stock_de(self.producto), 20)  # no cambió nada

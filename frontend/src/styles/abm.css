@@ -78,7 +78,12 @@
   box-shadow: 0 24px 60px -12px color-mix(in srgb, var(--marron) 45%, transparent);
   overscroll-behavior: contain;
 }
-.dialogo[open] { animation: aparecer 0.18s ease-out; }
+/* Abierta: título y botones quedan fijos y solo el medio se desplaza, así «Guardar» siempre se ve
+   aunque el formulario sea más alto que la pantalla (notebook, celular acostado). */
+.dialogo[open] { display: flex; flex-direction: column; overflow-y: auto; animation: aparecer 0.18s ease-out; }
+.dialogo > form:not(.dialogo__cuerpo) { display: contents; }
+.dialogo__cab, .dialogo__pie { flex: none; }
+.dialogo__cuerpo { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .dialogo::backdrop { background: color-mix(in srgb, var(--marron) 45%, transparent); }
 @keyframes aparecer { from { opacity: 0; translate: 0 8px; } }
 

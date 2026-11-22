@@ -93,7 +93,8 @@ class EmailDeUsuarioTest(APITestCase):
         self.client.force_login(self.admin)
 
     def test_el_email_no_se_repite(self):
-        datos = {"username": "lucia", "first_name": "Lucía", "rol": "Operador", "clave": "huevos-frescos-1"}
+        datos = {"username": "lucia", "first_name": "Lucía", "last_name": "Pérez", "rol": "Operador",
+                 "clave": "huevos-frescos-1"}
         self.assertEqual(self.client.post("/api/usuarios/", datos | {"email": "Lucia@Gmail.com"}).status_code, 201)
         respuesta = self.client.post("/api/usuarios/", datos | {"username": "lucia2", "email": "lucia@gmail.com"})
         self.assertIn("email", respuesta.data)

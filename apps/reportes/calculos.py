@@ -37,11 +37,11 @@ def ventas_del_periodo(desde, hasta):
 
 
 def compras_del_periodo(desde, hasta):
-    return Compra.objects.filter(fecha__range=(desde, hasta))
+    return Compra.objects.filter(fecha__range=(desde, hasta)).exclude(estado=Compra.Estado.ANULADA)
 
 
 def gastos_del_periodo(desde, hasta):
-    return Gasto.objects.filter(fecha__range=(desde, hasta))
+    return Gasto.objects.filter(fecha__range=(desde, hasta)).exclude(estado=Gasto.Estado.ANULADO)
 
 
 def suma(consulta, campo):

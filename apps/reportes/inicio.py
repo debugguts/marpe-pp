@@ -26,7 +26,8 @@ from config.permisos import es_administrador
 from .calculos import cobros, redondear, suma
 
 # Los ajustes que hacen solas las modificaciones y anulaciones de ventas no son movimientos "a mano".
-AUTOMATICOS = ("Modificación de la venta", "Anulación de la venta")
+AUTOMATICOS = ("Modificación de la venta", "Anulación de la venta",
+               "Modificación de la compra", "Anulación de la compra", "Anulación del gasto")
 
 
 def detalle_venta(venta):
@@ -66,11 +67,11 @@ def movimientos_de_hoy(hoy, administrador):
                       "pago": None, "importe": None, "sentido": "neutro"})
 
     if administrador:
-        for c in Compra.objects.filter(fecha=hoy).select_related("proveedor"):
+        for c in Compra.objects.filter(fecha=hoy).exclude(estado=Compra.Estado.ANULADA).select_related("proveedor"):
             filas.append({"hora": None, "tipo": "Compra", "detalle": f"Nº {c.pk} · {c.proveedor.nombre}",
                           "quien": c.proveedor.nombre, "que": f"Compra Nº {c.pk}",
                           "pago": None, "importe": c.total, "sentido": "sale"})
-        for g in Gasto.objects.filter(fecha=hoy):
+        for g in Gasto.objects.filter(fecha=hoy).exclude(estado=Gasto.Estado.ANULADO):
             filas.append({"hora": None, "tipo": "Gasto", "detalle": f"{g.concepto} ({g.categoria})",
                           "quien": g.concepto, "que": f"Gasto · {g.categoria}",
                           "pago": g.get_medio_pago_display(), "importe": g.importe, "sentido": "sale"})

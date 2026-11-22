@@ -12,6 +12,7 @@ No hace falta la librería firebase-admin: el token es un JWT y se verifica con 
 
 import json
 import time
+from datetime import timedelta
 from urllib.error import URLError
 from urllib.request import urlopen
 
@@ -19,6 +20,7 @@ import jwt
 from cryptography.x509 import load_pem_x509_certificate
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from rest_framework import authentication, exceptions
 
 CLAVES_GOOGLE = "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com"
@@ -68,6 +70,18 @@ def verificar_token(token, proyecto):
     return datos
 
 
+def anotar_ingreso(usuario):
+    """La app no pasa por el login de la web: sin esto, «Último ingreso» diría «Nunca».
+
+    Cada pedido de la app trae el token, así que se anota como mucho una vez cada 5 minutos
+    (update directo, sin tocar el resto del usuario).
+    """
+    ahora = timezone.now()
+    if usuario.last_login is None or ahora - usuario.last_login > timedelta(minutes=5):
+        get_user_model().objects.filter(pk=usuario.pk).update(last_login=ahora)
+        usuario.last_login = ahora
+
+
 class FirebaseAuthentication(authentication.BaseAuthentication):
     """Se usa solo si el pedido trae «Authorization: Bearer …». La web sigue entrando con su sesión."""
 
@@ -85,6 +99,7 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
             raise exceptions.AuthenticationFailed(
                 f"{datos['email']} no está habilitado en Marpe. Pedile al administrador que te dé de alta con ese email."
             )
+        anotar_ingreso(usuario)
         return usuario, datos
 
     def authenticate_header(self, request):

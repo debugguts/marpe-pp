@@ -11,6 +11,11 @@ class Gasto(models.Model):
         FIJO = "FIJO", "Fijo"
         VARIABLE = "VARIABLE", "Variable"
 
+    class Estado(models.TextChoices):
+        # Un gasto no se borra: si estuvo mal, se anula con motivo y queda el registro.
+        CONFIRMADO = "CONFIRMADO", "Confirmado"
+        ANULADO = "ANULADO", "Anulado"
+
     id_gasto = models.AutoField(primary_key=True)
     fecha = models.DateField()
     concepto = models.CharField(max_length=200)
@@ -21,6 +26,10 @@ class Gasto(models.Model):
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, db_column="id_usuario"
     )
+    estado = models.CharField(max_length=20, choices=Estado.choices, default=Estado.CONFIRMADO)
+    fecha_modificacion = models.DateTimeField(null=True, blank=True)
+    fecha_anulacion = models.DateTimeField(null=True, blank=True)
+    motivo_anulacion = models.CharField(max_length=200, null=True, blank=True)
 
     class Meta:
         db_table = "gasto"
@@ -35,6 +44,15 @@ class Gasto(models.Model):
             models.CheckConstraint(
                 condition=models.Q(tipo__in=["FIJO", "VARIABLE"]),
                 name="gasto_tipo_valido",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(estado__in=["CONFIRMADO", "ANULADO"]),
+                name="gasto_estado_valido",
+            ),
+            models.CheckConstraint(
+                condition=~models.Q(estado="ANULADO")
+                | (models.Q(motivo_anulacion__isnull=False) & ~models.Q(motivo_anulacion="")),
+                name="gasto_anulado_con_motivo",
             ),
         ]
 

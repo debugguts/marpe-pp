@@ -12,7 +12,7 @@ from config.formato import pesos
 from config.permisos import ConsultaOAdministrador, EsAdministrador
 from config.vistas import ABMConBajaLogica, anotar_actividad, validar
 
-from .models import PrecioProducto, Presentacion, Producto
+from .models import PrecioProducto, Presentacion, Producto, presentacion_permitida
 from .precios import calcular
 from .serializers import (
     ConfirmarPrecioSerializer,
@@ -89,7 +89,8 @@ class PrecioViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                     for p in PrecioProducto.objects.filter(fecha_hasta__isnull=True)}
         filas = []
         for producto in Producto.objects.filter(estado=Estado.ACTIVO).order_by("tipo_huevo", "tamano"):
-            calculo = calcular(producto, presentaciones)
+            propias = [p for p in presentaciones if presentacion_permitida(producto, p)]
+            calculo = calcular(producto, propias)
             sugeridos = calculo.pop("sugeridos", {})
             filas.append({
                 "producto": producto.pk,
@@ -101,7 +102,9 @@ class PrecioViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                     "bandejas": p.cantidad_bandejas_equivalentes,
                     "precio_vigente": vigentes.get((producto.pk, p.pk)),
                     "sugerido": sugeridos.get(p.pk),
-                } for p in presentaciones],
+                    "formato": p.formato,
+                    "huevos_por_bandeja": p.huevos_por_bandeja,
+                } for p in propias],
             })
         return Response(filas)
 

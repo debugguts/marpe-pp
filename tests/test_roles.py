@@ -49,8 +49,8 @@ class UsuariosTest(APITestCase):
         self.assertEqual(self.client.get("/api/actividad/").status_code, 403)
 
     def test_alta_con_rol_y_la_clave_queda_cifrada(self):
-        respuesta = self.client.post(self.url, {"username": "Lucia", "first_name": "Lucía", "rol": "Operador",
-                                                "clave": "mostrador-2026"}, format="json")
+        respuesta = self.client.post(self.url, {"username": "Lucia", "first_name": "Lucía", "last_name": "Pérez",
+                                                "rol": "Operador", "clave": "mostrador-2026"}, format="json")
         self.assertEqual(respuesta.status_code, 201, respuesta.data)
         self.assertEqual(respuesta.data["rol"], "Operador")
         self.assertNotIn("clave", respuesta.data)
@@ -60,9 +60,10 @@ class UsuariosTest(APITestCase):
         self.assertTrue(self.client.login(username="lucia", password="mostrador-2026"))
 
     def test_clave_debil_o_faltante_se_rechaza(self):
-        sin_clave = self.client.post(self.url, {"username": "pepe", "rol": "Operador"}, format="json")
+        pepe = {"username": "pepe", "first_name": "Pepe", "last_name": "Luna", "rol": "Operador"}
+        sin_clave = self.client.post(self.url, pepe, format="json")
         self.assertIn("clave", sin_clave.data)
-        debil = self.client.post(self.url, {"username": "pepe", "rol": "Operador", "clave": "1234"}, format="json")
+        debil = self.client.post(self.url, pepe | {"clave": "1234"}, format="json")
         self.assertIn("clave", debil.data)
 
     def test_cambiar_rol_a_administrador(self):
@@ -88,7 +89,8 @@ class UsuariosTest(APITestCase):
         self.assertIn("rol", cambio.data)
 
     def test_el_registro_de_actividad_se_consulta(self):
-        self.client.post(self.url, {"username": "nuevo", "rol": "Operador", "clave": "mostrador-2026"}, format="json")
+        self.client.post(self.url, {"username": "nuevo", "first_name": "Nora", "last_name": "Vega", "rol": "Operador",
+                                    "clave": "mostrador-2026"}, format="json")
         registros = self.client.get("/api/actividad/", {"entidad": "Usuario"}).data["results"]
         self.assertEqual(registros[0]["operacion"], "Alta")
         self.assertEqual(registros[0]["usuario_nombre"], "admin")

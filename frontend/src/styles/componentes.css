@@ -48,7 +48,8 @@
 @keyframes girar { to { transform: rotate(360deg); } }
 
 /* ---------- Campo de formulario ---------- */
-.campo { display: grid; gap: 0.375rem; }
+/* align-content: start → en una fila de dos, cada campo queda arriba aunque el de al lado sea más alto */
+.campo { display: grid; gap: 0.375rem; align-content: start; }
 .campo__label { font-size: var(--texto-s); font-weight: 600; }
 
 .campo__control {
@@ -63,13 +64,92 @@
   transition: border-color 0.15s ease;
 }
 textarea.campo__control { padding-block: 0.65rem; min-height: 6rem; resize: vertical; }
-.campo__control::placeholder { color: var(--texto-suave); opacity: 1; }
+/* El ejemplo se ve claramente más claro que un dato cargado, para no confundirlo */
+.campo__control::placeholder { color: color-mix(in srgb, var(--texto-suave) 55%, white); opacity: 1; }
 .campo__control:hover { border-color: var(--marron); }
 .campo__control:focus-visible { outline-offset: 1px; border-color: var(--marron); }
 .campo__control[aria-invalid="true"] { border-color: var(--peligro); }
 
 .campo__ayuda { font-size: var(--texto-s); color: var(--texto-suave); }
 .campo__error { font-size: var(--texto-s); font-weight: 600; color: var(--peligro); }
+
+/* Solo lectura: que no parezca editable (fondo apagado, borde punteado) */
+.campo__control[readonly] {
+  background: color-mix(in srgb, var(--arena) 55%, var(--blanco));
+  color: var(--texto-suave);
+  border-style: dashed;
+  cursor: not-allowed;
+}
+.campo__control[readonly]:hover { border-color: var(--borde-fuerte); }
+
+/* Control con un botón adentro: la clave con el «ojito» para mostrarla u ocultarla */
+.campo__envoltura { position: relative; }
+.campo-clave .campo__control { padding-right: 3.25rem; }
+.campo-clave__ojo {
+  position: absolute;
+  top: 0;
+  right: 0.25rem;
+  display: grid;
+  place-items: center;
+  width: var(--alto-control);
+  height: var(--alto-control);
+  border: 0;
+  border-radius: var(--radio-control);
+  background: transparent;
+  color: var(--texto-suave);
+  cursor: pointer;
+}
+.campo-clave__ojo:hover { color: var(--marron); }
+.campo-clave__ojo:focus-visible { outline: 2px solid var(--marron); outline-offset: -4px; }
+
+/* Requisitos de la clave: se tildan en verde mientras se escribe */
+.requisitos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.25rem var(--espacio-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--texto-s);
+  color: var(--texto-suave);
+}
+.requisitos li { display: flex; align-items: center; gap: 0.4rem; transition: color 0.15s ease; }
+.requisitos li.is-ok { color: var(--exito); font-weight: 600; }
+
+/* Elegir una opción entre pocas, cada una con su explicación (por ejemplo, el rol) */
+.opciones { display: grid; gap: 0.375rem; min-width: 0; margin: 0; padding: 0; border: 0; }
+.opciones legend { padding: 0; margin-bottom: 0.375rem; font-size: var(--texto-s); font-weight: 600; }
+.opciones__lista { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: var(--espacio-2); }
+.opcion {
+  position: relative;
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.75rem 0.875rem 0.75rem 2.5rem;
+  background: var(--superficie);
+  border: 1px solid var(--borde-fuerte);
+  border-radius: var(--radio-control);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.opcion input {
+  position: absolute;
+  top: 0.95rem;
+  left: 0.875rem;
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: var(--marron);
+}
+.opcion input:focus-visible { outline: none; }
+.opcion strong { font-size: var(--texto-m); }
+.opcion small { font-size: var(--texto-s); line-height: 1.35; color: var(--texto-suave); }
+.opcion:hover { border-color: var(--marron); }
+.opcion:has(input:checked) {
+  background: color-mix(in srgb, var(--rosa) 35%, var(--blanco));
+  border-color: var(--marron);
+  box-shadow: inset 0 0 0 1px var(--marron);
+}
+.opcion:has(input:focus-visible) { outline: 3px solid var(--marron); outline-offset: 2px; }
 
 /* ---------- Insignia ---------- */
 .insignia {
