@@ -39,6 +39,8 @@ class StockSerializer(serializers.ModelSerializer):
     def validate_stock_minimo_bandejas(self, valor):
         if valor < 0:
             raise serializers.ValidationError("El mínimo no puede ser negativo.")
+        if valor > 100000:
+            raise serializers.ValidationError("El mínimo no puede pasar de 100.000 bandejas.")
         return valor
 
     def get_bajo_minimo(self, stock):
@@ -71,5 +73,14 @@ class MermaOAjusteSerializer(serializers.Serializer):
         queryset=Producto.objects.filter(estado=Estado.ACTIVO), error_messages=ACTIVO)
     presentacion = serializers.PrimaryKeyRelatedField(
         queryset=Presentacion.objects.filter(estado=Estado.ACTIVO), error_messages=ACTIVO)
-    cantidad = serializers.DecimalField(max_digits=12, decimal_places=3, min_value=Decimal("0.001"))
-    motivo = serializers.CharField(max_length=200)
+    cantidad = serializers.DecimalField(max_digits=12, decimal_places=3, min_value=Decimal("1"), max_value=Decimal("100000"),
+                                        error_messages={"min_value": "La cantidad tiene que ser 1 o más.",
+                                                        "max_value": "La cantidad no puede pasar de 100.000."})
+    motivo = serializers.CharField(max_length=200, min_length=3, trim_whitespace=True, error_messages={
+        "blank": "Escribí el motivo.", "min_length": "Escribí el motivo (al menos 3 letras)."})
+
+    def validate_cantidad(self, valor):
+        # Se cuentan cajas, bandejas o huevos enteros: nunca 1,5.
+        if valor != valor.to_integral_value():
+            raise serializers.ValidationError("La cantidad va en números enteros, sin coma.")
+        return valor
