@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { CamposPresentacion } from '../components/CamposPresentacion'
 import FormularioABM from '../components/FormularioABM'
 import ListadoABM from '../components/ListadoABM'
 import { Boton, CabeceraPagina, Campo } from '../components/ui'
 import { useEsAdministrador } from '../lib/sesion'
 import { numero } from '../lib/formato'
+import { validarPresentacion } from '../lib/reglasPresentacion'
 import Precios from './Precios'
 
 // Pantalla de Catálogo (S4-10 · HU-02): solapas Productos, Presentaciones y Precios (S5-10).
@@ -106,7 +108,8 @@ function Presentaciones({ editando, setEditando, nuevo }) {
         clave="id_presentacion"
         columnas={[
           { titulo: 'Presentación', valor: (p) => <strong>{p.nombre}</strong> },
-          { titulo: 'Equivale a (bandejas)', valor: (p) => numero(Number(p.cantidad_bandejas_equivalentes)), num: true },
+          { titulo: 'Trae', valor: (p) => { const h = Math.round(Number(p.cantidad_bandejas_equivalentes) * 30); return `${numero(h)} ${h === 1 ? 'huevo' : 'huevos'}` }, num: true },
+          { titulo: 'Equivale a (bandejas de 30)', valor: (p) => Number(p.cantidad_bandejas_equivalentes).toLocaleString('es-AR', { maximumFractionDigits: 6 }), num: true },
         ]}
         nombreDe={(p) => p.nombre}
         alEditar={setEditando}
@@ -119,19 +122,11 @@ function Presentaciones({ editando, setEditando, nuevo }) {
           recurso="presentaciones"
           id={editando.id_presentacion}
           titulo={editando.id_presentacion ? 'Editar presentación' : 'Nueva presentación'}
+          descripcion="Elegí cómo se vende: el sistema calcula solo cuántos huevos trae."
+          validar={validarPresentacion}
           alCerrar={() => setEditando(null)}
         >
-          {(errores) => (
-            <>
-              <Campo etiqueta="Nombre" name="nombre" defaultValue={editando.nombre} error={errores.nombre}
-                required autoComplete="off" placeholder="Caja" data-foco />
-              <Campo etiqueta="Equivale a cuántas bandejas" name="cantidad_bandejas_equivalentes" type="number"
-                step="any" min="0" inputMode="decimal"
-                defaultValue={editando.cantidad_bandejas_equivalentes ? Number(editando.cantidad_bandejas_equivalentes) : ''}
-                error={errores.cantidad_bandejas_equivalentes}
-                ayuda="El stock se cuenta en bandejas de 30 huevos: 1 caja = 6 bandejas, 1 unidad = 0,033333." />
-            </>
-          )}
+          {(errores) => <CamposPresentacion editando={editando} errores={errores} />}
         </FormularioABM>
       )}
     </>

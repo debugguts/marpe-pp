@@ -1,51 +1,108 @@
-/* Solapa Precios del Catálogo (S5-10) */
+/* Solapa Precios del Catálogo: precio actual en el casillero, atajos y ganancia en vivo */
 .precios { display: grid; gap: var(--espacio-3); }
-
-.precios__intro {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  justify-content: space-between;
-  gap: var(--espacio-3);
-}
-.precios__intro p { max-width: 62ch; }
-.precios__margen { display: grid; gap: var(--espacio-1); font-size: var(--texto-s); font-weight: 600; }
-.precios__margen-campo { display: flex; align-items: center; gap: var(--espacio-2); }
-.precios__margen-campo .campo__control { width: 6rem; text-align: right; font-variant-numeric: tabular-nums; }
+.precios__intro { max-width: 80ch; }
 
 .precios__producto { padding: var(--espacio-4); }
-.precios__cab { display: grid; gap: var(--espacio-1); margin-bottom: var(--espacio-3); }
-.precios__cab h2 { font-size: var(--texto-l); }
-.precios__costo { font-size: var(--texto-l); }
-.precios__costo strong { font-variant-numeric: tabular-nums; }
-.precios__detalle { font-size: var(--texto-s); max-width: 80ch; }
+.precios__cab { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--espacio-3); margin-bottom: var(--espacio-3); }
+.precios__cab h2 { font: 600 var(--titulo-m)/1.2 var(--fuente-titulo); }
+.precios__detalle { margin-top: var(--espacio-1); font-size: var(--texto-s); color: var(--texto-suave); max-width: 80ch; }
+.precios__costo { display: grid; text-align: right; }
+.precios__costo small { font-size: var(--texto-s); color: var(--texto-suave); }
+.precios__costo strong { font: 700 1.5rem/1.1 var(--fuente-titulo); font-variant-numeric: tabular-nums; }
 
-/* Mismas columnas en todas las tablas para que se lean alineadas */
-.precios__tabla { table-layout: fixed; }
-.precios__tabla th:nth-child(1) { width: 22%; }
-.precios__tabla th:nth-child(2), .precios__tabla th:nth-child(3), .precios__tabla th:nth-child(4) { width: 14%; }
-.precios__contenido { display: block; font-size: var(--texto-s); color: var(--texto-suave); }
-
-.ganancia { font-weight: 600; font-variant-numeric: tabular-nums; }
-.ganancia--si { color: var(--exito); }
-.ganancia--no { color: var(--peligro); }
-
-.precios__cambiar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--espacio-2); }
-.precios__pesos { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--texto-suave); }
-.precios__pesos .campo__control { width: 8rem; text-align: right; font-variant-numeric: tabular-nums; }
-.precios__mensaje { flex-basis: 100%; font-size: var(--texto-s); }
-.precios__mensaje:empty { display: none; }
-.precios__ok { color: var(--exito); font-weight: 600; }
-
-/* En celular la tabla pasa a tarjetas, una por presentación */
-@media (max-width: 40rem) {
-  .precios__producto { padding: var(--espacio-3); }
-  .precios__tabla, .precios__tabla tbody, .precios__tabla tr, .precios__tabla td { display: block; }
-  .precios__tabla thead { display: none; }
-  .precios__tabla tr { padding: var(--espacio-2) 0; border-bottom: 1px solid var(--borde); }
-  .precios__tabla td { padding: 0.15rem 0; border: 0; text-align: left; }
-  .precios__tabla td.num::before { color: var(--texto-suave); font-size: var(--texto-s); margin-right: 0.5rem; }
-  .precios__tabla td:nth-child(2)::before { content: "Te cuesta"; }
-  .precios__tabla td:nth-child(3)::before { content: "La vendés a"; }
-  .precios__tabla td:nth-child(4)::before { content: "Ganás"; }
+.precios__filas { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--espacio-2); }
+.precios__fila {
+  display: grid; grid-template-columns: minmax(9rem, 13rem) minmax(0, 1fr) minmax(14rem, 20rem); gap: var(--espacio-3); align-items: center;
+  padding: var(--espacio-3); border: 1px solid var(--borde); border-radius: var(--radio-control);
+  background: color-mix(in srgb, var(--arena) 30%, var(--blanco)); transition: border-color .15s, box-shadow .15s;
 }
+.precios__fila.is-cambiada { border-color: var(--marron); background: var(--blanco); box-shadow: 0 0 0 3px color-mix(in srgb, var(--marron) 12%, transparent); }
+.precios__pres { display: grid; gap: 0.15rem; }
+.precios__pres strong { font: 600 var(--texto-l)/1.2 var(--fuente-titulo); }
+.precios__pres small, .precios__pres span { font-size: var(--texto-s); color: var(--texto-suave); }
+.precios__pres b { color: var(--oscuro); }
+
+.precios__entrada { display: grid; gap: var(--espacio-2); }
+.precios__campo-fila { display: flex; flex-wrap: wrap; align-items: center; gap: var(--espacio-2) var(--espacio-3); }
+.precios__campo {
+  display: inline-flex; align-items: center; gap: 0.4rem; width: 12rem; min-height: 3rem; padding: 0 var(--espacio-3);
+  border: 1.5px solid var(--borde-fuerte); border-radius: var(--radio-control); background: var(--blanco); cursor: text;
+}
+.precios__campo:focus-within { border-color: var(--marron); outline: 2px solid color-mix(in srgb, var(--marron) 30%, transparent); }
+.precios__campo span { color: var(--texto-suave); font-weight: 600; }
+.precios__campo input {
+  flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--oscuro);
+  font: 700 1.3rem/1 var(--fuente-titulo); font-variant-numeric: tabular-nums;
+}
+.precios__campo input::placeholder { font: 500 var(--texto-m) var(--fuente-ui); color: var(--texto-suave); }
+.precios__antes { font-size: var(--texto-s); color: var(--texto-suave); }
+.precios__vigente { font: 700 1.3rem/1 var(--fuente-titulo); }
+
+.precios__atajos { display: flex; flex-wrap: wrap; gap: var(--espacio-1); }
+.precios__atajos button {
+  border: 1px solid var(--borde); background: var(--blanco); color: var(--oscuro); border-radius: var(--radio-pildora);
+  padding: 0.4rem 0.8rem; font: 600 var(--texto-s)/1 var(--fuente-ui); cursor: pointer;
+}
+.precios__atajos button small { font-weight: 400; color: var(--texto-suave); }
+.precios__atajos button:hover { background: var(--arena); }
+.precios__atajos button[aria-pressed="true"] { background: var(--oscuro); color: var(--blanco); border-color: var(--oscuro); }
+.precios__atajos button[aria-pressed="true"] small { color: color-mix(in srgb, var(--blanco) 80%, transparent); }
+
+.precios__gana { padding: var(--espacio-2) var(--espacio-3); border-radius: var(--radio-control); font-size: var(--texto-s); line-height: 1.4; }
+.precios__gana b { display: block; font: 700 1.4rem/1.2 var(--fuente-titulo); font-variant-numeric: tabular-nums; }
+.precios__gana.is-gana { background: color-mix(in srgb, var(--exito) 12%, var(--blanco)); color: var(--exito); }
+.precios__gana.is-pierde { background: color-mix(in srgb, var(--peligro) 10%, var(--blanco)); color: var(--peligro); }
+.precios__gana.is-neutra { background: color-mix(in srgb, var(--arena) 60%, var(--blanco)); color: var(--texto-suave); }
+
+.precios__pie { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--espacio-2); margin-top: var(--espacio-3); }
+.precios__pie p { font-size: var(--texto-s); color: var(--texto-suave); }
+.precios__botones { display: flex; gap: var(--espacio-2); }
+.precios__ok { color: var(--exito); font-weight: 600; }
+.precios__lista-perdida { margin: var(--espacio-2) 0 0; padding-left: 1.2rem; display: grid; gap: var(--espacio-1); }
+
+.precios__aviso-numeros { display: flex; gap: var(--espacio-3); align-items: flex-start; }
+.precios__aviso-icono { display: grid; place-items: center; flex: none; width: 2.75rem; height: 2.75rem; border-radius: 50%;
+  background: color-mix(in srgb, var(--peligro) 12%, var(--blanco)); color: var(--peligro); }
+
+@media (max-width: 56rem) {
+  .precios__fila { grid-template-columns: minmax(0, 1fr); }
+  .precios__costo { text-align: left; }
+}
+
+/* ---------- Formulario de presentación (Catálogo › Presentaciones) ---------- */
+.pres-form__grupo { border: 0; padding: 0; margin: 0; display: grid; gap: var(--espacio-2); }
+.pres-form__opciones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--espacio-2); }
+.pres-form__opcion {
+  display: grid; gap: 0.2rem; padding: var(--espacio-2) var(--espacio-3); text-align: left; cursor: pointer;
+  border: 1.5px solid var(--borde); border-radius: var(--radio-control); background: var(--blanco); color: var(--oscuro);
+}
+.pres-form__opcion strong { font: 600 var(--texto-m)/1.2 var(--fuente-ui); }
+.pres-form__opcion small { font-size: var(--texto-s); color: var(--texto-suave); }
+.pres-form__opcion:hover { background: var(--arena); }
+.pres-form__opcion[aria-pressed="true"] { border-color: var(--oscuro); background: var(--oscuro); color: var(--blanco); }
+.pres-form__opcion[aria-pressed="true"] small { color: color-mix(in srgb, var(--blanco) 80%, transparent); }
+.pres-form__chips { display: flex; flex-wrap: wrap; gap: var(--espacio-2); }
+.pres-form__chips button {
+  min-height: 2.5rem; padding: 0 1rem; border: 1px solid var(--borde); border-radius: var(--radio-pildora);
+  background: var(--blanco); color: var(--oscuro); font: 600 var(--texto-s)/1 var(--fuente-ui); cursor: pointer;
+}
+.pres-form__chips button small { font-weight: 400; color: var(--texto-suave); }
+.pres-form__chips button[aria-pressed="true"] { background: var(--oscuro); color: var(--blanco); border-color: var(--oscuro); }
+.pres-form__chips button[aria-pressed="true"] small { color: color-mix(in srgb, var(--blanco) 80%, transparent); }
+.pres-form__paso { display: inline-flex; align-items: center; border: 1px solid var(--borde-fuerte); border-radius: var(--radio-control); overflow: hidden; width: fit-content; }
+.pres-form__paso button { width: var(--alto-control); height: var(--alto-control); border: 0; background: var(--arena); color: var(--marron); font-size: 1.2rem; font-weight: 700; cursor: pointer; }
+.pres-form__paso button:disabled { opacity: .4; cursor: not-allowed; }
+.pres-form__paso input { width: 4rem; height: var(--alto-control); border: 0; text-align: center; font: 700 var(--texto-l)/1 var(--fuente-ui); }
+.pres-form__paso input[aria-invalid="true"] { outline: 2px solid var(--peligro); outline-offset: -2px; }
+.pres-form__resumen {
+  display: flex; align-items: center; gap: var(--espacio-3); padding: var(--espacio-3);
+  border-radius: var(--radio-control); background: color-mix(in srgb, var(--arena) 70%, var(--blanco));
+}
+.pres-form__resumen p { font-size: var(--texto-m); }
+.pres-form__resumen small { font-size: var(--texto-s); color: var(--texto-suave); }
+.pres-form__huevos {
+  display: grid; place-items: center; flex: none; min-width: 5rem; padding: var(--espacio-2);
+  border-radius: var(--radio-control); background: var(--oscuro); color: var(--blanco); font-size: var(--texto-s);
+}
+.pres-form__huevos b { font: 700 1.6rem/1 var(--fuente-titulo); }
+@media (max-width: 40rem) { .pres-form__opciones { grid-template-columns: minmax(0, 1fr); } }
