@@ -41,3 +41,11 @@ class ComprasAPITest(APITestCase):
         self.comprar([{"producto": self.producto.pk, "presentacion": self.bandeja.pk, "cantidad": "1"}])
         self.assertEqual(self.client.get(self.url, {"proveedor": self.proveedor.pk}).data["count"], 1)
         self.assertEqual(self.client.get(self.url, {"proveedor": 999}).data["count"], 0)
+
+    def test_cantidad_con_coma_se_rechaza(self):
+        respuesta = self.comprar([{"producto": self.producto.pk, "presentacion": self.bandeja.pk,
+                                   "cantidad": "1.5", "precio_unitario": "5000"}])
+        self.assertEqual(respuesta.status_code, 400)
+        self.assertIn("enteros, sin coma", str(respuesta.data))
+        self.assertEqual(stock_de(self.producto), 20)  # no sumó nada
+        self.assertFalse(Compra.objects.exists())

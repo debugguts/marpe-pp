@@ -7,6 +7,11 @@ from apps.proveedores.models import Proveedor
 
 
 class Compra(models.Model):
+    class Estado(models.TextChoices):
+        # Una compra nunca se borra: si hay que deshacerla, se anula y queda el registro.
+        CONFIRMADA = "CONFIRMADA", "Confirmada"
+        ANULADA = "ANULADA", "Anulada"
+
     id_compra = models.AutoField(primary_key=True)
     fecha = models.DateField()
     total = models.DecimalField(max_digits=12, decimal_places=2)
@@ -16,13 +21,26 @@ class Compra(models.Model):
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, db_column="id_usuario"
     )
+    estado = models.CharField(max_length=20, choices=Estado.choices, default=Estado.CONFIRMADA)
+    fecha_modificacion = models.DateTimeField(null=True, blank=True)
+    fecha_anulacion = models.DateTimeField(null=True, blank=True)
+    motivo_anulacion = models.CharField(max_length=200, null=True, blank=True)
 
     class Meta:
         db_table = "compra"
         constraints = [
             models.CheckConstraint(
                 condition=models.Q(total__gte=0), name="compra_total_no_negativo"
-            )
+            ),
+            models.CheckConstraint(
+                condition=models.Q(estado__in=["CONFIRMADA", "ANULADA"]),
+                name="compra_estado_valido",
+            ),
+            models.CheckConstraint(
+                condition=~models.Q(estado="ANULADA")
+                | (models.Q(motivo_anulacion__isnull=False) & ~models.Q(motivo_anulacion="")),
+                name="compra_anulada_con_motivo",
+            ),
         ]
 
     def __str__(self):

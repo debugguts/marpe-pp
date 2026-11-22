@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
-from apps.catalogo.models import Presentacion, Producto
+from apps.catalogo.models import SOLO_SUPER, Presentacion, Producto, presentacion_permitida
 from apps.proveedores.models import Proveedor
 from config.comunes import Estado
 
@@ -25,6 +25,12 @@ class LineaCompraSerializer(serializers.Serializer):
     precio_unitario = serializers.DecimalField(
         max_digits=12, decimal_places=2, min_value=Decimal("0.01"), required=False)
 
+    def validate_cantidad(self, valor):
+        # Se compran cajas, bandejas o unidades enteras: nunca 1,5.
+        if valor != valor.to_integral_value():
+            raise serializers.ValidationError("La cantidad va en números enteros, sin coma.")
+        return valor
+
 
 class NuevaCompraSerializer(serializers.Serializer):
     proveedor = serializers.PrimaryKeyRelatedField(
@@ -36,7 +42,30 @@ class NuevaCompraSerializer(serializers.Serializer):
         combinaciones = [(l["producto"].pk, l["presentacion"].pk) for l in lineas]
         if len(combinaciones) != len(set(combinaciones)):
             raise serializers.ValidationError("Hay un producto repetido: juntá las cantidades en una sola línea.")
+        if any(not presentacion_permitida(l["producto"], l["presentacion"]) for l in lineas):
+            raise serializers.ValidationError(SOLO_SUPER)
         return lineas
+
+
+class ModificarCompraSerializer(NuevaCompraSerializer):
+    """Igual que el alta, pero acepta el proveedor que ya tenía la compra aunque hoy esté dado de baja."""
+
+    proveedor = serializers.PrimaryKeyRelatedField(queryset=Proveedor.objects.all(), error_messages=ACTIVO)
+
+    def validate_proveedor(self, proveedor):
+        compra = self.context.get("compra")
+        if proveedor.estado != Estado.ACTIVO and (compra is None or proveedor.pk != compra.proveedor_id):
+            raise serializers.ValidationError(ACTIVO["does_not_exist"])
+        return proveedor
+
+
+class AnularCompraSerializer(serializers.Serializer):
+    """Para anular hay que decir por qué: queda guardado en la compra."""
+
+    motivo = serializers.CharField(max_length=200, min_length=3, trim_whitespace=True, error_messages={
+        "blank": "Escribí el motivo de la anulación.",
+        "min_length": "Escribí el motivo de la anulación (al menos 3 letras).",
+    })
 
 
 # ---------- Lo que devuelve la API ----------
@@ -58,4 +87,5 @@ class CompraSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Compra
-        fields = ["id_compra", "fecha", "proveedor", "proveedor_nombre", "total", "usuario_nombre", "detalles"]
+        fields = ["id_compra", "fecha", "proveedor", "proveedor_nombre", "total", "usuario_nombre", "detalles",
+                  "estado", "fecha_modificacion", "fecha_anulacion", "motivo_anulacion"]
