@@ -71,5 +71,5 @@ class CasosIncorrectosTest(APITestCase):
     def test_retiro_mayor_al_efectivo_de_la_caja(self):
         caja = Caja.objects.create(saldo_inicial=1000, usuario_apertura=self.operador)
         respuesta = self.client.post(f"/api/cajas/{caja.pk}/movimientos/",
-                                     {"tipo_movimiento": "RETIRO", "importe": "5000", "motivo": "x"}, format="json")
+                                     {"tipo_movimiento": "RETIRO", "importe": "5000", "motivo": "Al banco"}, format="json")
         self.assertIn("No alcanza el efectivo", str(respuesta.data))

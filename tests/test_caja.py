@@ -56,7 +56,7 @@ class CajaAPITest(APITestCase):
         self.client.post(f"{self.url}{caja}/cerrar/", {"efectivo_contado": "10000"}, format="json")
         otro_cierre = self.client.post(f"{self.url}{caja}/cerrar/", {"efectivo_contado": "10000"}, format="json")
         movimiento = self.client.post(f"{self.url}{caja}/movimientos/",
-                                      {"tipo_movimiento": "INGRESO_MANUAL", "importe": "1", "motivo": "x"}, format="json")
+                                      {"tipo_movimiento": "INGRESO_MANUAL", "importe": "1", "motivo": "Cambio"}, format="json")
         self.assertEqual(otro_cierre.status_code, 400)
         self.assertEqual(movimiento.status_code, 400)
 
@@ -79,3 +79,17 @@ class ResumenDeCajaTest(APITestCase):
         self.assertEqual(resumen["ventas_efectivo"], "7000.00")
         self.assertEqual(resumen["ventas_transferencia"], "7000.00")
         self.assertEqual(resumen["cantidad_ventas"], "2")
+
+
+class ImportesNegativosTest(APITestCase):
+    def setUp(self):
+        crear_base(self)
+
+    def test_no_se_aceptan_negativos_en_la_caja(self):
+        self.assertIn("saldo_inicial", self.client.post("/api/cajas/", {"saldo_inicial": "-100"}, format="json").data)
+        caja = self.client.post("/api/cajas/", {"saldo_inicial": "1000"}, format="json").data
+        url = f"/api/cajas/{caja['id_caja']}/"
+        mov = self.client.post(url + "movimientos/", {"tipo_movimiento": "INGRESO_MANUAL", "importe": "-50", "motivo": "Cambio"}, format="json")
+        self.assertIn("importe", mov.data)
+        self.assertIn("motivo", self.client.post(url + "movimientos/", {"tipo_movimiento": "RETIRO", "importe": "50", "motivo": "x"}, format="json").data)
+        self.assertIn("efectivo_contado", self.client.post(url + "cerrar/", {"efectivo_contado": "-1"}, format="json").data)

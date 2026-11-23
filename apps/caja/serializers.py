@@ -54,8 +54,13 @@ class CajaSerializer(serializers.ModelSerializer):
 
 # ---------- Lo que manda la pantalla ----------
 
+MAXIMO = Decimal("100000000")
+NO_NEGATIVO = {"min_value": "No puede ser negativo.", "max_value": "No puede pasar de $ 100.000.000."}
+
+
 class AbrirCajaSerializer(serializers.Serializer):
-    saldo_inicial = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0"))
+    saldo_inicial = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0"),
+                                             max_value=MAXIMO, error_messages=NO_NEGATIVO)
 
 
 class MovimientoManualSerializer(serializers.Serializer):
@@ -65,9 +70,13 @@ class MovimientoManualSerializer(serializers.Serializer):
         (MovimientoCaja.Tipo.INGRESO_MANUAL, "Ingreso manual"),
         (MovimientoCaja.Tipo.RETIRO, "Retiro"),
     ])
-    importe = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
-    motivo = serializers.CharField(max_length=200)
+    importe = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"), max_value=MAXIMO,
+                                       error_messages={"min_value": "Tiene que ser mayor a $ 0.",
+                                                       "max_value": "No puede pasar de $ 100.000.000."})
+    motivo = serializers.CharField(max_length=200, min_length=3, trim_whitespace=True, error_messages={
+        "blank": "Escribí el motivo.", "min_length": "El motivo tiene que tener al menos 3 letras."})
 
 
 class CerrarCajaSerializer(serializers.Serializer):
-    efectivo_contado = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0"))
+    efectivo_contado = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0"),
+                                                max_value=MAXIMO, error_messages=NO_NEGATIVO)

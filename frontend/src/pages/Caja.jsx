@@ -7,6 +7,7 @@ import { Boton, CabeceraPagina, Campo, EstadoVacio, Insignia, Panel } from '../c
 import { erroresDe } from '../lib/abm'
 import { api } from '../lib/api'
 import { fecha, hora, moneda } from '../lib/formato'
+import { errorImporte, sinRueda, sinSignos } from '../lib/reglasImporte'
 import '../styles/movimientos.css'
 
 // Caja diaria (S5-12 · HU-10): abrir con el saldo inicial, ver lo que entra y sale
@@ -56,14 +57,23 @@ function AbrirCaja() {
     mutationFn: (saldo) => api('/cajas/', { metodo: 'POST', datos: { saldo_inicial: saldo } }),
     onSuccess: refrescar,
   })
+  const [local, setLocal] = useState('')
   const errores = erroresDe(abrir.error)
 
   return (
     <Panel titulo="La caja está cerrada" className="caja-abrir is-cerrada">
       <p className="suave">Contá el efectivo con el que arrancás el día y abrí la caja.</p>
-      <form className="caja-abrir__form" onSubmit={(e) => { e.preventDefault(); abrir.mutate(new FormData(e.currentTarget).get('saldo')) }}>
-        <Campo etiqueta="Efectivo inicial" name="saldo" type="number" inputMode="decimal" min="0" step="any"
-          required error={errores.saldo_inicial} placeholder="0" />
+      <form className="caja-abrir__form" noValidate onSubmit={(e) => {
+        e.preventDefault()
+        const saldo = new FormData(e.currentTarget).get('saldo')
+        const error = errorImporte(saldo, { cero: true, etiqueta: 'el efectivo con el que abrís (puede ser 0)' })
+        setLocal(error)
+        if (error) e.currentTarget.elements.saldo.focus()
+        else abrir.mutate(saldo)
+      }}>
+        <Campo etiqueta="Efectivo inicial" name="saldo" type="number" inputMode="decimal" min="0" step="0.01"
+          required error={local || errores.saldo_inicial} placeholder="0" onKeyDown={sinSignos} onWheel={sinRueda}
+          onChange={(e) => local && setLocal(errorImporte(e.target.value, { cero: true }))} />
         <Boton type="submit" icono="caja" cargando={abrir.isPending} textoCargando="Abriendo…">Abrir caja</Boton>
       </form>
       {errores.general && <AvisoError error={abrir.error} titulo="No se pudo abrir la caja" alCerrar={() => abrir.reset()} />}
@@ -127,17 +137,42 @@ function MovimientoManual({ tipo, caja, alCerrar }) {
     mutationFn: (datos) => api(`/cajas/${caja.id_caja}/movimientos/`, { metodo: 'POST', datos: { ...datos, tipo_movimiento: tipo } }),
     onSuccess: () => { refrescar(); alCerrar() },
   })
-  const errores = erroresDe(guardar.error)
   const esRetiro = tipo === 'RETIRO'
+  const [locales, setLocales] = useState(null) // errores de la web: aparecen al primer intento de guardar
+  const errores = { ...erroresDe(guardar.error), ...(locales ?? {}) }
+
+  function revisar(datos) {
+    const e = {}
+    const importe = errorImporte(datos.importe)
+    if (importe) e.importe = importe
+    else if (esRetiro && Number(datos.importe) > Number(caja.saldo_actual)) {
+      e.importe = `No alcanza: en la caja debería haber ${moneda(caja.saldo_actual)}.`
+    }
+    const motivo = (datos.motivo ?? '').trim()
+    if (!motivo) e.motivo = 'Escribí el motivo.'
+    else if (motivo.length < 3) e.motivo = 'El motivo tiene que tener al menos 3 letras.'
+    return e
+  }
 
   return (
     <Dialogo titulo={esRetiro ? 'Retiro de efectivo' : 'Ingreso de efectivo'}
       descripcion={esRetiro ? 'Plata que sale de la caja (por ejemplo, al banco).' : 'Plata que entra a la caja sin ser una venta (por ejemplo, cambio).'}
       alCerrar={alCerrar}>
-      <form onSubmit={(e) => { e.preventDefault(); guardar.mutate(Object.fromEntries(new FormData(e.currentTarget))) }} noValidate>
+      <form noValidate
+        onChange={(e) => locales && setLocales(revisar(Object.fromEntries(new FormData(e.currentTarget))))}
+        onSubmit={(e) => {
+          e.preventDefault()
+          const datos = Object.fromEntries(new FormData(e.currentTarget))
+          const encontrados = revisar(datos)
+          setLocales(encontrados)
+          const primero = Object.keys(encontrados)[0]
+          if (primero) e.currentTarget.elements[primero].focus()
+          else guardar.mutate(datos)
+        }}>
         <div className="dialogo__cuerpo">
-          <Campo etiqueta="Importe" name="importe" type="number" inputMode="decimal" min="0" step="any" error={errores.importe} data-foco />
-          <Campo etiqueta="Motivo" name="motivo" error={errores.motivo} autoComplete="off" placeholder={esRetiro ? 'Depósito en el banco' : 'Cambio para el día'} />
+          <Campo etiqueta="Importe" name="importe" type="number" inputMode="decimal" min="0.01" step="0.01" error={errores.importe}
+            onKeyDown={sinSignos} onWheel={sinRueda} placeholder="0" data-foco />
+          <Campo etiqueta="Motivo" name="motivo" error={errores.motivo} autoComplete="off" maxLength={200} placeholder={esRetiro ? 'Depósito en el banco' : 'Cambio para el día'} />
         </div>
         <footer className="dialogo__pie">
           <Boton variante="secundario" onClick={alCerrar}>Cancelar</Boton>
@@ -155,6 +190,7 @@ function CerrarCaja({ caja, alCerrar }) {
     mutationFn: (contado) => api(`/cajas/${caja.id_caja}/cerrar/`, { metodo: 'POST', datos: { efectivo_contado: contado } }),
     onSuccess: refrescar,
   })
+  const [local, setLocal] = useState('')
   const errores = erroresDe(cerrar.error)
   const cerrada = cerrar.data
 
@@ -177,10 +213,18 @@ function CerrarCaja({ caja, alCerrar }) {
           <footer className="dialogo__pie"><Boton onClick={alCerrar}>Listo</Boton></footer>
         </>
       ) : (
-        <form onSubmit={(e) => { e.preventDefault(); cerrar.mutate(new FormData(e.currentTarget).get('contado')) }} noValidate>
+        <form noValidate onSubmit={(e) => {
+          e.preventDefault()
+          const contado = new FormData(e.currentTarget).get('contado')
+          const error = errorImporte(contado, { cero: true, etiqueta: 'el efectivo que contaste (puede ser 0)' })
+          setLocal(error)
+          if (error) e.currentTarget.elements.contado.focus()
+          else cerrar.mutate(contado)
+        }}>
           <div className="dialogo__cuerpo">
-            <Campo etiqueta="Efectivo contado" name="contado" type="number" inputMode="decimal" min="0" step="any"
-              error={errores.efectivo_contado} data-foco />
+            <Campo etiqueta="Efectivo contado" name="contado" type="number" inputMode="decimal" min="0" step="0.01"
+              error={local || errores.efectivo_contado} onKeyDown={sinSignos} onWheel={sinRueda} placeholder="0"
+              onChange={(e) => local && setLocal(errorImporte(e.target.value, { cero: true }))} data-foco />
           </div>
           <footer className="dialogo__pie">
             <Boton variante="secundario" onClick={alCerrar}>Cancelar</Boton>
