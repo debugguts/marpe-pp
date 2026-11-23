@@ -5,7 +5,7 @@ import Dialogo from '../components/Dialogo'
 import Icono from '../components/Icono'
 import { Boton, CabeceraPagina, Campo, EstadoVacio, Insignia, Panel } from '../components/ui'
 import { erroresDe } from '../lib/abm'
-import { api } from '../lib/api'
+import { abrirComprobante, api } from '../lib/api'
 import { fecha, hora, hoyISO, moneda, numero } from '../lib/formato'
 import { useEsAdministrador } from '../lib/sesion'
 import '../styles/movimientos.css'
@@ -67,6 +67,10 @@ export default function Compras() {
                     </td>
                     <td className="num compra-total-celda">{moneda(c.total)}</td>
                     <td className="compra-acciones" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                      <button type="button" className="btn btn--fantasma" onClick={() => abrirComprobante('compras', c.id_compra)}
+                        aria-label={`Comprobante de la compra ${c.id_compra}`} title="Ver e imprimir el comprobante">
+                        <Icono nombre="compras" /><span>Ticket</span>
+                      </button>
                       {esAdministrador && c.estado !== 'ANULADA' && (
                         <>
                           <button type="button" className="btn btn--fantasma" onClick={() => setEditando(c)}
@@ -361,6 +365,7 @@ function VerCompra({ compra, esAdministrador, alCerrar, alModificar, alAnular })
       </div>
       <footer className="dialogo__pie compra-ver__pie">
         {esAdministrador && !anulada && <Boton variante="peligro" icono="anular" onClick={alAnular}>Anular</Boton>}
+        <Boton variante="secundario" icono="compras" onClick={() => abrirComprobante('compras', compra.id_compra)}>Comprobante</Boton>
         <Boton variante="secundario" onClick={alCerrar}>Cerrar</Boton>
         {esAdministrador && !anulada && <Boton icono="editar" onClick={alModificar}>Modificar</Boton>}
       </footer>

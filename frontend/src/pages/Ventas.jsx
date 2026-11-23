@@ -5,7 +5,7 @@ import AvisoError from '../components/AvisoError'
 import Dialogo from '../components/Dialogo'
 import Icono from '../components/Icono'
 import { erroresDe } from '../lib/abm'
-import { api } from '../lib/api'
+import { api, abrirComprobante } from '../lib/api'
 import { hora, hoyISO, moneda, numero, ZONA } from '../lib/formato'
 import { useSesion } from '../lib/sesion'
 import '../styles/ventas.css'
@@ -184,6 +184,9 @@ export default function Ventas() {
             <p className="pos__hecha" role="status">
               <Icono nombre="ventas" /> Venta Nº {hecha.id_venta} {hecha.modificada ? 'modificada' : 'registrada'} · {moneda(hecha.total)}
               {hecha.modalidad === 'FIADO' && ` · fiado a ${hecha.cliente_nombre}`}
+              <button type="button" className="btn btn--fantasma pos__ticket" onClick={() => abrirComprobante('ventas', hecha.id_venta)}>
+                <Icono nombre="ventas" /><span>Ver comprobante</span>
+              </button>
             </p>
           )}
 
@@ -321,6 +324,7 @@ function ListadoVentas({ esAdministrador, editandoId, alModificar, alFallar }) {
               <tr>
                 <th scope="col">Hora</th><th scope="col">Nº</th><th scope="col">Cliente</th>
                 <th scope="col">Forma</th><th scope="col">Estado</th><th scope="col" className="num">Total</th>
+                <th scope="col"><span className="sr-only">Comprobante</span></th>
                 {esAdministrador && <th scope="col"><span className="sr-only">Acciones</span></th>}
               </tr>
             </thead>
@@ -346,6 +350,12 @@ function ListadoVentas({ esAdministrador, editandoId, alModificar, alFallar }) {
                       {anulada && <p className="suave tabla-ventas__motivo">{v.motivo_anulacion}</p>}
                     </td>
                     <td className="num tabla-ventas__total">{moneda(v.total)}</td>
+                    <td className="tabla-ventas__ticket">
+                      <button type="button" className="btn btn--fantasma" onClick={() => abrirComprobante('ventas', v.id_venta)}
+                        aria-label={`Comprobante de la venta ${v.id_venta}`} title="Ver e imprimir el comprobante">
+                        <Icono nombre="ventas" /><span>Ticket</span>
+                      </button>
+                    </td>
                     {esAdministrador && (
                       <td className="tabla-ventas__acciones">
                         {!anulada && (

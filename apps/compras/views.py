@@ -3,6 +3,7 @@ from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from config.comprobantes import comprobante_compra
 from config.permisos import ConsultaOAdministrador
 from config.vistas import anotar_actividad, validar
 
@@ -20,6 +21,7 @@ class CompraViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.G
     GET  /compras/<id>/         compra con su detalle
     PUT  /compras/<id>/         modificación completa (solo administrador): mismos datos que el alta
     POST /compras/<id>/anular/  anulación con motivo (solo administrador): los huevos salen del stock
+    GET  /compras/<id>/comprobante/  ticket de 80 mm de la compra, para dejarla registrada (no fiscal)
     DELETE no existe (405): la compra movió stock, así que se anula y queda el registro.
     """
 
@@ -75,3 +77,7 @@ class CompraViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.G
         anular_compra(compra, motivo, request.user)
         anotar_actividad(request.user, "Anulación", compra, detalle=f"Motivo: {motivo}")
         return self.respuesta(compra)
+
+    @action(detail=True)
+    def comprobante(self, request, pk=None):
+        return comprobante_compra(self.get_object())

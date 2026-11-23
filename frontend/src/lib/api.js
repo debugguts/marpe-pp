@@ -55,3 +55,8 @@ function sesionVencida(estado, cuerpo) {
   const detalle = String(cuerpo?.detail || '')
   return estado === 403 && /credenciales de autenticación no se proveyeron|authentication credentials were not provided/i.test(detalle)
 }
+
+// Abre el comprobante (ticket de 80 mm) de una venta o una compra en otra pestaña, listo para imprimir.
+export function abrirComprobante(recurso, id) {
+  window.open(`/api/${recurso}/${id}/comprobante/`, '_blank', 'noopener')
+}
