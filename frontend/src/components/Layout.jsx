@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import Logo from './Logo'
 import Icono from './Icono'
 import EditarPerfil from './EditarPerfil'
+import MenuMomento, { IconoMomento } from './MenuMomento'
+import { useFondo } from '../lib/fondo'
 import { api } from '../lib/api'
 import { moneda, ZONA } from '../lib/formato'
 import { useLogout, useSesion } from '../lib/sesion'
@@ -85,6 +88,15 @@ export default function Layout() {
   const [abierto, setAbierto] = useState(menuInicial)
   const [perfil, setPerfil] = useState(false)
   const celular = useCelular()
+  // Recién ingresado desde el login: la cabecera, el menú y el contenido entran de a poco (una sola vez).
+  // Después se quita, para que cambiar de sección no repita la animación.
+  const [entrada, setEntrada] = useState(() => sessionStorage.getItem('marpe-entrada') === '1')
+  useEffect(() => {
+    sessionStorage.removeItem('marpe-entrada')
+    if (!entrada) return
+    const id = setTimeout(() => setEntrada(false), 2500)
+    return () => clearTimeout(id)
+  }, [entrada])
   // Al cerrar sesión, "usuario" queda vacío un instante antes de que
   // RutaPrivada nos lleve al login: por eso se lee con "?." (sin romper).
   const { data: usuario } = useSesion()
@@ -113,7 +125,7 @@ export default function Layout() {
   }, [abierto])
 
   return (
-    <div className="app" data-menu={abierto ? 'abierto' : 'cerrado'}>
+    <div className="app" data-menu={abierto ? 'abierto' : 'cerrado'} data-entrada={entrada || undefined}>
       <a className="saltar" href="#contenido">Saltar al contenido</a>
 
       <header className="cabecera">
@@ -166,6 +178,7 @@ export default function Layout() {
             </div>
           </nav>
           <div className="lat-grupo letra-inter lateral__pie">
+            <OpcionFondo />
             <button type="button" className="nav-item" data-texto="Editar perfil" onClick={() => { alElegir(); setPerfil(true) }}>
               <span className="redondela"><Icono nombre="lapiz" tamano={18} /></span>
               <span className="nav-item__texto">Editar perfil</span>
@@ -302,5 +315,56 @@ function Avisos() {
         </div>
       )}
     </div>
+  )
+}
+
+// "Fondo" en el menú lateral: abre el mismo menú del login (momento del día y "Quieto").
+// El menú flota al costado del botón (en el celular, arriba). Se dibuja en <body> con un portal, porque el lateral
+// recorta lo que sobresale y en el celular se desliza (y eso correría un menú con posición fija).
+const NOMBRE_MOMENTO = { manana: 'mañana', tarde: 'tarde', atardecer: 'atardecer', noche: 'noche' }
+
+function OpcionFondo() {
+  const [lugar, setLugar] = useState(null) // null = cerrado
+  const boton = useRef(null)
+  const menu = useRef(null)
+  const { modo, quieto, momento } = useFondo()
+
+  useEffect(() => {
+    if (!lugar) return
+    const cerrar = () => setLugar(null)
+    const afuera = (e) => { if (!boton.current?.contains(e.target) && !menu.current?.contains(e.target)) cerrar() }
+    const tecla = (e) => { if (e.key === 'Escape') { cerrar(); boton.current?.focus() } }
+    document.addEventListener('pointerdown', afuera)
+    document.addEventListener('keydown', tecla)
+    window.addEventListener('resize', cerrar)
+    return () => {
+      document.removeEventListener('pointerdown', afuera)
+      document.removeEventListener('keydown', tecla)
+      window.removeEventListener('resize', cerrar)
+    }
+  }, [lugar])
+
+  const alternar = () => {
+    if (lugar) { setLugar(null); return }
+    const r = boton.current.getBoundingClientRect()
+    setLugar(esCelular() ? { left: r.left, top: r.top - 52 } : { left: r.right + 10, top: r.top + r.height / 2 - 22 })
+  }
+
+  return (
+    <>
+      <button ref={boton} type="button" className="nav-item" data-texto="Fondo" onClick={alternar}
+        aria-haspopup="menu" aria-expanded={Boolean(lugar)} aria-controls="menu-fondo"
+        aria-label={`Fondo: ${NOMBRE_MOMENTO[momento]}${modo === 'auto' ? ' (automático)' : ''}${quieto ? ', quieto' : ''}. Cambiar fondo`}>
+        <span className="redondela redondela--fondo"><IconoMomento nombre={quieto ? 'quieto' : momento} /></span>
+        <span className="nav-item__texto">Fondo</span>
+      </button>
+      {createPortal(
+        <div ref={menu}>
+          <MenuMomento id="menu-fondo" className="menu-momento--flotante" abierto={Boolean(lugar)}
+            style={lugar ?? undefined} alElegir={() => setLugar(null)} />
+        </div>,
+        document.body,
+      )}
+    </>
   )
 }

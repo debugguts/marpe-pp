@@ -2,6 +2,8 @@
    tarjetas de vidrio sobre el paisaje. */
 .app {
   --margen: clamp(0.75rem, 2.2vw, 2.25rem);
+  position: relative;
+  z-index: 1; /* por encima del paisaje animado (FondoAnimado), que es fijo */
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
@@ -286,6 +288,7 @@
 .nav-item.is-activo { background: var(--oscuro); color: var(--blanco); }
 .nav-item.is-activo .redondela { background: rgb(255 255 255 / 0.16); color: var(--blanco); }
 .nav-item--menu .redondela { background: var(--oscuro); color: var(--blanco); }
+.redondela--fondo svg { width: 18px; height: 18px; }
 .nav-item--salir { color: var(--peligro); }
 .nav-item--salir .redondela { background: color-mix(in srgb, var(--peligro) 12%, var(--blanco)); color: var(--peligro); }
 .nav-item:focus-visible { outline: 2px solid var(--oscuro); outline-offset: 2px; }
@@ -408,4 +411,22 @@
 }
 @media (min-width: 56.3125rem) {
   .scrim { display: none; }
+}
+
+/* ---------- Entrada al sistema después de la bienvenida del login (Layout, data-entrada) ---------- */
+.app[data-entrada] .cabecera { animation: app-entra-arriba 0.7s cubic-bezier(.2, .7, .2, 1) both; }
+.app[data-entrada] .lateral { animation: app-entra-izq 0.7s cubic-bezier(.2, .7, .2, 1) 0.15s both; }
+.app[data-entrada] .contenido > * { animation: app-entra-abajo 0.7s cubic-bezier(.2, .7, .2, 1) 0.3s both; }
+.app[data-entrada] .tablero > *,
+.app[data-entrada] .tablero__col > * { animation: app-entra-abajo 0.7s cubic-bezier(.2, .7, .2, 1) both; }
+.app[data-entrada] .tablero > :nth-child(1) > :nth-child(1) { animation-delay: 0.4s; }
+.app[data-entrada] .tablero > :nth-child(1) > :nth-child(2) { animation-delay: 0.5s; }
+.app[data-entrada] .tablero > :nth-child(2) { animation-delay: 0.55s; }
+.app[data-entrada] .tablero > :nth-child(3) { animation-delay: 0.65s; }
+.app[data-entrada] .tablero > :nth-child(4) { animation-delay: 0.75s; }
+@keyframes app-entra-arriba { from { opacity: 0; transform: translateY(-18px); } }
+@keyframes app-entra-izq { from { opacity: 0; transform: translateX(-18px); } }
+@keyframes app-entra-abajo { from { opacity: 0; transform: translateY(18px); } }
+@media (prefers-reduced-motion: reduce) {
+  .app[data-entrada] * { animation: none !important; }
 }
