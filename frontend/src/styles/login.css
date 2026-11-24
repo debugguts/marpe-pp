@@ -1,29 +1,132 @@
-/* Pantalla de inicio de sesión: una tarjeta centrada sobre el fondo arena */
+/* Login animado: paisaje con vida a la izquierda (FondoAnimado) y el formulario en un panel blanco a la derecha.
+   La bienvenida al ingresar está explicada en Login.jsx (data-fase en .login). */
 .login {
+  --entrada: translateX(80px);
+  --salida: translateX(110%);
+  position: relative;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 1fr minmax(380px, 28%);
+  overflow: hidden;
+}
+
+/* "Bienvenido de nuevo", abajo a la izquierda */
+.login__hola {
+  position: relative;
+  z-index: 1;
+  align-self: end;
+  padding: 0 0 clamp(2.5rem, 9vh, 5.5rem) clamp(1.75rem, 5vw, 4.5rem);
+  color: var(--f-saludo);
+  animation: login-sube 1s cubic-bezier(.2, .7, .2, 1) 1.2s both;
+  transition: color 2s;
+}
+.login__hola small { font-size: 0.75rem; letter-spacing: 0.16em; text-transform: uppercase; opacity: 0.9; }
+.login__hola-titulo {
+  margin-top: 0.6rem;
+  font: 700 clamp(2.25rem, 4.2vw, 3.75rem) / 1.04 var(--fuente-titulo);
+  text-shadow: 0 4px 30px var(--f-saludo-sombra);
+}
+.login__hola p:last-child { margin-top: 0.75rem; font-size: 0.875rem; opacity: 0.92; text-shadow: 0 2px 12px var(--f-saludo-sombra); }
+
+/* Panel del formulario */
+.login__tarjeta {
+  position: relative;
+  z-index: 2;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 3rem clamp(1.75rem, 2.6vw, 3rem);
+  background: var(--blanco);
+  border-radius: 36px 0 0 36px;
+  box-shadow: -40px 0 90px -30px rgb(60 40 30 / 0.55);
+  animation: login-panel-entra 1s cubic-bezier(.2, .7, .2, 1) 0.35s both;
+}
+.login__contenido { display: grid; gap: var(--espacio-3); width: 100%; max-width: 360px; margin-inline: auto; }
+/* Los elementos del formulario aparecen de a uno */
+.login__contenido > * { animation: login-sube 0.8s cubic-bezier(.2, .7, .2, 1) both; }
+.login__contenido > :nth-child(1) { animation-name: login-logo; animation-duration: 1s; animation-delay: 0.8s; }
+.login__contenido > :nth-child(2) { animation-delay: 1s; }
+.login__contenido > :nth-child(3) { animation-delay: 1.1s; }
+.login__contenido > :nth-child(4) { animation-delay: 1.2s; }
+.login__contenido > :nth-child(5) { animation-delay: 1.25s; }
+.login__contenido > :nth-child(6) { animation-delay: 1.3s; }
+.login__contenido > :nth-child(7) { animation-delay: 1.45s; }
+
+.login__marca { display: flex; justify-content: center; margin-bottom: var(--espacio-2); }
+.login .logo { --logo-alto: clamp(110px, 16vh, 150px) !important; }
+.login__marca img { filter: drop-shadow(0 10px 18px rgb(93 75 64 / 0.18)); }
+
+/* Logo vertical (Logo con "vertical") */
+.logo--vertical { flex-direction: column; gap: calc(var(--logo-alto) * 0.07); }
+.logo--vertical .logo__texto { justify-items: center; }
+.logo--vertical .logo__nombre { font-size: calc(var(--logo-alto) * 0.42); }
+.logo--vertical .logo__lugar { display: block; font-size: calc(var(--logo-alto) * 0.12); }
+
+.login__titulo { display: grid; gap: 0.35rem; text-align: center; margin-bottom: var(--espacio-2); }
+.login__titulo h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.login__titulo p { color: var(--texto-suave); font-size: var(--texto-s); }
+
+.login .campo__control { min-height: 3.25rem; border-radius: 12px; transition: border-color 0.25s, box-shadow 0.25s; }
+.login .campo__control:focus-visible { outline: none; border-color: var(--marron); box-shadow: 0 0 0 4px color-mix(in srgb, var(--rosa) 60%, transparent); }
+
+.login__error { min-height: 1.25rem; font-size: var(--texto-s); font-weight: 600; color: var(--peligro); text-align: center; }
+.login__error:empty { min-height: 0; }
+
+.login__boton { width: 100%; min-height: 3.4rem; border-radius: 12px; background: var(--marron); transition: transform 0.2s, box-shadow 0.25s, background 0.25s; }
+.login__boton:hover:not(:disabled) { background: var(--marron-hover); transform: translateY(-2px); box-shadow: 0 14px 28px -12px rgb(101 78 63 / 0.85); }
+
+.login__reloj { display: flex; justify-content: center; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--texto-suave); }
+.login__reloj i { width: 7px; height: 7px; border-radius: 50%; background: #2E9D5B; animation: login-pulso 2s ease-in-out infinite; }
+
+/* ---------- Bienvenida al ingresar ---------- */
+.login:not([data-fase="form"]):not([data-fase="enviando"]) .login__tarjeta { animation: login-panel-sale 0.65s cubic-bezier(.5, 0, .2, 1) both; }
+.login:not([data-fase="form"]):not([data-fase="enviando"]) .login__hola { animation: login-desvanece 0.5s ease both; }
+
+.login__saludo {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
   display: grid;
   place-items: center;
-  min-height: 100dvh;
-  padding: var(--espacio-4) max(var(--espacio-3), env(safe-area-inset-left));
+  padding: 1.5rem;
+  text-align: center;
+  pointer-events: none;
+  color: var(--f-saludo);
 }
-.login__tarjeta {
-  display: grid;
-  gap: var(--espacio-3);
-  width: min(24rem, 100%);
-  padding: var(--espacio-5) var(--espacio-4);
-  background: var(--superficie);
-  border: 1px solid var(--borde);
-  border-radius: 20px;
+.login__saludo-titulo { font: 800 clamp(2.4rem, 6vw, 4.75rem) / 1.05 var(--fuente-titulo); text-shadow: 0 6px 40px var(--f-saludo-sombra); }
+.login__saludo-rol {
+  margin-top: 1rem;
+  font: 500 clamp(1rem, 1.6vw, 1.3rem) / 1.4 var(--fuente-titulo);
+  text-shadow: 0 2px 16px var(--f-saludo-sombra);
+  animation: login-sube 0.7s cubic-bezier(.2, .7, .2, 1) 0.6s both;
 }
-.login__marca { display: flex; justify-content: center; margin-bottom: var(--espacio-2); }
-.login__marca img { height: 56px; width: auto; }
-.login__titulo { display: grid; gap: 0.25rem; text-align: center; margin-bottom: var(--espacio-2); }
-.login__titulo h1 { font-size: var(--titulo-m); }
-.login__titulo p { color: var(--texto-suave); font-size: var(--texto-s); }
-.login__error { min-height: 1.25rem; font-size: var(--texto-s); font-weight: 600; color: var(--peligro); }
-.login__error:empty { min-height: 0; }
-.login__boton { width: 100%; }
+.login__saludo-rol b { display: inline-block; margin-left: 0.3em; padding: 0.15em 0.85em; border-radius: 999px; background: var(--rosa); color: #1B1410; text-shadow: none; }
+.login[data-fase="final"] .login__saludo { animation: login-desvanece 0.8s ease both; }
 
-.cargando { padding: var(--espacio-5); text-align: center; color: var(--texto-suave); }
+@keyframes login-panel-entra { from { opacity: 0; transform: var(--entrada); } }
+@keyframes login-panel-sale { from { opacity: 1; transform: none; } to { opacity: 0; transform: var(--salida); } }
+@keyframes login-sube { from { opacity: 0; transform: translateY(12px); } }
+@keyframes login-logo { 0% { opacity: 0; transform: translateY(-14px) scale(0.9); } 60% { opacity: 1; transform: translateY(3px) scale(1.02); } 100% { opacity: 1; transform: none; } }
+@keyframes login-desvanece { to { opacity: 0; transform: scale(1.03); } }
+@keyframes login-pulso { 50% { box-shadow: 0 0 0 4px rgb(46 157 91 / 0.18); } }
+
+/* ---------- Celular: el paisaje arriba y el panel sube como una hoja ---------- */
+@media (max-width: 56.25rem) {
+  .login { --entrada: translateY(60px); --salida: translateY(110%); grid-template-columns: 1fr; grid-template-rows: 34dvh auto; }
+  .login__hola { padding-bottom: 2.75rem; }
+  .login__hola-titulo { font-size: 2rem; }
+  .login__hola p:last-child { display: none; }
+  .login__tarjeta { min-height: 66dvh; margin-top: -1.75rem; padding: 2.25rem 1.375rem 2rem; border-radius: 28px 28px 0 0; box-shadow: 0 -20px 50px -20px rgb(60 40 30 / 0.5); }
+  .login .logo { --logo-alto: 104px !important; }
+  .login__titulo h1 { font-size: 1.4rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .login *, .login *::before, .login *::after { animation-duration: 0.01ms !important; animation-delay: 0s !important; transition-duration: 0.01ms !important; }
+  .login[data-fase="final"] .login__saludo { animation: login-desvanece 0.3s ease both !important; }
+}
+
+.cargando { position: relative; z-index: 1; padding: var(--espacio-5); text-align: center; color: var(--texto-suave); }
 
 /* Botón de salir en la cabecera */
 .cabecera__salir { min-height: 2.5rem; padding-inline: 0.75rem; }
