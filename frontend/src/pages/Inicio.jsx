@@ -107,7 +107,7 @@ function CajaDeHoy({ caja }) {
       {caja ? (
         <div className="caja-marron">
           <p>Caja abierta · {hora(caja.fecha_hora_apertura)}</p>
-          <p className="caja-marron__saldo">{moneda(caja.saldo_actual)}</p>
+          <p className="caja-marron__saldo">{caja.arqueo_ciego ? 'Abierta' : moneda(caja.saldo_actual)}</p>
           <p className="caja-marron__pie"><span>Inicial {moneda(caja.saldo_inicial)}</span><span>{caja.usuario_apertura_nombre}</span></p>
         </div>
       ) : (

@@ -258,3 +258,23 @@
 .campo--pesos::before { content: "$"; position: absolute; left: 0.9rem; top: calc(1.2rem + var(--alto-control) / 2); font-weight: 700; pointer-events: none; transform: translateY(-15%); }
 .tabla-gastos td, .tabla-gastos th { padding-inline: 0.55rem; }
 .tabla-gastos td:first-child { white-space: nowrap; }
+
+/* ---------- Arqueo ciego: contador de billetes al cerrar la caja (S16) ---------- */
+.contador { display: grid; gap: var(--espacio-3); }
+.contador__tabla { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.contador__tabla th, .contador__tabla td { padding: 0.3rem 0.4rem; border-bottom: 1px solid #EFE6DC; text-align: left; }
+.contador__tabla thead th { font: 500 var(--texto-s)/1.3 var(--fuente-ui); color: var(--texto-suave); }
+.contador__tabla tbody th { font-weight: 700; white-space: nowrap; }
+.contador__tabla .num { text-align: right; min-width: 6.5rem; }
+.contador__tabla tr.is-con-cantidad { background: #F6EFE6; }
+.contador__paso { display: inline-flex; gap: 4px; padding: 3px; background: #EFE6DC; border: 0; border-radius: 10px; }
+.contador__paso button { width: 2.4rem; height: 2.4rem; border: 0; border-radius: 8px; background: var(--blanco); color: var(--texto); font-size: 1.15rem; cursor: pointer; }
+.contador__paso button:last-child { background: var(--terracota); color: var(--blanco); }
+.contador__paso button:disabled { opacity: 0.45; cursor: not-allowed; }
+.contador__paso input { width: 3.4rem; border: 0; background: transparent; text-align: center; font: 700 1.05rem/1 var(--fuente-ui); color: var(--texto); }
+.contador__total { display: flex; align-items: baseline; justify-content: space-between; padding: 0.85rem 1rem; background: var(--kpi-oscuro); color: var(--blanco); border-radius: 14px; }
+.contador__total strong { font: 800 1.7rem/1 var(--fuente-titulo); }
+.contador__confirmar { margin: 0; padding: 0.75rem 0.9rem; background: var(--ocre-suave); border-radius: 12px; }
+.arqueo-ciego__fin { display: grid; gap: var(--espacio-2); font-size: var(--texto-l); }
+.contador__paso { width: auto; }
+.contador__paso input { height: 2.4rem; background: var(--blanco); border-radius: 8px; }

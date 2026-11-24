@@ -122,14 +122,16 @@ class InicioView(APIView):
             vendidas = Venta.objects.filter(fecha__date=dia, estado=Venta.Estado.CONFIRMADA)
             semana.append({"fecha": dia.isoformat(), "total": redondear(suma(vendidas, "total"))})
 
+        ventas = {"total": redondear(suma(ventas_hoy, "total")), "cantidad": ventas_hoy.count()}
+        if es_administrador(request.user):  # arqueo ciego: el efectivo del día lo ve el administrador
+            ventas["por_medio"] = cobros(ventas_hoy)
         return Response({
             "hoy": hoy.isoformat(),
-            "ventas": {"total": redondear(suma(ventas_hoy, "total")), "cantidad": ventas_hoy.count(),
-                       "por_medio": cobros(ventas_hoy)},
+            "ventas": ventas,
             "ayer": {"total": redondear(suma(ventas_ayer, "total")), "cantidad": ventas_ayer.count()},
             "semana": semana,
             "meses": ventas_por_mes(hoy),
-            "caja": CajaSerializer(caja).data if caja else None,
+            "caja": CajaSerializer(caja, context={"request": request}).data if caja else None,
             "stock": StockSerializer(stock, many=True).data,
             "deudas": {"total": redondear(suma(pendientes, "saldo_pendiente")), "cantidad": pendientes.count(),
                        "fiado_por_dia": fiado_por_dia(hoy)},

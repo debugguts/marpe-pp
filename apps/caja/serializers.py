@@ -2,6 +2,8 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
+from config.permisos import es_administrador
+
 from .models import Caja, MovimientoCaja
 from .servicios import resumen_de_caja, saldo_actual
 
@@ -24,6 +26,16 @@ class MovimientoCajaSerializer(serializers.ModelSerializer):
         return nombre_de(movimiento.usuario)
 
 
+# Arqueo ciego: el operador cuenta el efectivo sin saber cuánto debería haber. Estos datos solo los
+# recibe el administrador (sin el pedido en el contexto tampoco se mandan: ante la duda, se ocultan).
+SOLO_ADMINISTRADOR = ("saldo_actual", "saldo_esperado", "diferencia", "resumen")
+
+
+def ve_el_arqueo(contexto):
+    pedido = (contexto or {}).get("request")
+    return bool(pedido and es_administrador(pedido.user))
+
+
 class CajaSerializer(serializers.ModelSerializer):
     # Abierta: lo que debería haber ahora. Cerrada: lo que debía haber al cerrar.
     saldo_actual = serializers.SerializerMethodField()
@@ -38,6 +50,14 @@ class CajaSerializer(serializers.ModelSerializer):
             "usuario_apertura_nombre", "fecha_hora_cierre", "efectivo_contado",
             "saldo_esperado", "diferencia", "usuario_cierre_nombre", "resumen",
         ]
+
+    def to_representation(self, caja):
+        datos = super().to_representation(caja)
+        datos["arqueo_ciego"] = not ve_el_arqueo(self.context)
+        if datos["arqueo_ciego"]:
+            for campo in SOLO_ADMINISTRADOR:
+                datos.pop(campo, None)
+        return datos
 
     def get_saldo_actual(self, caja):
         return str(caja.saldo_esperado if caja.estado == Caja.Estado.CERRADA else saldo_actual(caja))

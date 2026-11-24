@@ -12,7 +12,10 @@ import '../styles/movimientos.css'
 
 // Caja diaria (S5-12 · HU-10): abrir con el saldo inicial, ver lo que entra y sale
 // en efectivo, cargar ingresos o retiros con motivo y cerrar con arqueo.
+// Arqueo ciego (S16): el operador no ve cuánto debería haber; al cerrar cuenta billete por billete
+// y la diferencia la ve solo el administrador (la API ni siquiera le manda esos datos).
 const ENTRAN = ['VENTA_EFECTIVO', 'COBRO_DEUDA_EFECTIVO', 'INGRESO_MANUAL']
+const BILLETES = [20000, 10000, 2000, 1000, 500, 200, 100, 50, 20, 10]
 
 export default function Caja() {
   const actual = useQuery({ queryKey: ['caja', 'actual'], queryFn: () => api('/cajas/actual/') })
@@ -89,6 +92,22 @@ function CajaAbierta({ caja }) {
   const lista = movimientos.data ?? []
   const suma = (tipos) => lista.filter((m) => tipos(m.tipo_movimiento)).reduce((s, m) => s + Number(m.importe), 0)
 
+  if (caja.arqueo_ciego) {
+    return (
+      <>
+        <div className="cifras">
+          <Cifra tono="arena" icono="caja" titulo="Saldo inicial" valor={moneda(caja.saldo_inicial)}
+            nota={`Abrió ${caja.usuario_apertura_nombre}`} />
+          <Cifra tono="verde" icono="reloj" titulo="Caja abierta" valor={`Desde las ${hora(caja.fecha_hora_apertura)}`}
+            nota={`${lista.length} ${lista.length === 1 ? 'movimiento' : 'movimientos'} en efectivo`} />
+          <Cifra tono="salmon" icono="alerta" titulo="Arqueo ciego" valor="Al cerrar, contá"
+            nota="Contás el efectivo billete por billete. La diferencia la revisa el administrador." />
+        </div>
+        <ListaMovimientos lista={lista} cargando={movimientos.isPending} />
+      </>
+    )
+  }
+
   return (
     <>
       <div className="cifras">
@@ -98,10 +117,16 @@ function CajaAbierta({ caja }) {
         <Cifra tono="salmon" icono="gastos" titulo="Salió en efectivo" valor={moneda(suma((t) => !ENTRAN.includes(t)))} />
         <Cifra icono="caja" titulo="Debería haber" valor={moneda(caja.saldo_actual)} destacada />
       </div>
+      <ListaMovimientos lista={lista} cargando={movimientos.isPending} />
+    </>
+  )
+}
 
-      <Panel titulo="Movimientos de hoy">
+function ListaMovimientos({ lista, cargando }) {
+  return (
+    <Panel titulo="Movimientos de hoy">
         {lista.length === 0 ? (
-          <p className="suave">{movimientos.isPending ? 'Cargando…' : 'Todavía no hay movimientos en efectivo.'}</p>
+          <p className="suave">{cargando ? 'Cargando…' : 'Todavía no hay movimientos en efectivo.'}</p>
         ) : (
           <div className="tabla-wrap">
             <table className="tabla">
@@ -126,8 +151,7 @@ function CajaAbierta({ caja }) {
             </table>
           </div>
         )}
-      </Panel>
-    </>
+    </Panel>
   )
 }
 
@@ -145,7 +169,7 @@ function MovimientoManual({ tipo, caja, alCerrar }) {
     const e = {}
     const importe = errorImporte(datos.importe)
     if (importe) e.importe = importe
-    else if (esRetiro && Number(datos.importe) > Number(caja.saldo_actual)) {
+    else if (esRetiro && caja.saldo_actual !== undefined && Number(datos.importe) > Number(caja.saldo_actual)) {
       e.importe = `No alcanza: en la caja debería haber ${moneda(caja.saldo_actual)}.`
     }
     const motivo = (datos.motivo ?? '').trim()
@@ -190,17 +214,25 @@ function CerrarCaja({ caja, alCerrar }) {
     mutationFn: (contado) => api(`/cajas/${caja.id_caja}/cerrar/`, { metodo: 'POST', datos: { efectivo_contado: contado } }),
     onSuccess: refrescar,
   })
-  const [local, setLocal] = useState('')
+  const [cantidades, setCantidades] = useState({}) // billete → cuántos
+  const [monedas, setMonedas] = useState('')
+  const [confirmar, setConfirmar] = useState(false)
   const errores = erroresDe(cerrar.error)
   const cerrada = cerrar.data
+  const total = BILLETES.reduce((s, b) => s + b * (cantidades[b] ?? 0), 0) + (Number(monedas) || 0)
+  const errorMonedas = monedas && errorImporte(monedas, { cero: true, etiqueta: 'las monedas' })
+  const cambiar = (billete, n) => setCantidades((c) => ({ ...c, [billete]: Math.max(0, Math.min(9999, n)) }))
 
-  return (
-    <Dialogo titulo={cerrada ? 'Caja cerrada' : 'Cerrar caja'}
-      descripcion={cerrada ? undefined : `Debería haber ${moneda(caja.saldo_actual)} en efectivo. Contalo y cargá lo que hay.`}
-      alCerrar={alCerrar}>
-      {cerrada ? (
-        <>
-          <div className="dialogo__cuerpo">
+  if (cerrada) {
+    return (
+      <Dialogo titulo="Caja cerrada" alCerrar={alCerrar}>
+        <div className="dialogo__cuerpo">
+          {cerrada.arqueo_ciego ? (
+            <div className="arqueo-ciego__fin">
+              <p>Registraste <strong>{moneda(cerrada.efectivo_contado)}</strong> en efectivo.</p>
+              <p className="suave">Listo, la caja quedó cerrada. El administrador revisa el arqueo.</p>
+            </div>
+          ) : (
             <dl className="arqueo">
               <div><dt>Debería haber</dt><dd>{moneda(cerrada.saldo_esperado)}</dd></div>
               <div><dt>Contaste</dt><dd>{moneda(cerrada.efectivo_contado)}</dd></div>
@@ -209,29 +241,67 @@ function CerrarCaja({ caja, alCerrar }) {
                 <dd>{Number(cerrada.diferencia) === 0 ? 'Sin diferencia' : moneda(cerrada.diferencia)}</dd>
               </div>
             </dl>
-          </div>
-          <footer className="dialogo__pie"><Boton onClick={alCerrar}>Listo</Boton></footer>
-        </>
-      ) : (
-        <form noValidate onSubmit={(e) => {
-          e.preventDefault()
-          const contado = new FormData(e.currentTarget).get('contado')
-          const error = errorImporte(contado, { cero: true, etiqueta: 'el efectivo que contaste (puede ser 0)' })
-          setLocal(error)
-          if (error) e.currentTarget.elements.contado.focus()
-          else cerrar.mutate(contado)
-        }}>
-          <div className="dialogo__cuerpo">
-            <Campo etiqueta="Efectivo contado" name="contado" type="number" inputMode="decimal" min="0" step="0.01"
-              error={local || errores.efectivo_contado} onKeyDown={sinSignos} onWheel={sinRueda} placeholder="0"
-              onChange={(e) => local && setLocal(errorImporte(e.target.value, { cero: true }))} data-foco />
-          </div>
-          <footer className="dialogo__pie">
-            <Boton variante="secundario" onClick={alCerrar}>Cancelar</Boton>
-            <Boton type="submit" cargando={cerrar.isPending} textoCargando="Cerrando…">Cerrar caja</Boton>
-          </footer>
-        </form>
-      )}
+          )}
+        </div>
+        <footer className="dialogo__pie"><Boton onClick={alCerrar}>Listo</Boton></footer>
+      </Dialogo>
+    )
+  }
+
+  return (
+    <Dialogo titulo="Cerrar caja"
+      descripcion={caja.arqueo_ciego
+        ? 'Contá el efectivo del cajón billete por billete. El sistema suma solo.'
+        : `Debería haber ${moneda(caja.saldo_actual)} en efectivo. Contalo billete por billete.`}
+      alCerrar={alCerrar}>
+      <form noValidate onSubmit={(e) => {
+        e.preventDefault()
+        if (errorMonedas) return
+        if (!confirmar) { setConfirmar(true); return }
+        cerrar.mutate(total.toFixed(2))
+      }}>
+        <div className="dialogo__cuerpo contador">
+          <table className="contador__tabla">
+            <thead><tr><th scope="col">Billete</th><th scope="col">Cantidad</th><th scope="col" className="num">Subtotal</th></tr></thead>
+            <tbody>
+              {BILLETES.map((b) => {
+                const n = cantidades[b] ?? 0
+                return (
+                  <tr key={b} className={n ? 'is-con-cantidad' : undefined}>
+                    <th scope="row">{moneda(b)}</th>
+                    <td>
+                      <div className="paso-a-paso contador__paso" role="group" aria-label={`Billetes de ${moneda(b)}`}>
+                        <button type="button" onClick={() => { cambiar(b, n - 1); setConfirmar(false) }} aria-label="Uno menos" disabled={!n}>−</button>
+                        <input type="number" inputMode="numeric" min="0" step="1" value={n || ''} placeholder="0"
+                          onKeyDown={sinSignos} onWheel={sinRueda} aria-label={`Cantidad de billetes de ${moneda(b)}`}
+                          onChange={(e) => { cambiar(b, Math.floor(Number(e.target.value) || 0)); setConfirmar(false) }} />
+                        <button type="button" onClick={() => { cambiar(b, n + 1); setConfirmar(false) }} aria-label="Uno más">+</button>
+                      </div>
+                    </td>
+                    <td className="num">{n ? moneda(b * n) : '—'}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+          <Campo etiqueta="Monedas (el total)" type="number" inputMode="decimal" min="0" step="0.01" value={monedas}
+            onChange={(e) => { setMonedas(e.target.value); setConfirmar(false) }} onKeyDown={sinSignos} onWheel={sinRueda}
+            placeholder="0" error={errorMonedas || undefined} />
+          <div className="contador__total"><span>Total contado</span><strong>{moneda(total)}</strong></div>
+          {confirmar && (
+            <p className="contador__confirmar" role="alert">
+              ¿Contaste todo el cajón? Vas a cerrar la caja con <strong>{moneda(total)}</strong>. No se puede deshacer.
+            </p>
+          )}
+          {errores.efectivo_contado && <p className="campo__error">{errores.efectivo_contado}</p>}
+        </div>
+        <footer className="dialogo__pie">
+          <Boton variante="secundario" onClick={confirmar ? () => setConfirmar(false) : alCerrar}>{confirmar ? 'Volver a contar' : 'Cancelar'}</Boton>
+          <Boton type="submit" icono="caja" cargando={cerrar.isPending} textoCargando="Cerrando…">
+            {confirmar ? `Sí, cerrar con ${moneda(total)}` : 'Cerrar caja'}
+          </Boton>
+        </footer>
+      </form>
       {errores.general && <AvisoError error={cerrar.error} titulo="No se pudo cerrar la caja" alCerrar={() => cerrar.reset()} />}
     </Dialogo>
   )
@@ -241,6 +311,7 @@ function Historial() {
   const cajas = useQuery({ queryKey: ['caja', 'historial'], queryFn: () => api('/cajas/') })
   const cerradas = (cajas.data?.results ?? []).filter((c) => c.estado === 'CERRADA')
   if (cerradas.length === 0) return null
+  const ciego = cerradas[0].arqueo_ciego // el operador ve solo lo que contó
 
   return (
     <Panel titulo="Cierres anteriores" className="caja-historial">
@@ -249,8 +320,9 @@ function Historial() {
           <thead>
             <tr>
               <th scope="col">Día</th><th scope="col">Cerró</th>
-              <th scope="col" className="num">Debería haber</th><th scope="col" className="num">Contado</th>
-              <th scope="col" className="num">Diferencia</th>
+              {!ciego && <th scope="col" className="num">Debería haber</th>}
+              <th scope="col" className="num">Contado</th>
+              {!ciego && <th scope="col" className="num">Diferencia</th>}
             </tr>
           </thead>
           <tbody>
@@ -258,13 +330,17 @@ function Historial() {
               <tr key={c.id_caja}>
                 <td>{fecha(c.fecha_hora_apertura)}</td>
                 <td>{c.usuario_cierre_nombre} · {hora(c.fecha_hora_cierre)}</td>
-                <td className="num">{moneda(c.saldo_esperado)}</td>
+                {!ciego && <td className="num">{moneda(c.saldo_esperado)}</td>}
                 <td className="num">{moneda(c.efectivo_contado)}</td>
-                <td className="num">
-                  {Number(c.diferencia) === 0
-                    ? <Insignia variante="exito">Justa</Insignia>
-                    : <Insignia variante="peligro">{moneda(c.diferencia)}</Insignia>}
-                </td>
+                {!ciego && (
+                  <td className="num">
+                    {Number(c.diferencia) === 0
+                      ? <Insignia variante="exito">Justa</Insignia>
+                      : <Insignia variante={Number(c.diferencia) > 0 ? 'aviso' : 'peligro'}>
+                          {Number(c.diferencia) > 0 ? 'Sobrante' : 'Faltante'} {moneda(Math.abs(Number(c.diferencia)))}
+                        </Insignia>}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

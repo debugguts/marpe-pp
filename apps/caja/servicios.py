@@ -12,6 +12,7 @@ from rest_framework.exceptions import ValidationError
 
 from config.comunes import MedioPago
 from config.formato import pesos
+from config.permisos import es_administrador
 
 from .models import Caja, MovimientoCaja
 
@@ -53,7 +54,9 @@ def mover_caja(tipo, importe, usuario, motivo=None):
     if tipo in EGRESOS:
         disponible = saldo_actual(caja)
         if importe > disponible:
-            raise ValidationError({"importe": f"No alcanza el efectivo de la caja: hay {pesos(disponible)}."})
+            # Arqueo ciego: al operador no se le dice cuánto hay
+            cuanto = f": hay {pesos(disponible)}" if es_administrador(usuario) else ""
+            raise ValidationError({"importe": f"No alcanza el efectivo de la caja{cuanto}."})
     return MovimientoCaja.objects.create(
         caja=caja, usuario=usuario, tipo_movimiento=tipo, importe=importe, motivo=motivo
     )

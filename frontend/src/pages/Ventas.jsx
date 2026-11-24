@@ -144,7 +144,7 @@ export default function Ventas() {
         acciones={(
           <div className="cab-pagina__acciones">
             {caja.data
-              ? <span className="pastilla pastilla--exito"><span className="punto-color" />Caja abierta · {moneda(caja.data.saldo_actual)}</span>
+              ? <span className="pastilla pastilla--exito"><span className="punto-color" />Caja abierta{caja.data.saldo_actual !== undefined && ` · ${moneda(caja.data.saldo_actual)}`}</span>
               : caja.isSuccess && <span className="pastilla pastilla--peligro"><span className="punto-color" />Caja cerrada</span>}
             <span className="pastilla"><Icono nombre="calendario" tamano={18} />Hoy · {diaCorto.format(new Date())}</span>
             <Boton variante="secundario" icono="ventas" className="pastilla-boton" aria-expanded={verLista}
@@ -154,7 +154,7 @@ export default function Ventas() {
           </div>
         )} />
 
-      <CifrasDelDia ventas={delDia} />
+      <CifrasDelDia ventas={delDia} verEfectivo={esAdministrador} />
 
       <div className="mostrador__cuerpo">
         <section className="mostrador__catalogo" aria-label="Productos">
@@ -289,7 +289,8 @@ export default function Ventas() {
 }
 
 // Las cuatro cifras del día: lo vendido y cómo entró (efectivo, transferencia, fiado). Las anuladas no cuentan.
-function CifrasDelDia({ ventas }) {
+// Arqueo ciego: el efectivo del día lo ve solo el administrador (sería casi lo que tiene que haber en la caja).
+function CifrasDelDia({ ventas, verEfectivo }) {
   const filas = ventas.filter((v) => v.estado !== 'ANULADA')
   const vendido = filas.reduce((s, v) => s + Number(v.total), 0)
   const porMedio = (medio) => filas.reduce((s, v) => s + v.pagos.filter((p) => p.medio_pago === medio)
@@ -305,7 +306,7 @@ function CifrasDelDia({ ventas }) {
       <Cifra tono="oscuro" icono="ventas" titulo="Vendido hoy" valor={moneda(vendido)}
         nota={`${filas.length} ${filas.length === 1 ? 'venta' : 'ventas'}`}
         insignia={filas.length ? `Ticket promedio ${moneda(vendido / filas.length)}` : 'Sin ventas todavía'} />
-      <Cifra tono="verde" icono="efectivo" titulo="Efectivo" valor={moneda(efectivo)} nota="Entró a la caja abierta" insignia={parte(efectivo)} />
+      {verEfectivo && <Cifra tono="verde" icono="efectivo" titulo="Efectivo" valor={moneda(efectivo)} nota="Entró a la caja abierta" insignia={parte(efectivo)} />}
       <Cifra tono="salmon" icono="banco" titulo="Transferencia" valor={moneda(transferencia)} nota="Sin pasar por caja" insignia={parte(transferencia)} />
       <Cifra tono="ocre" icono="etiqueta" titulo="Fiado" valor={moneda(fiado)}
         nota={`${clientesFiado} ${clientesFiado === 1 ? 'cliente' : 'clientes'}`} insignia={parte(fiado)} />

@@ -8,10 +8,12 @@ from .datos import crear_base
 
 
 class CajaAPITest(APITestCase):
+    # Saldos y diferencias: los ve el administrador (el operador cierra a ciegas, ver test_arqueo_ciego).
     url = "/api/cajas/"
 
     def setUp(self):
         crear_base(self)
+        self.client.force_login(self.admin)
 
     def abrir(self, saldo="10000"):
         return self.client.post(self.url, {"saldo_inicial": saldo}, format="json")
@@ -70,6 +72,7 @@ class ResumenDeCajaTest(APITestCase):
 
     def test_resumen_por_medio(self):
         crear_base(self)
+        self.client.force_login(self.admin)
         self.client.post("/api/cajas/", {"saldo_inicial": "1000"}, format="json")
         linea = [{"producto": self.producto.pk, "presentacion": self.bandeja.pk, "cantidad": "1"}]
         self.client.post("/api/ventas/", {"modalidad": "CONTADO", "medio_pago": "EFECTIVO", "detalles": linea}, format="json")

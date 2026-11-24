@@ -27,6 +27,9 @@ class CajaViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
     GET  /cajas/<id>/movimientos/    movimientos de esa caja
     POST /cajas/<id>/movimientos/    ingreso o retiro manual, con motivo
     POST /cajas/<id>/cerrar/         cierre con arqueo: efectivo contado vs. esperado
+
+    Arqueo ciego: el operador nunca recibe el saldo esperado, la diferencia ni los totales por medio
+    de pago (cuenta sin saber cuánto debería haber); el administrador ve todo.
     """
 
     serializer_class = CajaSerializer
@@ -46,12 +49,12 @@ class CajaViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
         datos = validar(AbrirCajaSerializer, request.data)
         caja = servicios.abrir_caja(datos["saldo_inicial"], request.user)
         anotar_actividad(request.user, "Apertura", caja)
-        return Response(CajaSerializer(caja).data, status=status.HTTP_201_CREATED)
+        return Response(self.get_serializer(caja).data, status=status.HTTP_201_CREATED)
 
     @action(detail=False)
     def actual(self, request):
         caja = self.get_queryset().filter(estado=Caja.Estado.ABIERTA).first()
-        return Response(CajaSerializer(caja).data if caja else None)
+        return Response(self.get_serializer(caja).data if caja else None)
 
     @action(detail=True, methods=["get", "post"])
     def movimientos(self, request, pk=None):
@@ -76,5 +79,5 @@ class CajaViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
         datos = validar(CerrarCajaSerializer, request.data)
         caja = servicios.cerrar_caja(self.get_object(), datos["efectivo_contado"], request.user)
         anotar_actividad(request.user, "Cierre", caja)
-        return Response(CajaSerializer(caja).data)
+        return Response(self.get_serializer(caja).data)
 
