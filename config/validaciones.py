@@ -36,8 +36,8 @@ def limpiar_telefono(valor):
         return None
     valor = valor.strip()
     digitos = sum(c.isdigit() for c in valor)
-    if not TELEFONO.match(valor) or not 6 <= digitos <= 15:
+    if not TELEFONO.match(valor) or not 6 <= digitos <= 12:
         raise serializers.ValidationError(
-            "Usá solo números, espacios, guiones, + o paréntesis (entre 6 y 15 números)."
+            "Usá solo números, espacios, guiones, + o paréntesis (entre 6 y 12 números)."
         )
     return valor

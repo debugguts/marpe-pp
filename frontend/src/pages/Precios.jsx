@@ -70,7 +70,9 @@ function ProductoPrecios({ fila, puedeCambiar, alTeclaInvalida, guardado, alGuar
   const [valores, setValores] = useState(originales)
   const [confirmando, setConfirmando] = useState(null) // precios bajo el costo que hay que confirmar
 
-  const cambiados = fila.presentaciones.filter((p) => valores[p.presentacion] && valores[p.presentacion] !== originales[p.presentacion])
+  // También cuenta como cambio una caja cuya gemela (Caja Súper) todavía no tiene el mismo precio.
+  const cambiados = fila.presentaciones.filter((p) => valores[p.presentacion]
+    && (valores[p.presentacion] !== originales[p.presentacion] || p.gemelas_desparejas))
   const bajoCosto = cambiados.filter((p) => p.sugerido && Number(valores[p.presentacion]) < Number(p.sugerido))
 
   const guardar = useMutation({
@@ -184,6 +186,12 @@ function FilaPrecio({ p, valor, original, puedeCambiar, alCambiar, alTeclaInvali
       <div className="precios__pres">
         <strong>{p.presentacion_nombre}</strong>
         <small>{contenidoDe(p.bandejas)}</small>
+        {p.comparte_con?.length > 0 && (
+          <small className="precios__gemelas">
+            Mismo precio para {p.comparte_con.join(' y ')}
+            {p.gemelas_desparejas && original && ' · guardá para igualarlo'}
+          </small>
+        )}
         <span>Te cuesta <b>{cuesta ? moneda(cuesta) : '—'}</b></span>
       </div>
 

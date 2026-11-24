@@ -75,3 +75,31 @@ class ValidacionPresentacionTest(APITestCase):
     def test_caja_super_de_9_bandejas_de_20(self):
         respuesta = self.alta(nombre="Caja Súper", cantidad_bandejas_equivalentes="6", formato="CAJA", huevos_por_bandeja=20)
         self.assertEqual(respuesta.status_code, 201)
+
+
+class CajasDelMismoPrecioTest(APITestCase):
+    """La Caja (6 × 30) y la Caja Súper (9 × 20) son 180 huevos: un solo precio para las dos."""
+
+    setUp = SuperBandejaDe20Test.setUp
+
+    def vigente(self, presentacion):
+        return PrecioProducto.objects.get(producto=self.super, presentacion=presentacion, fecha_hasta__isnull=True).precio
+
+    def test_guardar_la_caja_tambien_guarda_la_caja_super(self):
+        self.client.force_login(self.admin)
+        r = self.client.post("/api/precios/confirmar/", {"producto": self.super.pk, "presentacion": self.caja.pk,
+                                                         "precio": "35000", "confirmar_bajo_equilibrio": True}, format="json")
+        self.assertEqual(r.status_code, 201)
+        self.assertEqual((self.vigente(self.caja), self.vigente(self.c20)), (35000, 35000))
+
+    def test_la_pantalla_muestra_una_sola_caja(self):
+        self.client.force_login(self.admin)
+        PrecioProducto.objects.create(producto=self.super, presentacion=self.caja, precio=35000, fecha_desde=date(2026, 11, 1))
+        fila = next(f for f in self.client.get("/api/precios/sugeridos/").data if f["producto"] == self.super.pk)
+        cajas = [p for p in fila["presentaciones"] if p["formato"] == "CAJA"]
+        self.assertEqual([p["presentacion_nombre"] for p in cajas], ["Caja"])
+        self.assertEqual(cajas[0]["comparte_con"], ["Caja Súper"])
+        self.assertTrue(cajas[0]["gemelas_desparejas"])  # la Caja Súper todavía no tiene precio
+        # El Blanco Mediano no tiene Caja Súper: su Caja no comparte con nadie.
+        mediano = next(f for f in self.client.get("/api/precios/sugeridos/").data if f["producto"] == self.producto.pk)
+        self.assertEqual(next(p for p in mediano["presentaciones"] if p["formato"] == "CAJA")["comparte_con"], [])

@@ -4,7 +4,8 @@
 
 .precios__producto { padding: var(--espacio-4); }
 .precios__cab { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--espacio-3); margin-bottom: var(--espacio-3); }
-.precios__cab h2 { font: 600 var(--titulo-m)/1.2 var(--fuente-titulo); }
+.precios__cab h2 { font: 800 var(--titulo-m)/1.2 var(--fuente-titulo); text-transform: uppercase; letter-spacing: 0.01em; }
+.precios__gemelas { color: var(--marron); font-weight: 600; }
 .precios__detalle { margin-top: var(--espacio-1); font-size: var(--texto-s); color: var(--texto-suave); max-width: 80ch; }
 .precios__costo { display: grid; text-align: right; }
 .precios__costo small { font-size: var(--texto-s); color: var(--texto-suave); }

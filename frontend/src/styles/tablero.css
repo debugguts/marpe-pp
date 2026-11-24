@@ -1,9 +1,7 @@
 /* Inicio con el diseño elegido por el cliente (Sprint 9): tablero de tarjetas de vidrio. */
 
-/* Saludo: «Hola,» oscuro y el nombre en gris */
+/* Saludo: mismo título que el resto de las pantallas (Poppins 900 en mayúsculas, ver .cab-pagina) */
 .inicio-cab { align-items: center; }
-.inicio-cab h1 { font: 500 clamp(2.2rem, 1.6rem + 2vw, 3.2rem) / 1.1 var(--fuente-titulo); letter-spacing: -0.02em; color: var(--oscuro); }
-.inicio-cab h1 span { color: #8C7B70; }
 
 /* Botón en píldora oscura (Nueva venta, Cobrar) */
 .boton-pildora {
@@ -89,18 +87,19 @@
   gap: 0.35rem;
   padding: 1.25rem 1.5rem;
   border-radius: 22px;
-  background: #654E3F;
+  background: var(--kpi-oscuro);
   color: var(--blanco);
   font: 400 0.9rem / 1.3 var(--fuente-titulo);
 }
-.caja-marron__saldo { font: 600 clamp(2rem, 1.4rem + 1.4vw, 2.6rem) / 1.1 var(--fuente-titulo); letter-spacing: -0.01em; }
+.caja-marron__saldo { font: 800 clamp(2rem, 1.4rem + 1.4vw, 2.6rem) / 1.1 var(--fuente-titulo); letter-spacing: -0.01em; }
 .caja-marron__pie { display: flex; justify-content: space-between; gap: 1rem; margin-top: 0.4rem; font-size: 0.85rem; opacity: 0.92; }
 .caja-marron__pie a { color: inherit; }
 .caja-marron.is-cerrada { background: var(--peligro); }
 
-/* Vendido hoy */
+/* Vendido hoy: tarjeta salmón, como las cifras de Ventas y Compras */
+.tarjeta.is-salmon { background: var(--salmon); }
 .vendido { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-.vendido__total { margin-top: 0.2rem; font: 600 clamp(1.8rem, 1.3rem + 1.2vw, 2.3rem) / 1.1 var(--fuente-titulo); letter-spacing: -0.01em; }
+.vendido__total { margin-top: 0.2rem; font: 800 clamp(1.8rem, 1.3rem + 1.2vw, 2.3rem) / 1.1 var(--fuente-titulo); letter-spacing: -0.01em; }
 
 /* Selector Semana / Meses */
 .segmento { display: flex; padding: 4px; border-radius: var(--radio-pildora); background: color-mix(in srgb, var(--cab-fondo) 80%, transparent); }
@@ -114,7 +113,7 @@
   font: 500 0.88rem / 1 var(--fuente-titulo);
   cursor: pointer;
 }
-.segmento button[aria-pressed="true"] { background: #5A4538; color: var(--blanco); }
+.segmento button[aria-pressed="true"] { background: var(--oscuro); color: var(--blanco); }
 
 /* Gráfico de barras redondeadas y rayadas (CSS puro) */
 .ventas-graf { display: flex; flex-direction: column; }
@@ -146,10 +145,10 @@
   position: relative;
   width: min(100%, 4.2rem);
   border-radius: 999px;
-  background: repeating-linear-gradient(135deg, #C7B2A3 0 7px, #BBA493 7px 9px);
+  background: repeating-linear-gradient(135deg, var(--arena-media) 0 7px, color-mix(in srgb, var(--arena-media) 80%, var(--marron)) 7px 9px);
   transition: height 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.is-actual .barras__barra { background: repeating-linear-gradient(135deg, #5A4538 0 7px, #4E3B2F 7px 9px); }
+.is-actual .barras__barra { background: repeating-linear-gradient(135deg, var(--rosa) 0 7px, color-mix(in srgb, var(--rosa) 80%, var(--marron)) 7px 9px); }
 .is-actual .barras__barra::before {
   content: "";
   position: absolute;
@@ -159,7 +158,7 @@
   height: 1.1rem;
   transform: translateX(-50%);
   border-radius: 50%;
-  background: #5A4538;
+  background: var(--kpi-oscuro);
   border: 3px solid var(--blanco);
 }
 .barras__globo {
@@ -176,17 +175,18 @@
 }
 .barras__texto { height: 1.9rem; display: grid; align-items: end; font: 500 0.82rem / 1 var(--fuente-titulo); color: var(--oscuro); }
 
-/* Fiado sin cobrar */
-.fiado { text-align: center; }
-.fiado__total { margin: 0.2rem 0; font: 600 clamp(1.9rem, 1.3rem + 1.3vw, 2.5rem) / 1.1 var(--fuente-titulo); letter-spacing: -0.01em; }
+/* Fiado sin cobrar: ocre, el mismo color del fiado en Ventas */
+.fiado { padding: 1rem; border-radius: 22px; background: var(--ocre-suave); text-align: center; }
+.fiado__total { margin: 0.2rem 0; font: 800 clamp(1.9rem, 1.3rem + 1.3vw, 2.5rem) / 1.1 var(--fuente-titulo); letter-spacing: -0.01em; }
 .curva { display: block; width: calc(100% + 3rem); height: 7rem; margin: 0.5rem -1.5rem 0; }
 .fiado__botones { display: flex; justify-content: center; gap: 0.6rem; margin-top: -1.6rem; }
 .fiado__botones .boton-pildora { min-height: 2.8rem; padding: 0 1.3rem; font-size: 0.92rem; }
 
-/* Para reponer */
-.reponer { margin-top: 1.4rem; padding-top: 1.2rem; border-top: 1px solid rgb(101 78 63 / 0.12); }
+/* Para reponer: verde si está todo bien, salmón si hay que reponer */
+.reponer { margin-top: 1.4rem; padding: 1.1rem 1.2rem; border-radius: 22px; background: var(--verde-suave); }
+.reponer.is-urgente { background: var(--salmon); }
 .reponer__cuenta { display: flex; align-items: center; gap: 0.75rem; margin: 0.6rem 0 0.8rem; }
-.reponer__cuenta > span:first-child { font: 600 2.6rem / 1 var(--fuente-titulo); }
+.reponer__cuenta > span:first-child { font: 800 2.6rem / 1 var(--fuente-titulo); }
 .reponer__cuenta .is-rojo { color: #C0392B; }
 .reponer ul { display: grid; gap: 0.85rem; margin: 0; padding: 0; list-style: none; }
 .reponer li { display: grid; grid-template-columns: 1fr auto; row-gap: 0.4rem; font: 400 0.92rem / 1.2 var(--fuente-titulo); }
@@ -232,7 +232,7 @@
   .tablero__der { display: grid; grid-template-columns: 1fr 1fr; column-gap: 2rem; }
   .tablero__der > .tarjeta__cab, .tablero__der > .fiado, .tablero__der > .curva, .tablero__der > .fiado__botones { grid-column: 1; }
   .tablero__der > .curva { width: 100%; margin: 0.5rem 0 0; }
-  .reponer { grid-column: 2; grid-row: 1 / span 4; margin-top: 0; padding-top: 0; border-top: 0; padding-left: 2rem; border-left: 1px solid rgb(101 78 63 / 0.12); }
+  .reponer { grid-column: 2; grid-row: 1 / span 4; margin-top: 0; }
 }
 /* Celular: una sola columna */
 @media (max-width: 47.5rem) {
@@ -241,6 +241,6 @@
   .tablero__der > .curva { width: calc(100% + 3rem); margin: 0.5rem -1.5rem 0; }
   .tarjeta__cab .segmento { order: 3; flex-basis: 100%; }
   .segmento button { flex: 1; }
-  .reponer { margin-top: 1.4rem; padding: 1.2rem 0 0; border-left: 0; border-top: 1px solid rgb(101 78 63 / 0.12); }
+  .reponer { margin-top: 1.4rem; }
   .inicio-cab .boton-pildora { width: 100%; }
 }
