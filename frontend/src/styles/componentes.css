@@ -399,3 +399,10 @@ textarea.campo__control { padding-block: 0.65rem; min-height: 6rem; resize: vert
   .cifra-tarjeta__nota { display: none; }
   .pastilla, .pastilla-boton { min-height: 2.6rem; padding: 0 0.8rem; font-size: var(--texto-s); }
 }
+
+/* Botones principales de la cabecera de cada pantalla (Nueva venta, Nuevo gasto, Cerrar caja…):
+   rosa de la marca en vez de terracota, para que no compitan con las acciones de cobrar o guardar. */
+.cab-pagina .btn--primario { background: var(--rosa); color: var(--texto); border-color: color-mix(in srgb, var(--rosa) 80%, var(--marron)); }
+.cab-pagina .btn--primario:hover:not(:disabled) { background: color-mix(in srgb, var(--rosa) 85%, var(--marron)); }
+.cab-pagina .boton-pildora { background: var(--rosa); color: var(--texto); }
+.cab-pagina .boton-pildora:hover { background: color-mix(in srgb, var(--rosa) 85%, var(--marron)); }
