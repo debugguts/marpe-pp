@@ -42,6 +42,11 @@ export async function api(ruta, { metodo = 'GET', datos } = {}) {
       // avisamos a la app para que vuelva al login en vez de mostrar errores en cada pantalla.
       window.dispatchEvent(new Event(SESION_VENCIDA))
     }
+    if (respuesta.status === 429) {
+      // Límite de pedidos del servidor (S-seguridad): demasiados intentos de login o pedidos seguidos.
+      const segundos = Number(respuesta.headers.get('Retry-After')) || 60
+      throw new ErrorApi(429, { detail: `Demasiados intentos seguidos. Esperá ${segundos} segundos y probá de nuevo.` })
+    }
     throw new ErrorApi(respuesta.status, cuerpo)
   }
   return cuerpo

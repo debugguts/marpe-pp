@@ -32,11 +32,16 @@ class LineaCompraSerializer(serializers.Serializer):
         return valor
 
 
+MAX_LINEAS = 50  # tope de líneas por operación (S-seguridad V2)
+
+
 class NuevaCompraSerializer(serializers.Serializer):
     proveedor = serializers.PrimaryKeyRelatedField(
         queryset=Proveedor.objects.filter(estado=Estado.ACTIVO), error_messages=ACTIVO)
     fecha = serializers.DateField(required=False)  # si no viene, hoy
-    detalles = LineaCompraSerializer(many=True, allow_empty=False)
+    # Como mucho 50 líneas por compra (S-seguridad V2)
+    detalles = LineaCompraSerializer(many=True, allow_empty=False, max_length=MAX_LINEAS,
+                                     error_messages={"max_length": f"Una compra puede tener como mucho {MAX_LINEAS} líneas."})
 
     def validate_detalles(self, lineas):
         combinaciones = [(l["producto"].pk, l["presentacion"].pk) for l in lineas]

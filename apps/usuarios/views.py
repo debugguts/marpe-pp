@@ -10,9 +10,13 @@ from .serializers import LoginSerializer, PerfilSerializer, UsuarioActualSeriali
 
 
 class LoginView(APIView):
-    """POST /api/auth/login/  →  inicia sesión con usuario y clave (HU-01-C)."""
+    """POST /api/auth/login/  →  inicia sesión con usuario y clave (HU-01-C).
+
+    Como mucho 8 intentos por minuto desde la misma dirección (S-seguridad V1): después responde 429.
+    """
 
     permission_classes = [AllowAny]
+    throttle_scope = "login"
 
     def post(self, request):
         datos = LoginSerializer(data=request.data)

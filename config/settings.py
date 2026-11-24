@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -6,6 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
 DEBUG = os.environ.get("DJANGO_DEBUG", "0") == "1"
+PROBANDO = len(sys.argv) > 1 and sys.argv[1] == "test"  # manage.py test
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost").split(",")
 
 # Render avisa en qué dirección quedó publicado el sistema (ej. marpe.onrender.com).
@@ -146,6 +148,18 @@ if os.environ.get("DJANGO_HTTPS") == "1":
     SECURE_HSTS_SECONDS = 60 * 60 * 24 * 30
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_REFERRER_POLICY = "same-origin"
+# Cookies de sesión: fuera del modo desarrollo viajan solo por HTTPS, aunque falte DJANGO_HTTPS (S-seguridad V3).
+# HttpOnly: el JavaScript de la página no puede leer la sesión. SameSite=Lax: otro sitio no la puede usar.
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+if not DEBUG and not PROBANDO:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
+# Un pedido no puede pesar más de 512 KB (una venta normal pesa menos de 5 KB) (S-seguridad V2).
+DATA_UPLOAD_MAX_MEMORY_SIZE = 512 * 1024
+
 # --- API REST (DRF) ---
 # Proyecto de Firebase de la app móvil (los tokens tienen que ser de este proyecto).
 FIREBASE_PROJECT_ID = os.environ.get("FIREBASE_PROJECT_ID", "")
@@ -159,4 +173,18 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
+    # Límite de pedidos (S-seguridad V1 y V5): frena a quien prueba claves o satura la API.
+    # login: 8 intentos por minuto por dirección; con sesión: 120 pedidos por minuto por usuario.
+    # Al pasarse, la API responde 429 "Demasiados pedidos". En las pruebas los límites se suben
+    # (hacen cientos de pedidos seguidos) y test_seguridad los prueba con los valores reales.
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.ScopedRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "100000/min" if PROBANDO else "60/min",
+        "user": "100000/min" if PROBANDO else "120/min",
+        "login": "100000/min" if PROBANDO else "8/min",
+    },
 }
