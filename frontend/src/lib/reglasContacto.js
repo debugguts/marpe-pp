@@ -19,8 +19,8 @@ export function errorTelefono(texto = '') {
   const valor = texto.trim()
   if (!valor) return '' // es opcional
   const digitos = (valor.match(/\d/g) ?? []).length
-  if (!PATRON_TELEFONO.test(valor) || digitos < 6 || digitos > 15) {
-    return 'Usá solo números, espacios, guiones, + o paréntesis (entre 6 y 15 números).'
+  if (!PATRON_TELEFONO.test(valor) || digitos < 6 || digitos > 12) {
+    return 'Usá solo números, espacios, guiones, + o paréntesis (entre 6 y 12 números).'
   }
   return ''
 }

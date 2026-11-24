@@ -257,9 +257,11 @@ html[data-bienvenida] .momento { opacity: 0; pointer-events: none; }
 html[data-momento="atardecer"] .contenido .cab-pagina h1,
 html[data-momento="atardecer"] .contenido .cab-pagina__desc,
 html[data-momento="atardecer"] .contenido > .abm-cargando,
+html[data-momento="atardecer"] .contenido .precios__intro,
 html[data-momento="noche"] .contenido .cab-pagina h1,
 html[data-momento="noche"] .contenido .cab-pagina__desc,
-html[data-momento="noche"] .contenido > .abm-cargando {
+html[data-momento="noche"] .contenido > .abm-cargando,
+html[data-momento="noche"] .contenido .precios__intro {
   color: var(--arena);
   text-shadow: 0 2px 18px rgb(20 14 30 / 0.55);
   transition: color 2s;

@@ -29,3 +29,7 @@ class NombresDeContactoTest(APITestCase):
     def test_telefono_con_letras_o_corto_se_rechaza(self):
         self.assertIn("telefono", self.alta("/api/clientes/", nombre="María Gómez", telefono="abc123").data)
         self.assertIn("telefono", self.alta("/api/clientes/", nombre="María Gómez", telefono="12-34").data)
+
+    def test_telefono_de_mas_de_12_numeros_se_rechaza(self):
+        self.assertIn("telefono", self.alta("/api/proveedores/", nombre="Granja El Huaico", telefono="3783282192121122").data)
+        self.assertEqual(self.alta("/api/proveedores/", nombre="Granja El Huaico", telefono="+54 387 4001001").status_code, 201)

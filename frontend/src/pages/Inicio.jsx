@@ -17,6 +17,7 @@ const corto = new Intl.NumberFormat('es-AR', { notation: 'compact', maximumFract
 const DIA = new Intl.DateTimeFormat('es-AR', { weekday: 'short' })
 const MES = new Intl.DateTimeFormat('es-AR', { month: 'short' })
 const bandejas = (n) => Number(n).toLocaleString('es-AR', { maximumFractionDigits: 1 })
+const FECHA = new Intl.DateTimeFormat('es-AR', { weekday: 'long', day: 'numeric', month: 'long' }) // «martes, 24 de noviembre»
 const sinPunto = (t) => t.replace('.', '').toUpperCase()
 
 // Diferencia en % entre dos importes («+12,8 %»); null si no hay con qué comparar.
@@ -38,7 +39,10 @@ export default function Inicio() {
   return (
     <>
       <header className="cab-pagina inicio-cab">
-        <h1>Hola{primerNombre && <>, <span>{primerNombre}</span></>}</h1>
+        <div className="cab-pagina__texto">
+          <h1>Hola{primerNombre && `, ${primerNombre}`}</h1>
+          <p className="cab-pagina__desc">{FECHA.format(new Date())}: así viene el día en la huevería.</p>
+        </div>
         <Link className="boton-pildora" to="/ventas"><Icono nombre="mas" tamano={18} /><span>Nueva venta</span></Link>
       </header>
 
@@ -49,7 +53,7 @@ export default function Inicio() {
         <div className="tablero">
           <div className="tablero__col">
             <CajaDeHoy caja={d.caja} />
-            <section className="tarjeta vendido" aria-label="Vendido hoy">
+            <section className="tarjeta vendido is-salmon" aria-label="Vendido hoy">
               <div>
                 <p className="tarjeta__sub">Vendido hoy</p>
                 <p className="vendido__total">{moneda(d.ventas.total)}</p>
@@ -182,12 +186,12 @@ function Curva({ dias }) {
     <svg className="curva" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
       <defs>
         <linearGradient id="curva-relleno" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#654E3F" stopOpacity="0.22" />
-          <stop offset="1" stopColor="#654E3F" stopOpacity="0" />
+          <stop offset="0" style={{ stopColor: 'var(--cat-servicios)', stopOpacity: 0.3 }} />
+          <stop offset="1" style={{ stopColor: 'var(--cat-servicios)', stopOpacity: 0 }} />
         </linearGradient>
       </defs>
       <path d={`${d} L${W} ${H} L0 ${H}Z`} fill="url(#curva-relleno)" />
-      <path d={d} fill="none" stroke="#5A4538" strokeWidth="2.2" vectorEffect="non-scaling-stroke" />
+      <path d={d} fill="none" style={{ stroke: 'var(--cat-servicios)' }} strokeWidth="2.4" vectorEffect="non-scaling-stroke" />
     </svg>
   )
 }
@@ -195,7 +199,7 @@ function Curva({ dias }) {
 function Reponer({ stock }) {
   const bajos = stock.filter((s) => s.bajo_minimo)
   return (
-    <div className="reponer">
+    <div className={`reponer${bajos.length ? ' is-urgente' : ''}`}>
       <h2>Para reponer</h2>
       <p className="tarjeta__sub">Bajo el mínimo</p>
       <p className="reponer__cuenta">

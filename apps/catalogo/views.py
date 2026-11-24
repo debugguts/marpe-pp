@@ -12,7 +12,7 @@ from config.formato import pesos
 from config.permisos import ConsultaOAdministrador, EsAdministrador
 from config.vistas import ABMConBajaLogica, anotar_actividad, validar
 
-from .models import PrecioProducto, Presentacion, Producto, presentacion_permitida
+from .models import Formato, PrecioProducto, Presentacion, Producto, presentacion_permitida
 from .precios import calcular
 from .serializers import (
     ConfirmarPrecioSerializer,
@@ -56,6 +56,17 @@ def nuevo_precio_vigente(producto, presentacion, precio):
     )
 
 
+def cajas_gemelas(presentacion, presentaciones):
+    """Las otras cajas con la misma cantidad de huevos (Caja de 6 × 30 y Caja Súper de 9 × 20 = 180).
+
+    Llevan siempre el mismo precio: se carga una vez y vale para las dos.
+    """
+    if presentacion.formato != Formato.CAJA:
+        return []
+    return [p for p in presentaciones if p.pk != presentacion.pk and p.formato == Formato.CAJA
+            and p.cantidad_bandejas_equivalentes == presentacion.cantidad_bandejas_equivalentes]
+
+
 class PrecioViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """Precios de venta y precio sugerido (HU-02-C).
 
@@ -92,6 +103,11 @@ class PrecioViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
             propias = [p for p in presentaciones if presentacion_permitida(producto, p)]
             calculo = calcular(producto, propias)
             sugeridos = calculo.pop("sugeridos", {})
+            # Las cajas gemelas se muestran en una sola fila (la de bandejas de 30) con un solo precio.
+            ocultas = set()
+            for p in sorted(propias, key=lambda p: -p.huevos_por_bandeja):
+                if p.pk not in ocultas:
+                    ocultas.update(g.pk for g in cajas_gemelas(p, propias))
             filas.append({
                 "producto": producto.pk,
                 "producto_nombre": str(producto),
@@ -104,7 +120,11 @@ class PrecioViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                     "sugerido": sugeridos.get(p.pk),
                     "formato": p.formato,
                     "huevos_por_bandeja": p.huevos_por_bandeja,
-                } for p in propias],
+                    "comparte_con": [g.nombre for g in cajas_gemelas(p, propias)],
+                    # Alguna gemela tiene otro precio (o ninguno): al guardar se igualan.
+                    "gemelas_desparejas": any(vigentes.get((producto.pk, g.pk)) != vigentes.get((producto.pk, p.pk))
+                                              for g in cajas_gemelas(p, propias)),
+                } for p in propias if p.pk not in ocultas],
             })
         return Response(filas)
 
@@ -124,6 +144,9 @@ class PrecioViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
         nuevo = nuevo_precio_vigente(producto, presentacion, precio)
         anotar_actividad(request.user, "Precio confirmado", nuevo)
+        propias = [p for p in Presentacion.objects.filter(estado=Estado.ACTIVO) if presentacion_permitida(producto, p)]
+        for gemela in cajas_gemelas(presentacion, propias):
+            nuevo_precio_vigente(producto, gemela, precio)
         respuesta = PrecioSerializer(nuevo).data
         respuesta["ganancia_estimada"] = str(precio - sugerido) if sugerido else None
         return Response(respuesta, status=status.HTTP_201_CREATED)

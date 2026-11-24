@@ -45,7 +45,7 @@ export default function Clientes() {
               <Campo etiqueta="Nombre" name="nombre" defaultValue={editando.nombre} error={errores.nombre}
                 required maxLength={80} autoComplete="off" data-foco />
               <Campo etiqueta="Teléfono (opcional)" name="telefono" type="tel" defaultValue={editando.telefono ?? ''}
-                error={errores.telefono} inputMode="tel" maxLength={20} onKeyDown={soloTelefono} autoComplete="off" placeholder="387-4001001" />
+                error={errores.telefono} inputMode="tel" maxLength={16} onKeyDown={soloTelefono} autoComplete="off" placeholder="387-4001001" />
             </>
           )}
         </FormularioABM>
