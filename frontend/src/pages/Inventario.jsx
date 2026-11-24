@@ -1,9 +1,12 @@
 import { useState } from 'react'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
+import Cifra from '../components/Cifra'
+import Dona from '../components/Dona'
 import FormularioABM from '../components/FormularioABM'
+import Icono from '../components/Icono'
 import { Boton, CabeceraPagina, Campo, EstadoVacio, Insignia, Panel } from '../components/ui'
 import { api } from '../lib/api'
-import { fecha, hora } from '../lib/formato'
+import { fecha, hora, hoyISO, numero } from '../lib/formato'
 import { useSesion } from '../lib/sesion'
 import '../styles/movimientos.css'
 import '../styles/inventario.css'
@@ -34,6 +37,15 @@ export default function Inventario() {
   const stock = useQuery({ queryKey: ['stock'], queryFn: () => api('/stock/') })
   const filas = stock.data ?? []
   const bajos = filas.filter((s) => s.bajo_minimo)
+  const mes = hoyISO().slice(0, 7)
+  const mermas = useQuery({
+    queryKey: ['movimientos-inventario', 'mermas', mes],
+    queryFn: () => api(`/movimientos-inventario/?tipo=MERMA&desde=${mes}-01&page_size=500`),
+  })
+  const totalBandejas = filas.reduce((s, f) => s + Number(f.cantidad_bandejas), 0)
+  const mermadas = (mermas.data?.results ?? []).reduce((s, m) => s + Math.abs(Number(m.cantidad_bandejas)), 0)
+  const partes = filas.map((f, i) => ({ nombre: f.producto_nombre, valor: Math.max(0, Number(f.cantidad_bandejas)), color: COLORES_STOCK[i % COLORES_STOCK.length] }))
+    .sort((a, b) => b.valor - a.valor)
 
   // Después de una merma o un ajuste cambian el stock, los movimientos y los precios del punto de venta.
   function cerrarCarga() {
@@ -47,10 +59,17 @@ export default function Inventario() {
     <>
       <CabeceraPagina titulo="Inventario" descripcion="Lo que hay de cada huevo. El stock se cuenta en bandejas de 30." acciones={nuevaMerma} />
 
-      {bajos.length > 0 && (
-        <p className="aviso-stock" role="status">
-          <strong>Para reponer:</strong> {bajos.map((s) => s.producto_nombre).join(', ')} {bajos.length === 1 ? 'está' : 'están'} por debajo del mínimo.
-        </p>
+      {stock.isSuccess && filas.length > 0 && (
+        <div className="cifras">
+          <Cifra tono="oscuro" icono="inventario" titulo="Stock total" valor={`${bandejas(totalBandejas)} bandejas`}
+            nota={`${numero(Math.round(totalBandejas * 30))} huevos en depósito`}
+            insignia={`${filas.length} ${filas.length === 1 ? 'producto' : 'productos'}`} />
+          <Cifra tono="salmon" icono="alerta" titulo="Bajo el mínimo" valor={`${bajos.length} ${bajos.length === 1 ? 'producto' : 'productos'}`}
+            nota={bajos.length ? bajos.map((s) => s.producto_nombre).join(' · ') : 'Todo por encima del mínimo'}
+            insignia={bajos.length ? 'Reponer esta semana' : 'Sin faltantes'} />
+          <Cifra tono="arena" icono="huevo" titulo="Mermas del mes" valor={`${bandejas(mermadas)} bandejas`}
+            nota="Rotos, sucios o vencidos" insignia={`${(mermas.data?.results ?? []).length} ${(mermas.data?.results ?? []).length === 1 ? "carga" : "cargas"}`} />
+        </div>
       )}
 
       {stock.isPending && <p className="abm-cargando">Cargando…</p>}
@@ -59,6 +78,7 @@ export default function Inventario() {
         <EstadoVacio icono="inventario" titulo="Todavía no hay stock" texto="El stock aparece cuando registrás la primera compra." />
       )}
 
+      <div className={filas.length ? 'tablero-2' : undefined}>
       <div className="stock-tarjetas">
         {filas.map((s) => (
           <article key={s.producto} className={`stock-tarjeta${s.bajo_minimo ? ' is-bajo' : ''}`}>
@@ -67,6 +87,7 @@ export default function Inventario() {
               {s.bajo_minimo ? <Insignia variante="peligro">Bajo mínimo</Insignia> : <Insignia variante="exito">Normal</Insignia>}
             </header>
             <p className="stock-tarjeta__total"><strong>{bandejas(s.cantidad_bandejas)}</strong> bandejas</p>
+            <Nivel stock={Number(s.cantidad_bandejas)} minimo={Number(s.stock_minimo_bandejas)} bajo={s.bajo_minimo} />
             <dl className="stock-tarjeta__reparto">
               {s.por_presentacion.map((p) => (
                 <div key={p.presentacion}>
@@ -88,6 +109,18 @@ export default function Inventario() {
           </article>
         ))}
       </div>
+      {filas.length > 0 && (
+        <aside className="panel stock-lado" aria-labelledby="stock-distribucion">
+          <h2 id="stock-distribucion" className="panel__titulo">Stock por producto</h2>
+          <Dona partes={partes} etiqueta="Stock por producto" centro={bandejas(totalBandejas)} nota="bandejas" />
+          <div className="recuadro">
+            <span className="recuadro__titulo"><Icono nombre="alerta" tamano={17} /> Para reponer</span>
+            <span>{bajos.length ? bajos.map((s) => s.producto_nombre).join(', ') : 'Nada por ahora.'}</span>
+            <span className="recuadro__nota">La línea de cada tarjeta marca su mínimo.</span>
+          </div>
+        </aside>
+      )}
+      </div>
 
       <Movimientos productos={filas} />
 
@@ -108,6 +141,18 @@ export default function Inventario() {
 }
 
 const CANTIDAD_MAX = 100000
+const COLORES_STOCK = ['#C9B79F', 'var(--cat-otros)', '#B7825B', '#7A4A2E', 'var(--cat-servicios)', 'var(--cat-insumos)', 'var(--cat-mantenimiento)']
+
+// Barra de nivel: cuánto hay comparado con el mínimo (la línea marca el mínimo).
+function Nivel({ stock, minimo, bajo }) {
+  const tope = Math.max(stock, minimo * 2, 1)
+  return (
+    <div className="nivel" role="img" aria-label={`${bandejas(stock)} bandejas; mínimo ${bandejas(minimo)}`}>
+      <span className={`nivel__barra${bajo ? ' is-bajo' : ''}`} style={{ width: `${Math.min(100, (stock / tope) * 100)}%` }} />
+      {minimo > 0 && <span className="nivel__minimo" style={{ left: `${(minimo / tope) * 100}%` }} title="Mínimo" />}
+    </div>
+  )
+}
 const soloEnteros = (e) => { if (['-', '+', 'e', 'E', '.', ','].includes(e.key)) e.preventDefault() }
 const sinSignos = (e) => { if (['-', '+', 'e', 'E'].includes(e.key)) e.preventDefault() }
 const sinRueda = (e) => e.currentTarget.blur() // la rueda del mouse no cambia el número

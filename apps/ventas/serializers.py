@@ -23,6 +23,9 @@ class LineaVentaSerializer(serializers.Serializer):
     cantidad = serializers.DecimalField(max_digits=12, decimal_places=3, min_value=Decimal("0.001"))
 
 
+MAX_LINEAS = 50  # tope de líneas por operación (S-seguridad V2)
+
+
 class NuevaVentaSerializer(serializers.Serializer):
     cliente = serializers.PrimaryKeyRelatedField(
         queryset=Cliente.objects.filter(estado=Estado.ACTIVO), error_messages=ACTIVO,
@@ -30,7 +33,9 @@ class NuevaVentaSerializer(serializers.Serializer):
     modalidad = serializers.ChoiceField(choices=Venta.Modalidad.choices)
     medio_pago = serializers.ChoiceField(choices=MedioPago.choices, required=False, allow_null=True)
     referencia_transferencia = serializers.CharField(max_length=100, required=False, allow_blank=True)
-    detalles = LineaVentaSerializer(many=True, allow_empty=False)
+    # Como mucho 50 líneas por venta: una venta real tiene pocas y así nadie traba el servidor (S-seguridad V2)
+    detalles = LineaVentaSerializer(many=True, allow_empty=False, max_length=MAX_LINEAS,
+                                    error_messages={"max_length": f"Una venta puede tener como mucho {MAX_LINEAS} líneas."})
 
     def validate_detalles(self, lineas):
         combinaciones = [(l["producto"].pk, l["presentacion"].pk) for l in lineas]

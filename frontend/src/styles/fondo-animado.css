@@ -1,0 +1,268 @@
+/* Fondo animado del login (FondoAnimado.jsx).
+   Las variables de cada momento del día cambian con <html data-momento="…"> y todo pasa con transición. */
+:root {
+  --f-filtro: none; --f-tinte: transparent; --f-mezcla: normal;
+  --f-sol-x: 30%; --f-sol-y: 25%; --f-sol-t: 46vmax; --f-sol-1: rgb(255 226 190 / 0.55); --f-sol-2: rgb(255 214 180 / 0.18);
+  --f-nubes: 1; --f-nube-color: #fff; --f-bruma: 1; --f-aves: 1; --f-estrellas: 0; --f-luna: 0;
+  --f-luz: #fff6ec; --f-luz-brillo: rgb(255 240 220 / 0.7);
+  --f-saludo: #fff; --f-saludo-sombra: rgb(60 40 30 / 0.4);
+}
+html[data-momento="manana"] {
+  --f-filtro: brightness(1.14) saturate(0.8) contrast(0.92);
+  --f-tinte: linear-gradient(180deg, rgb(255 252 245 / 0.55), rgb(255 250 240 / 0.15) 60%, transparent); --f-mezcla: screen;
+  --f-sol-x: 18%; --f-sol-y: 34%; --f-sol-t: 40vmax; --f-sol-1: rgb(255 250 235 / 0.7); --f-sol-2: rgb(255 245 225 / 0.25);
+  --f-saludo: #3B2F27; --f-saludo-sombra: rgb(255 255 255 / 0.6);
+}
+html[data-momento="tarde"] {
+  --f-filtro: brightness(1.06) saturate(1.3) contrast(1.02);
+  --f-tinte: linear-gradient(180deg, rgb(255 215 140 / 0.35), rgb(255 230 170 / 0.1) 55%, transparent); --f-mezcla: soft-light;
+  --f-sol-x: 36%; --f-sol-y: 12%; --f-sol-t: 52vmax; --f-sol-1: rgb(255 245 200 / 0.85); --f-sol-2: rgb(255 220 150 / 0.3); --f-nubes: 0.8;
+}
+html[data-momento="atardecer"] {
+  --f-filtro: brightness(0.9) saturate(1.45) contrast(1.05);
+  --f-tinte: linear-gradient(180deg, rgb(255 110 70 / 0.45), rgb(200 70 90 / 0.35) 50%, rgb(60 25 45 / 0.45)); --f-mezcla: overlay;
+  --f-sol-x: 30%; --f-sol-y: 52%; --f-sol-t: 60vmax; --f-sol-1: rgb(255 170 90 / 0.9); --f-sol-2: rgb(255 110 70 / 0.35);
+  --f-nube-color: #FFC3A0; --f-luz: #FFD9A8;
+}
+html[data-momento="noche"] {
+  --f-filtro: brightness(0.55) saturate(0.6) contrast(1.05);
+  --f-tinte: linear-gradient(180deg, rgb(12 18 52 / 0.75), rgb(25 30 70 / 0.6) 60%, rgb(10 10 30 / 0.75)); --f-mezcla: multiply;
+  --f-sol-t: 0px; --f-nubes: 0.35; --f-nube-color: #9AA6D8; --f-bruma: 0.35; --f-aves: 0; --f-estrellas: 1; --f-luna: 1;
+  --f-luz: #FFF0A8; --f-luz-brillo: rgb(255 235 140 / 0.8);
+}
+
+.fondo {
+  --mx: 0; --my: 0;
+  position: fixed;
+  inset: -40px;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: opacity 0.8s ease;
+}
+.fondo[data-pausa="si"] * { animation-play-state: paused !important; }
+
+/* Cada capa se corre un poco al mover el mouse (más cuanto más "cerca" está) */
+.fondo__capa {
+  position: absolute;
+  inset: 0;
+  transform: translate(calc(var(--mx) * var(--d) * -1px), calc(var(--my) * var(--d) * -0.6px));
+  transition: transform 1.2s cubic-bezier(.2, .7, .2, 1);
+}
+
+/* La imagen: zoom y paneo muy lentos */
+.fondo__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 65%;
+  filter: var(--f-filtro);
+  transform-origin: 60% 60%;
+  animation: fondo-zoom 38s ease-in-out infinite alternate;
+  transition: filter 2.5s ease;
+}
+@keyframes fondo-zoom { from { transform: scale(1.02); } to { transform: scale(1.12) translate(-1.5%, -1%); } }
+
+.fondo__tinte { position: absolute; inset: 0; background: var(--f-tinte); mix-blend-mode: var(--f-mezcla); transition: background 2.5s ease; }
+
+.fondo__estrellas { position: absolute; inset: 0 0 40% 0; opacity: var(--f-estrellas); transition: opacity 2.5s; }
+.fondo__estrellas i { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #fff; animation: fondo-titila 3s ease-in-out infinite; }
+@keyframes fondo-titila { 50% { opacity: 0.2; } }
+
+.fondo__sol {
+  position: absolute;
+  left: var(--f-sol-x);
+  top: var(--f-sol-y);
+  width: var(--f-sol-t);
+  height: var(--f-sol-t);
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--f-sol-1), var(--f-sol-2) 32%, transparent 65%);
+  mix-blend-mode: screen;
+  transform: translate(-50%, -50%);
+  animation: fondo-respira 7s ease-in-out infinite alternate;
+  transition: left 2.5s ease, top 2.5s ease, width 2.5s, height 2.5s;
+}
+@keyframes fondo-respira {
+  from { opacity: 0.7; transform: translate(-50%, -50%) scale(0.95); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+}
+.fondo__luna {
+  position: absolute;
+  left: 26%;
+  top: 20%;
+  width: clamp(60px, 7vw, 100px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 35%, #FFFDF6, #F1EAD8 55%, #D9CFB8);
+  box-shadow: 0 0 40px 10px rgb(255 248 225 / 0.35), 0 0 140px 40px rgb(200 210 255 / 0.15);
+  opacity: var(--f-luna);
+  transition: opacity 2.5s;
+}
+.fondo__luna::before, .fondo__luna::after { content: ""; position: absolute; border-radius: 50%; background: rgb(170 160 140 / 0.28); }
+.fondo__luna::before { width: 22%; height: 22%; left: 55%; top: 30%; }
+.fondo__luna::after { width: 14%; height: 14%; left: 30%; top: 60%; }
+
+.fondo__nube {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--f-nube-color);
+  filter: blur(28px);
+  opacity: calc(0.32 * var(--f-nubes));
+  transition: background 2.5s, opacity 2.5s;
+}
+.fondo__nube--1 { width: 46vw; height: 9vh; top: 9%; left: -50vw; animation: fondo-cruza 95s linear infinite; }
+.fondo__nube--2 { width: 34vw; height: 7vh; top: 20%; left: -40vw; animation: fondo-cruza 120s linear -60s infinite; }
+.fondo__nube--3 { width: 56vw; height: 10vh; top: 4%; left: -60vw; animation: fondo-cruza 150s linear -100s infinite; }
+@keyframes fondo-cruza { to { transform: translateX(170vw); } }
+
+.fondo__bruma {
+  position: absolute;
+  left: -20%;
+  right: -20%;
+  top: 52%;
+  height: 16vh;
+  background: linear-gradient(90deg, transparent, rgb(255 240 235 / 0.35), transparent 40%, rgb(255 240 235 / 0.28) 70%, transparent);
+  filter: blur(18px);
+  opacity: var(--f-bruma);
+  animation: fondo-bruma 26s ease-in-out infinite alternate;
+  transition: opacity 2.5s;
+}
+.fondo__bruma--2 { top: 62%; height: 10vh; animation-duration: 34s; animation-direction: alternate-reverse; }
+@keyframes fondo-bruma { from { transform: translateX(-8%); } to { transform: translateX(8%); } }
+
+/* Aves: tres bandadas que cruzan ondulando (de noche no salen) */
+.fondo__aves { position: absolute; left: -20%; opacity: var(--f-aves); transition: opacity 2s; animation: fondo-vuelo 26s linear infinite; }
+.fondo__aves--1 { top: 16%; }
+.fondo__aves--2 { top: 30%; animation-duration: 34s; animation-delay: -14s; }
+.fondo__aves--3 { top: 8%; animation-duration: 40s; animation-delay: -28s; }
+@keyframes fondo-vuelo {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(20vw, -3vh); }
+  50% { transform: translate(45vw, 1vh); }
+  75% { transform: translate(70vw, -4vh); }
+  100% { transform: translate(95vw, 0); }
+}
+.fondo__ave { fill: none; stroke: #3A2D25; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; opacity: 0.8; }
+.fondo__ave path { transform-box: fill-box; transform-origin: center; animation: fondo-aleteo 0.55s ease-in-out infinite alternate; }
+@keyframes fondo-aleteo { to { transform: scaleY(-0.55); } }
+
+/* Partículas de luz (de noche, luciérnagas) */
+.fondo__luz {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--f-luz);
+  box-shadow: 0 0 10px 3px var(--f-luz-brillo);
+  opacity: 0;
+  animation: fondo-flota linear infinite;
+}
+@keyframes fondo-flota {
+  0% { opacity: 0; transform: translate(0, 0); }
+  15% { opacity: 0.85; }
+  85% { opacity: 0.6; }
+  100% { opacity: 0; transform: translate(40px, -160px); }
+}
+
+.fondo__vineta { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 45%, rgb(60 40 32 / 0.28) 100%); }
+
+/* ---------- Selector del momento del día: ícono redondo y menú horizontal oscuro ---------- */
+.momento { position: fixed; z-index: 3; top: 1rem; left: 1rem; transition: opacity 0.4s; }
+html[data-bienvenida] .momento { opacity: 0; pointer-events: none; }
+.momento__boton {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  border: 1px solid rgb(255 255 255 / 0.35);
+  background: rgb(30 22 18 / 0.45);
+  color: #fff;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transition: background 0.2s, transform 0.2s;
+}
+.momento__boton:hover { background: rgb(30 22 18 / 0.65); transform: scale(1.05); }
+.momento__boton svg { width: 22px; height: 22px; }
+.momento__punto { position: absolute; right: 2px; top: 2px; width: 10px; height: 10px; border-radius: 50%; background: #2E9D5B; border: 2px solid #fff; opacity: 0; transition: opacity 0.2s; }
+.momento__boton.is-auto .momento__punto { opacity: 1; }
+.menu-momento {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 2.75rem;
+  padding: 4px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: rgb(22 16 13 / 0.92);
+  border: 1px solid rgb(243 232 224 / 0.12);
+  box-shadow: 0 16px 40px -12px rgb(0 0 0 / 0.55);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  clip-path: inset(0 100% 0 0 round 999px);
+  opacity: 0;
+  pointer-events: none;
+  transition: clip-path 0.45s cubic-bezier(.2, .7, .2, 1), opacity 0.25s;
+}
+.menu-momento[data-abierto] { clip-path: inset(0 0 0 0 round 999px); opacity: 1; pointer-events: auto; }
+.menu-momento button {
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: rgb(243 232 224 / 0.8);
+  font: 13px var(--fuente-ui);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.menu-momento button:hover, .menu-momento button:focus-visible { background: rgb(243 232 224 / 0.09); color: #fff; outline: none; }
+.menu-momento svg { width: 17px; height: 17px; flex: none; color: var(--rosa); }
+.menu-momento button[aria-checked="true"] { background: var(--rosa); color: #1B1410; font-weight: 700; }
+.menu-momento button[aria-checked="true"] svg { color: #1B1410; }
+.menu-momento hr { width: 1px; height: 22px; margin: 0 4px; border: 0; background: rgb(243 232 224 / 0.18); }
+/* En el login: a la derecha del botón redondo */
+.momento .menu-momento { position: absolute; top: 0; left: 3.4rem; }
+/* En el menú lateral: flotando al costado del botón "Fondo" (la posición la calcula Layout) */
+.menu-momento--flotante { position: fixed; z-index: 60; }
+
+/* ---------- Fondo quieto: sin movimiento (sigue cambiando de color según el momento) ---------- */
+.fondo--quieto *, .fondo--quieto *::before, .fondo--quieto *::after { animation: none !important; }
+.fondo--quieto .fondo__aves, .fondo--quieto .fondo__luz { display: none; }
+
+/* Dentro del sistema la luna va a la derecha, para no quedar detrás del título de cada pantalla */
+.fondo--sistema .fondo__luna { left: 60%; top: 13%; }
+
+@media (max-width: 56.25rem) {
+  .fondo__aves { width: 80px; height: auto; top: 4%; }
+  .fondo__aves--2 { top: 12%; }
+  .fondo__aves--3 { display: none; }
+  .fondo__luna { left: 74%; top: 8%; width: 64px; }
+  .momento { top: 0.75rem; left: 0.75rem; }
+  .menu-momento span { display: none; }
+  .menu-momento button { padding: 0 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fondo *, .fondo *::before, .fondo *::after { animation: none !important; }
+  .fondo__luz { opacity: 0.6; }
+}
+
+/* ---------- Textos que van directo sobre el paisaje (títulos de cada pantalla) ----------
+   De día quedan oscuros como siempre; al atardecer y de noche pasan a claros para que se lean. */
+html[data-momento="atardecer"] .contenido .cab-pagina h1,
+html[data-momento="atardecer"] .contenido .cab-pagina__desc,
+html[data-momento="atardecer"] .contenido > .abm-cargando,
+html[data-momento="noche"] .contenido .cab-pagina h1,
+html[data-momento="noche"] .contenido .cab-pagina__desc,
+html[data-momento="noche"] .contenido > .abm-cargando {
+  color: var(--arena);
+  text-shadow: 0 2px 18px rgb(20 14 30 / 0.55);
+  transition: color 2s;
+}
+html[data-momento="atardecer"] .contenido .cab-pagina h1 span,
+html[data-momento="noche"] .contenido .cab-pagina h1 span { color: color-mix(in srgb, var(--arena) 70%, transparent); }

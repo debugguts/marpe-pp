@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ titulo|title }} {{ numero }} · Huevería Marpe</title>
+<style>
+  @page { size: 80mm auto; margin: 4mm; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #ece6e2; font: 12px/1.35 "DejaVu Sans Mono", "Consolas", "Courier New", monospace; color: #111; }
+  .acciones { display: flex; gap: 8px; justify-content: center; padding: 16px; font-family: Verdana, sans-serif; }
+  .acciones button { border: 0; border-radius: 10px; padding: 10px 18px; font: 600 14px Verdana, sans-serif; cursor: pointer; }
+  .acciones .imprimir { background: #2B211C; color: #fff; }
+  .acciones .cerrar { background: #fff; color: #2B211C; border: 1px solid #cdbfb7; }
+  .ticket { position: relative; width: 80mm; margin: 0 auto 24px; padding: 5mm 4mm; background: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.15); overflow: hidden; }
+  .c { text-align: center; }
+  .logo { height: 34px; filter: grayscale(1); }
+  hr { border: 0; border-top: 1px dashed #555; margin: 6px 0; }
+  .fila { display: flex; justify-content: space-between; gap: 8px; }
+  .linea { margin: 4px 0; }
+  .total { font-size: 16px; font-weight: bold; margin-top: 2px; }
+  .qr svg { width: 92px; height: 92px; }
+  .marca { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+  .marca span { transform: rotate(-28deg); font: bold 44px sans-serif; color: rgba(179, 38, 30, .22); border: 4px solid rgba(179, 38, 30, .22); padding: 2px 14px; }
+  .aviso { font-weight: bold; }
+  @media print {
+    body { background: #fff; }
+    .acciones { display: none; }
+    .ticket { width: auto; margin: 0; padding: 0; box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+<div class="acciones">
+  <button class="imprimir" onclick="window.print()">Imprimir / Guardar PDF</button>
+  <button class="cerrar" onclick="window.close()">Cerrar</button>
+</div>
+<main class="ticket">
+  {% if anulada %}<div class="marca"><span>ANULADA</span></div>{% endif %}
+  <div class="c">
+    <img class="logo" src="/logo-horizontal.png" alt="Huevería Marpe"><br>
+    Barrio Pueblo Nuevo · Cerrillos, Salta<br>
+    <b>{{ titulo }} X</b><br>
+    <b>Nº {{ numero }}</b><br>
+    {{ fecha }}{% if hora %} {{ hora }} hs{% endif %}
+  </div>
+  <hr>
+  {% for etiqueta, valor in datos %}{{ etiqueta }}: {{ valor }}<br>{% endfor %}
+  <hr>
+  {% for l in lineas %}
+    <div class="linea"><b>{{ l.producto }}</b>
+      <div class="fila"><span>{{ l.detalle }}</span><span>{{ l.subtotal }}</span></div></div>
+  {% endfor %}
+  <hr>
+  <div class="fila total"><span>TOTAL</span><span>{{ total }}</span></div>
+  {% for p in pagos %}<div class="fila"><span>{{ p.texto }}</span><span>{{ p.importe }}</span></div>{% endfor %}
+  {% if anulada %}<hr><div class="aviso">ANULADA{% if motivo %}: {{ motivo }}{% endif %}</div>
+  {% elif modificada %}<hr><div>Comprobante de la versión modificada.</div>{% endif %}
+  <hr>
+  <div class="c">
+    <div class="qr">{{ qr|safe }}</div>
+    {{ codigo }}<br><br>
+    <b>{{ saludo }}</b><br>
+    DOCUMENTO NO VÁLIDO COMO FACTURA
+  </div>
+</main>
+</body>
+</html>

@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from config.comprobantes import comprobante_venta
 from config.permisos import EsAdministrador
 from config.vistas import anotar_actividad, validar
 
@@ -21,6 +22,7 @@ class VentaViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Ge
     GET  /ventas/<id>/         venta con su detalle y pagos
     PUT  /ventas/<id>/         modificación completa (solo administrador): mismos datos que el alta
     POST /ventas/<id>/anular/  anulación con motivo (solo administrador)
+    GET  /ventas/<id>/comprobante/  ticket de 80 mm listo para imprimir (no fiscal)
     DELETE no existe (405): una venta movió stock y caja, así que se anula y queda el registro.
     """
 
@@ -83,3 +85,7 @@ class VentaViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Ge
         anular_venta(venta, motivo, request.user)
         anotar_actividad(request.user, "Anulación", venta, detalle=f"Motivo: {motivo}")
         return self.respuesta(venta)
+
+    @action(detail=True)
+    def comprobante(self, request, pk=None):
+        return comprobante_venta(self.get_object())

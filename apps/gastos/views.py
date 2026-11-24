@@ -10,10 +10,10 @@ from rest_framework.response import Response
 
 from apps.caja.models import MovimientoCaja
 from apps.caja.servicios import mover_caja
-from apps.catalogo.precios import mes_actual
+from apps.catalogo.precios import fijos_entre, mes_actual, mes_de_los_fijos
 from config.permisos import ConsultaOAdministrador
 from config.comunes import MedioPago
-from config.vistas import anotar_actividad, validar
+from config.vistas import PaginaDelMes, anotar_actividad, validar
 
 from .models import Gasto, GastoMovCaja
 from .serializers import AnularGastoSerializer, GastoSerializer
@@ -28,11 +28,13 @@ class GastoViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.Retrie
     PATCH /gastos/<id>/       corrige fecha, concepto, categoría o tipo (el importe no)
     POST  /gastos/<id>/anular/ anula con motivo; si fue en efectivo, la plata vuelve a la caja abierta
     ?estado=CONFIRMADO|ANULADO en la lista. DELETE no existe (405): se anula y queda el registro.
-    GET   /gastos/resumen/    totales del mes: fijos, variables y por categoría (?mes=AAAA-MM)
+    GET   /gastos/resumen/    totales del mes: fijos, variables, por categoría (?mes=AAAA-MM) y la base
+                              de fijos que usa el precio de venta (la del mes anterior si este no tiene)
     """
 
     serializer_class = GastoSerializer
     permission_classes = [ConsultaOAdministrador]  # el operador consulta; carga el administrador
+    pagination_class = PaginaDelMes
     filter_backends = [filters.SearchFilter]
     search_fields = ["concepto", "categoria"]
 
@@ -93,4 +95,12 @@ class GastoViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.Retrie
             "fijos": total(gastos.filter(tipo=Gasto.Tipo.FIJO)),
             "variables": total(gastos.filter(tipo=Gasto.Tipo.VARIABLE)),
             "por_categoria": list(gastos.values("categoria").annotate(total=Sum("importe")).order_by("-total")),
+            "base_precio": self.base_precio(),
         })
+
+    @staticmethod
+    def base_precio():
+        """Fijos que hoy toma el calculador de precios (siempre del mes en curso, o su respaldo)."""
+        desde, hasta = mes_actual()
+        desde, hasta, respaldo = mes_de_los_fijos(desde, hasta)
+        return {"fijos": fijos_entre(desde, hasta), "mes": desde.strftime("%Y-%m"), "respaldo": respaldo}

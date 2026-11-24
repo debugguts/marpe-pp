@@ -7,7 +7,7 @@ from config.comunes import MedioPago
 
 class Gasto(models.Model):
     class Tipo(models.TextChoices):
-        # Los fijos (alquiler, combustible, ...) se usan para calcular el precio sugerido (HU-09-E).
+        # Los fijos (puesto de feria, sueldos, ...) se usan para calcular el precio sugerido (HU-09-E).
         FIJO = "FIJO", "Fijo"
         VARIABLE = "VARIABLE", "Variable"
 

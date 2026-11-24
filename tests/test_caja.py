@@ -8,10 +8,12 @@ from .datos import crear_base
 
 
 class CajaAPITest(APITestCase):
+    # Saldos y diferencias: los ve el administrador (el operador cierra a ciegas, ver test_arqueo_ciego).
     url = "/api/cajas/"
 
     def setUp(self):
         crear_base(self)
+        self.client.force_login(self.admin)
 
     def abrir(self, saldo="10000"):
         return self.client.post(self.url, {"saldo_inicial": saldo}, format="json")
@@ -56,7 +58,7 @@ class CajaAPITest(APITestCase):
         self.client.post(f"{self.url}{caja}/cerrar/", {"efectivo_contado": "10000"}, format="json")
         otro_cierre = self.client.post(f"{self.url}{caja}/cerrar/", {"efectivo_contado": "10000"}, format="json")
         movimiento = self.client.post(f"{self.url}{caja}/movimientos/",
-                                      {"tipo_movimiento": "INGRESO_MANUAL", "importe": "1", "motivo": "x"}, format="json")
+                                      {"tipo_movimiento": "INGRESO_MANUAL", "importe": "1", "motivo": "Cambio"}, format="json")
         self.assertEqual(otro_cierre.status_code, 400)
         self.assertEqual(movimiento.status_code, 400)
 
@@ -70,6 +72,7 @@ class ResumenDeCajaTest(APITestCase):
 
     def test_resumen_por_medio(self):
         crear_base(self)
+        self.client.force_login(self.admin)
         self.client.post("/api/cajas/", {"saldo_inicial": "1000"}, format="json")
         linea = [{"producto": self.producto.pk, "presentacion": self.bandeja.pk, "cantidad": "1"}]
         self.client.post("/api/ventas/", {"modalidad": "CONTADO", "medio_pago": "EFECTIVO", "detalles": linea}, format="json")
@@ -79,3 +82,17 @@ class ResumenDeCajaTest(APITestCase):
         self.assertEqual(resumen["ventas_efectivo"], "7000.00")
         self.assertEqual(resumen["ventas_transferencia"], "7000.00")
         self.assertEqual(resumen["cantidad_ventas"], "2")
+
+
+class ImportesNegativosTest(APITestCase):
+    def setUp(self):
+        crear_base(self)
+
+    def test_no_se_aceptan_negativos_en_la_caja(self):
+        self.assertIn("saldo_inicial", self.client.post("/api/cajas/", {"saldo_inicial": "-100"}, format="json").data)
+        caja = self.client.post("/api/cajas/", {"saldo_inicial": "1000"}, format="json").data
+        url = f"/api/cajas/{caja['id_caja']}/"
+        mov = self.client.post(url + "movimientos/", {"tipo_movimiento": "INGRESO_MANUAL", "importe": "-50", "motivo": "Cambio"}, format="json")
+        self.assertIn("importe", mov.data)
+        self.assertIn("motivo", self.client.post(url + "movimientos/", {"tipo_movimiento": "RETIRO", "importe": "50", "motivo": "x"}, format="json").data)
+        self.assertIn("efectivo_contado", self.client.post(url + "cerrar/", {"efectivo_contado": "-1"}, format="json").data)

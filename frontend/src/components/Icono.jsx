@@ -35,6 +35,10 @@ const TRAZOS = {
   tilde: 'M5 12.5l4.5 4.5L19 7.5',
   celular: 'M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z M11 18h2',
   circulo: 'M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+  calendario: 'M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z M4 10h16 M9 3v4 M15 3v4',
+  etiqueta: 'M3 12V4h8l10 10-8 8z M7.5 8h.01',
+  efectivo: 'M3 7h18v10H3z M12 14.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
+  huevo: 'M12 3c3.5 0 6 5 6 9a6 6 0 0 1-12 0c0-4 2.5-9 6-9z',
 }
 
 export default function Icono({ nombre, tamano = 20 }) {

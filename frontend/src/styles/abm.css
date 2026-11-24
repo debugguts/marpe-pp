@@ -94,7 +94,7 @@
   gap: var(--espacio-3);
   padding: var(--espacio-4) var(--espacio-4) var(--espacio-2);
 }
-.dialogo__cab h2 { font-size: var(--texto-l); }
+.dialogo__cab h2 { font: 900 1.35rem/1.15 var(--fuente-titulo); text-transform: uppercase; color: var(--texto); }
 .dialogo__cab p { margin-top: 0.25rem; font-size: var(--texto-s); }
 .dialogo__cerrar { width: var(--alto-control); padding: 0; flex: none; }
 .dialogo__cuerpo { display: grid; gap: var(--espacio-3); padding: var(--espacio-2) var(--espacio-4) var(--espacio-4); }

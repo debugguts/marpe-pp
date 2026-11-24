@@ -83,11 +83,11 @@ export default function Reportes() {
       {r && (
         <div className={reporte.isFetching ? 'reporte__datos is-actualizando' : 'reporte__datos'}>
           <div className="cifras">
-            <Cifra titulo="Ventas" valor={moneda(r.ventas.total)} destacada
+            <Cifra icono="ventas" titulo="Ventas" valor={moneda(r.ventas.total)} destacada
               nota={`${numero(r.ventas.cantidad)} ${r.ventas.cantidad === 1 ? 'venta' : 'ventas'} · promedio ${moneda(r.ventas.ticket_promedio)}`} />
-            <Cifra titulo="Compras" valor={moneda(r.compras.total)} nota={`${numero(r.compras.cantidad)} ${r.compras.cantidad === 1 ? 'compra' : 'compras'}`} />
-            <Cifra titulo="Gastos" valor={moneda(r.gastos.total)} nota={`Fijos ${moneda(r.gastos.fijos)} · variables ${moneda(r.gastos.variables)}`} />
-            <Cifra titulo="Ganancia neta" valor={<Signo valor={r.ganancia.neta} />} nota={`Bruta ${moneda(r.ganancia.bruta)}`} />
+            <Cifra tono="salmon" icono="compras" titulo="Compras" valor={moneda(r.compras.total)} nota={`${numero(r.compras.cantidad)} ${r.compras.cantidad === 1 ? 'compra' : 'compras'}`} />
+            <Cifra tono="arena" icono="gastos" titulo="Gastos" valor={moneda(r.gastos.total)} nota={`Fijos ${moneda(r.gastos.fijos)} · variables ${moneda(r.gastos.variables)}`} />
+            <Cifra tono="verde" icono="reportes" titulo="Ganancia neta" valor={<Signo valor={r.ganancia.neta} />} nota={`Bruta ${moneda(r.ganancia.bruta)}`} />
           </div>
 
           <div className="reporte__grilla">

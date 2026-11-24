@@ -2,92 +2,152 @@ import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import AvisoError from '../components/AvisoError'
 import Dialogo from '../components/Dialogo'
+import Cifra from '../components/Cifra'
+import Dona from '../components/Dona'
 import Icono from '../components/Icono'
-import { Boton, CabeceraPagina, Campo, EstadoVacio, Insignia, Panel } from '../components/ui'
+import { Boton, CabeceraPagina, Campo, EstadoVacio, Insignia } from '../components/ui'
 import { erroresDe } from '../lib/abm'
-import { api } from '../lib/api'
+import { abrirComprobante, api } from '../lib/api'
 import { fecha, hora, hoyISO, moneda, numero } from '../lib/formato'
+import { textoMes, ultimoDia, ultimosMeses } from '../lib/meses'
 import { useEsAdministrador } from '../lib/sesion'
 import '../styles/movimientos.css'
+
+const COLORES_PROVEEDOR = ['var(--cat-sueldos)', 'var(--cat-combustible)', 'var(--cat-servicios)', 'var(--cat-insumos)', 'var(--cat-mantenimiento)', 'var(--cat-otros)']
 
 // Compras a proveedores (S5-13 · HU-04). Al registrar una compra los huevos
 // se suman solos al stock, convertidos a bandejas según la presentación.
 export default function Compras() {
   const esAdministrador = useEsAdministrador()
+  const meses = ultimosMeses()
+  const [mes, setMes] = useState(meses[0])
   const [nueva, setNueva] = useState(false)
   const [abierta, setAbierta] = useState(null) // compra que se está mirando
   const [editando, setEditando] = useState(null) // compra que se está modificando
   const [anulando, setAnulando] = useState(null)
   const [proveedor, setProveedor] = useState('')
+  const [estado, setEstado] = useState('')
   const proveedores = useProveedores()
   const compras = useQuery({
-    queryKey: ['compras', proveedor],
-    queryFn: () => api(`/compras/${proveedor ? `?proveedor=${proveedor}` : ''}`),
+    queryKey: ['compras', 'mes', mes],
+    queryFn: () => api(`/compras/?desde=${mes}-01&hasta=${ultimoDia(mes)}&page_size=500`),
   })
-  const filas = compras.data?.results ?? []
+  const delMes = compras.data?.results ?? []
+  const filas = delMes.filter((c) => (!proveedor || String(c.proveedor) === proveedor) && (!estado || c.estado === estado))
+
+  // Cifras y gráfico del mes (las anuladas no cuentan)
+  const confirmadas = delMes.filter((c) => c.estado !== 'ANULADA')
+  const total = confirmadas.reduce((s, c) => s + Number(c.total), 0)
+  const bandejas = confirmadas.reduce((s, c) => s + c.detalles.reduce((t, d) => t + Number(d.bandejas ?? 0), 0), 0)
+  const porProveedor = new Map()
+  for (const c of confirmadas) porProveedor.set(c.proveedor_nombre, (porProveedor.get(c.proveedor_nombre) ?? 0) + Number(c.total))
+  const partes = [...porProveedor].sort((a, b) => b[1] - a[1]).map(([nombre, valor], i) => ({ nombre, valor, color: COLORES_PROVEEDOR[i % COLORES_PROVEEDOR.length] }))
+  const principal = partes[0]
 
   return (
     <>
-      <CabeceraPagina titulo="Compras" descripcion="Lo que le comprás a cada proveedor. Suma al stock automáticamente."
-        acciones={<Boton icono="mas" onClick={() => setNueva(true)}>Nueva compra</Boton>} />
+      <CabeceraPagina titulo="Compras" descripcion="Lo que entra al stock, con su comprobante al lado de cada compra."
+        acciones={(
+          <div className="cab-pagina__acciones">
+            <label className="pastilla pastilla--selector">
+              <Icono nombre="calendario" tamano={18} />
+              <span className="sr-only">Mes</span>
+              <select value={mes} onChange={(e) => setMes(e.target.value)}>
+                {meses.map((m) => <option key={m} value={m}>{textoMes(m)}</option>)}
+              </select>
+            </label>
+            <Boton icono="mas" onClick={() => setNueva(true)}>Nueva compra</Boton>
+          </div>
+        )} />
 
-      <div className="abm-barra">
-        <label className="abm-filtro">
-          <span className="sr-only">Proveedor</span>
-          <select className="campo__control" value={proveedor} onChange={(e) => setProveedor(e.target.value)}>
-            <option value="">Todos los proveedores</option>
-            {proveedores.map((p) => <option key={p.id_proveedor} value={p.id_proveedor}>{p.nombre}</option>)}
-          </select>
-        </label>
+      <div className="cifras">
+        <Cifra tono="oscuro" icono="compras" titulo="Compras del mes" valor={moneda(total)}
+          insignia={`${confirmadas.length} ${confirmadas.length === 1 ? 'compra confirmada' : 'compras confirmadas'}`} />
+        <Cifra tono="salmon" icono="huevo" titulo="Bandejas ingresadas" valor={numero(Math.round(bandejas))}
+          nota={`${numero(Math.round(bandejas * 30))} huevos al stock`}
+          insignia={bandejas ? `Costo prom. ${moneda(total / bandejas)} la bandeja` : 'Sin compras este mes'} />
+        <Cifra tono="arena" icono="proveedores" titulo="Proveedores" valor={`${partes.length} ${partes.length === 1 ? 'activo' : 'activos'}`}
+          nota={principal ? `${principal.nombre} es el principal` : 'Todavía no hay compras'}
+          insignia={principal && total ? `${Math.round((principal.valor / total) * 100)} % de lo comprado` : '—'} />
       </div>
 
-      {compras.isPending ? <p className="abm-cargando">Cargando…</p> : filas.length === 0 ? (
-        <EstadoVacio icono="compras" titulo="Todavía no hay compras" texto="Registrá la primera para sumar huevos al stock." />
-      ) : (
-        <Panel>
-          <div className="tabla-wrap">
-            <table className="tabla">
-              <thead>
-                <tr><th scope="col">Fecha</th><th scope="col">Proveedor</th><th scope="col">Detalle</th><th scope="col" className="num">Total</th><th scope="col"><span className="sr-only">Acciones</span></th></tr>
-              </thead>
-              <tbody>
-                {filas.map((c) => (
-                  <tr key={c.id_compra} className={`fila-clic${c.estado === 'ANULADA' ? ' is-anulada' : ''}`} tabIndex={0}
-                    aria-label={`Ver la compra Nº ${c.id_compra}`} onClick={() => setAbierta(c)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setAbierta(c) } }}>
-                    <td>{fecha(c.fecha)}</td>
-                    <td>
-                      <strong>{c.proveedor_nombre}</strong>
-                      {c.estado === 'ANULADA'
-                        ? <span title={c.motivo_anulacion}><Insignia variante="peligro">Anulada</Insignia></span>
-                        : c.fecha_modificacion && <Insignia variante="marca">Modificada</Insignia>}
-                    </td>
-                    <td className="detalle-lineas">
-                      {c.detalles.map((d) => `${numero(Number(d.cantidad))} ${d.presentacion_nombre} ${d.producto_nombre}`).join(' · ')}
-                    </td>
-                    <td className="num compra-total-celda">{moneda(c.total)}</td>
-                    <td className="compra-acciones" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-                      {esAdministrador && c.estado !== 'ANULADA' && (
-                        <>
-                          <button type="button" className="btn btn--fantasma" onClick={() => setEditando(c)}
-                            aria-label={`Modificar la compra ${c.id_compra}`} title="Modificar">
-                            <Icono nombre="editar" /><span>Modificar</span>
-                          </button>
-                          <button type="button" className="btn btn--fantasma compra-acciones__anular" onClick={() => setAnulando(c)}
-                            aria-label={`Anular la compra ${c.id_compra}`} title="Anular">
-                            <Icono nombre="anular" /><span>Anular</span>
-                          </button>
-                        </>
-                      )}
-                      <span className="fila-clic__chevron" aria-hidden="true"><Icono nombre="chevron" /></span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <div className="tablero-2">
+        <section className="panel compras-lista" aria-label="Compras del mes">
+          <div className="filtros">
+            {[['', 'Todas'], ['CONFIRMADA', 'Confirmadas'], ['ANULADA', 'Anuladas']].map(([v, t]) => (
+              <button key={v} type="button" className="filtro" aria-pressed={estado === v} onClick={() => setEstado(v)}>{t}</button>
+            ))}
+            <div className="filtros__der">
+              <label className="filtro filtro--selector">
+                <span className="sr-only">Proveedor</span>
+                <select value={proveedor} onChange={(e) => setProveedor(e.target.value)}>
+                  <option value="">Todos los proveedores</option>
+                  {proveedores.map((p) => <option key={p.id_proveedor} value={p.id_proveedor}>{p.nombre}</option>)}
+                </select>
+              </label>
+            </div>
           </div>
-        </Panel>
-      )}
+
+          {compras.isPending ? <p className="abm-cargando">Cargando…</p> : filas.length === 0 ? (
+            <EstadoVacio icono="compras" titulo={`No hay compras en ${textoMes(mes).toLowerCase()}`} texto="Registrá una compra para sumar huevos al stock." />
+          ) : (
+            <div className="tabla-wrap">
+              <table className="tabla">
+                <thead>
+                  <tr><th scope="col">Fecha</th><th scope="col">Proveedor</th><th scope="col">Detalle</th><th scope="col" className="num">Total</th><th scope="col"><span className="sr-only">Acciones</span></th></tr>
+                </thead>
+                <tbody>
+                  {filas.map((c) => (
+                    <tr key={c.id_compra} className={`fila-clic${c.estado === 'ANULADA' ? ' is-anulada' : ''}`} tabIndex={0}
+                      aria-label={`Ver la compra Nº ${c.id_compra}`} onClick={() => setAbierta(c)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setAbierta(c) } }}>
+                      <td>{fecha(c.fecha).slice(0, 5)}</td>
+                      <td>
+                        <strong>{c.proveedor_nombre}</strong>
+                        {c.estado === 'ANULADA'
+                          ? <span title={c.motivo_anulacion}><Insignia variante="peligro">Anulada</Insignia></span>
+                          : c.fecha_modificacion && <Insignia variante="aviso">Modificada</Insignia>}
+                      </td>
+                      <td className="detalle-lineas">
+                        {c.detalles.map((d) => `${numero(Number(d.cantidad))} ${d.presentacion_nombre} ${d.producto_nombre}`).join(' · ')}
+                      </td>
+                      <td className="num compra-total-celda">{moneda(c.total)}</td>
+                      <td className="compra-acciones" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                        <button type="button" className="btn btn--fantasma" onClick={() => abrirComprobante('compras', c.id_compra)}
+                          aria-label={`Comprobante de la compra ${c.id_compra}`} title="Ver e imprimir el comprobante">
+                          <Icono nombre="ventas" /><span>Ticket</span>
+                        </button>
+                        {esAdministrador && c.estado !== 'ANULADA' && (
+                          <>
+                            <button type="button" className="btn btn--fantasma" onClick={() => setEditando(c)}
+                              aria-label={`Modificar la compra ${c.id_compra}`} title="Modificar">
+                              <Icono nombre="editar" />
+                            </button>
+                            <button type="button" className="btn btn--fantasma compra-acciones__anular" onClick={() => setAnulando(c)}
+                              aria-label={`Anular la compra ${c.id_compra}`} title="Anular">
+                              <Icono nombre="anular" />
+                            </button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        <aside className="panel compras-lado" aria-labelledby="compras-proveedor">
+          <h2 id="compras-proveedor" className="panel__titulo">Compras por proveedor</h2>
+          <Dona partes={partes} etiqueta="Compras por proveedor" centro={moneda(total)} nota={textoMes(mes)} />
+          <div className="recuadro">
+            <span className="recuadro__titulo"><Icono nombre="etiqueta" tamano={17} /> Costo para el precio de venta</span>
+            <span>Promedio del mes: <strong>{bandejas ? moneda(total / bandejas) : '—'}</strong> la bandeja</span>
+            <span className="recuadro__nota">Lo toma el calculador de precios.</span>
+          </div>
+        </aside>
+      </div>
 
       {(nueva || editando) && (
         <NuevaCompra proveedores={proveedores} compra={editando} alCerrar={() => { setNueva(false); setEditando(null) }} />
@@ -361,6 +421,7 @@ function VerCompra({ compra, esAdministrador, alCerrar, alModificar, alAnular })
       </div>
       <footer className="dialogo__pie compra-ver__pie">
         {esAdministrador && !anulada && <Boton variante="peligro" icono="anular" onClick={alAnular}>Anular</Boton>}
+        <Boton variante="secundario" icono="compras" onClick={() => abrirComprobante('compras', compra.id_compra)}>Comprobante</Boton>
         <Boton variante="secundario" onClick={alCerrar}>Cerrar</Boton>
         {esAdministrador && !anulada && <Boton icono="editar" onClick={alModificar}>Modificar</Boton>}
       </footer>

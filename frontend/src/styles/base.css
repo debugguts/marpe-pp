@@ -17,7 +17,7 @@ body {
   min-height: 100dvh;
   background: var(--arena);
   isolation: isolate;
-  color: var(--marron);
+  color: var(--texto);
   font-family: var(--fuente-ui);
   font-size: var(--texto-m);
   line-height: 1.55;

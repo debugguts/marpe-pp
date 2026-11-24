@@ -28,6 +28,7 @@ class InicioAPITest(APITestCase):
                                                           "motivo": "Se cayó una bandeja"}, format="json")
 
     def test_resumen_del_dia(self):
+        self.client.force_login(self.admin)  # el efectivo y el saldo los ve el administrador (arqueo ciego)
         datos = self.client.get(self.url).data
         self.assertEqual((datos["ventas"]["total"], datos["ventas"]["cantidad"]), (14000, 1))
         self.assertEqual(datos["ventas"]["por_medio"]["efectivo"], 14000)

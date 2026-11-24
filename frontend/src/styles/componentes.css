@@ -8,7 +8,7 @@
   padding: 0 1.15rem;
   border: 1px solid transparent;
   border-radius: var(--radio-control);
-  font: 600 var(--texto-m) / 1 var(--fuente-ui);
+  font: 500 var(--texto-m) / 1 var(--fuente-ui);
   text-decoration: none;
   white-space: nowrap;
   cursor: pointer;
@@ -18,20 +18,20 @@
 .btn:active { transform: translateY(1px); }
 .btn:disabled { cursor: not-allowed; opacity: 0.55; transform: none; }
 
-.btn--primario { background: var(--marron); color: var(--blanco); }
-.btn--primario:hover:not(:disabled) { background: var(--marron-hover); }
+.btn--primario { background: var(--terracota); color: var(--blanco); }
+.btn--primario:hover:not(:disabled) { background: var(--terracota-hover); }
 
 .btn--secundario {
-  background: var(--superficie);
-  color: var(--marron);
-  border-color: var(--borde-fuerte);
+  background: var(--vidrio);
+  color: var(--texto);
+  border-color: #DCCFC3;
 }
-.btn--secundario:hover:not(:disabled) { background: var(--rosa); border-color: var(--rosa); }
+.btn--secundario:hover:not(:disabled) { background: var(--salmon); border-color: var(--salmon); }
 
 .btn--suave { background: var(--rosa); color: var(--marron); }
 .btn--suave:hover:not(:disabled) { background: var(--rosa-hover); }
 
-.btn--fantasma { background: transparent; color: var(--marron); }
+.btn--fantasma { background: transparent; color: var(--texto); }
 .btn--fantasma:hover:not(:disabled) { background: color-mix(in srgb, var(--marron) 10%, transparent); }
 
 .btn--peligro { background: var(--peligro); color: var(--blanco); }
@@ -50,15 +50,15 @@
 /* ---------- Campo de formulario ---------- */
 /* align-content: start → en una fila de dos, cada campo queda arriba aunque el de al lado sea más alto */
 .campo { display: grid; gap: 0.375rem; align-content: start; }
-.campo__label { font-size: var(--texto-s); font-weight: 600; }
+.campo__label { font-size: var(--texto-s); font-weight: 500; color: var(--texto); }
 
 .campo__control {
   width: 100%;
   min-height: var(--alto-control);
   padding: 0 0.875rem;
   background-color: var(--superficie);
-  color: var(--negro);
-  border: 1px solid var(--borde-fuerte);
+  color: var(--texto);
+  border: 1px solid #DCCFC3;
   border-radius: var(--radio-control);
   font: inherit;
   transition: border-color 0.15s ease;
@@ -158,7 +158,7 @@ textarea.campo__control { padding-block: 0.65rem; min-height: 6rem; resize: vert
   gap: 0.4rem;
   padding: 0.2rem 0.7rem;
   border-radius: var(--radio-pildora);
-  font: 600 var(--texto-s) / 1.4 var(--fuente-ui);
+  font: 500 var(--texto-s) / 1.4 var(--fuente-ui);
   white-space: nowrap;
 }
 .insignia::before {
@@ -168,11 +168,65 @@ textarea.campo__control { padding-block: 0.65rem; min-height: 6rem; resize: vert
   border-radius: 50%;
   background: currentColor;
 }
-.insignia--neutro { background: color-mix(in srgb, var(--marron) 10%, var(--blanco)); color: var(--marron); }
-.insignia--marca { background: var(--rosa); color: var(--marron); }
+.insignia--neutro { background: #EFE6DC; color: var(--texto); }
+.insignia--marca { background: var(--salmon); color: #8A3A1E; }
 .insignia--exito { background: color-mix(in srgb, var(--exito) 14%, var(--blanco)); color: color-mix(in srgb, var(--exito) 78%, black); }
 .insignia--aviso { background: color-mix(in srgb, #E0A100 18%, var(--blanco)); color: var(--aviso); }
 .insignia--peligro { background: color-mix(in srgb, var(--peligro) 12%, var(--blanco)); color: var(--peligro); }
+
+/* ---------- Tarjetas con cifras (rediseño S13) ---------- */
+.cifras {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--espacio-3);
+  margin-bottom: var(--espacio-4);
+}
+.cifra-tarjeta {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-height: 7.5rem;
+  padding: 1.1rem 1.25rem;
+  background: var(--vidrio);
+  color: var(--texto);
+  border: 1px solid var(--vidrio-borde);
+  border-radius: 22px;
+  box-shadow: var(--sombra-vidrio);
+}
+.cifra-tarjeta__icono {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 12px;
+  background: rgb(61 49 42 / 0.1);
+}
+.cifra-tarjeta__titulo { padding-right: 2.75rem; font: 500 var(--texto-m) / 1.3 var(--fuente-ui); }
+.cifra-tarjeta__valor { font: 800 1.75rem / 1.15 var(--fuente-titulo); letter-spacing: -0.01em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.cifra-tarjeta__nota { font-size: var(--texto-s); color: var(--texto-suave); }
+.cifra-tarjeta__insignia {
+  align-self: flex-start;
+  margin-top: auto;
+  padding: 0.15rem 0.65rem;
+  border-radius: var(--radio-pildora);
+  background: rgb(61 49 42 / 0.1);
+  font: 500 0.75rem / 1.5 var(--fuente-ui);
+}
+.cifra-tarjeta.is-oscuro { background: var(--kpi-oscuro); border-color: var(--kpi-oscuro); color: var(--blanco); }
+.cifra-tarjeta.is-oscuro .cifra-tarjeta__nota { color: rgb(255 255 255 / 0.78); }
+.cifra-tarjeta.is-oscuro .cifra-tarjeta__icono,
+.cifra-tarjeta.is-oscuro .cifra-tarjeta__insignia { background: rgb(255 255 255 / 0.16); }
+.cifra-tarjeta.is-salmon { background: var(--salmon); }
+.cifra-tarjeta.is-arena { background: var(--arena-media); }
+.cifra-tarjeta.is-verde { background: var(--verde-suave); }
+.cifra-tarjeta.is-ocre { background: var(--ocre-suave); }
+/* Caja cerrada: en rojo para que se note */
+.cifra-tarjeta.is-peligro { background: color-mix(in srgb, var(--peligro) 8%, var(--blanco)); border-color: color-mix(in srgb, var(--peligro) 45%, var(--blanco)); }
+.cifra-tarjeta.is-peligro .cifra-tarjeta__valor { color: var(--peligro); }
 
 /* ---------- Panel ---------- */
 .panel {
@@ -182,8 +236,6 @@ textarea.campo__control { padding-block: 0.65rem; min-height: 6rem; resize: vert
   border: 1px solid var(--vidrio-borde);
   border-radius: var(--radio-panel);
   box-shadow: var(--sombra-vidrio);
-  -webkit-backdrop-filter: blur(18px) saturate(1.1);
-  backdrop-filter: blur(18px) saturate(1.1);
 }
 .panel__cab {
   display: flex;
@@ -192,7 +244,7 @@ textarea.campo__control { padding-block: 0.65rem; min-height: 6rem; resize: vert
   gap: var(--espacio-3);
   margin-bottom: var(--espacio-3);
 }
-.panel__titulo { font-size: var(--texto-l); }
+.panel__titulo { font: 700 var(--texto-l) / 1.3 var(--fuente-ui); color: var(--texto); }
 
 /* ---------- Cabecera de página ---------- */
 .cab-pagina {
@@ -204,8 +256,9 @@ textarea.campo__control { padding-block: 0.65rem; min-height: 6rem; resize: vert
   margin-bottom: var(--espacio-4);
 }
 .cab-pagina__texto { display: grid; gap: 0.25rem; min-width: 0; }
-.cab-pagina h1 { font-size: clamp(1.9rem, 1.3rem + 1.8vw, 2.6rem); font-weight: 500; letter-spacing: -0.02em; color: var(--oscuro); }
-.cab-pagina__desc { color: #6E5D52; }
+.cab-pagina h1 { font-size: clamp(2rem, 1.3rem + 2vw, 2.85rem); font-weight: 900; line-height: 1; text-transform: uppercase; letter-spacing: 0.01em; color: var(--texto); }
+.cab-pagina__desc { color: var(--texto); }
+.cab-pagina__acciones { display: flex; flex-wrap: wrap; align-items: center; gap: var(--espacio-2); }
 .cab-pagina__desc::first-letter { text-transform: uppercase; }
 
 /* ---------- Tabla ---------- */
@@ -214,14 +267,14 @@ textarea.campo__control { padding-block: 0.65rem; min-height: 6rem; resize: vert
 .tabla th {
   padding: 0.6rem 0.75rem;
   text-align: left;
-  font: 600 var(--texto-s) / 1.3 var(--fuente-ui);
+  font: 500 var(--texto-s) / 1.3 var(--fuente-ui);
   color: var(--texto-suave);
-  border-bottom: 1px solid var(--borde-fuerte);
+  border-bottom: 1px solid var(--linea);
   white-space: nowrap;
 }
-.tabla td { padding: 0.85rem 0.75rem; border-bottom: 1px solid var(--borde); }
+.tabla td { padding: 0.85rem 0.75rem; border-bottom: 1px solid #EFE6DC; vertical-align: middle; }
 .tabla tbody tr:last-child td { border-bottom: 0; }
-.tabla tbody tr:hover td { background: color-mix(in srgb, var(--arena) 45%, var(--blanco)); }
+.tabla tbody tr:hover td { background: #F3EBE1; }
 .tabla .num { text-align: right; white-space: nowrap; }
 
 /* ---------- Estado vacío ---------- */
@@ -263,3 +316,93 @@ textarea.campo__control { padding-block: 0.65rem; min-height: 6rem; resize: vert
 }
 .aviso-error__lista { display: grid; gap: var(--espacio-1); margin: 0; padding: 0.4rem 0 0; list-style: none; }
 .aviso-error__lista strong { font-weight: 600; }
+
+/* ---------- Gráfico de dona (rediseño S13) ---------- */
+.dona { display: grid; gap: var(--espacio-3); }
+.dona__grafico { width: min(11.5rem, 100%); margin-inline: auto; }
+.dona__centro { font: 800 19px var(--fuente-titulo); fill: var(--texto); }
+.dona__nota { font: 12px var(--fuente-ui); fill: var(--texto-suave); }
+.dona__leyenda { display: grid; gap: 0.15rem; margin: 0; padding: 0; list-style: none; }
+.dona__leyenda li { display: flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0; font-size: var(--texto-m); }
+.dona__leyenda b { margin-left: auto; font-weight: 500; font-variant-numeric: tabular-nums; }
+.punto-color { display: inline-block; flex: none; width: 0.6rem; height: 0.6rem; border-radius: 50%; }
+
+/* Recuadro destacado al pie de un panel lateral (base para el precio, pendiente de cobro…) */
+.recuadro { display: grid; gap: 0.2rem; padding: 0.9rem 1rem; background: #F1E8DE; border-radius: 14px; }
+.recuadro__titulo { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; }
+.recuadro__nota { font-size: var(--texto-s); color: var(--texto-suave); }
+
+/* Pestañas de filtro (Todos · Fijos · Variables) y selector segmentado */
+.filtros { display: flex; flex-wrap: wrap; align-items: center; gap: var(--espacio-2); margin-bottom: var(--espacio-2); }
+.filtros__der { display: flex; flex-wrap: wrap; gap: var(--espacio-2); margin-left: auto; }
+.filtro {
+  min-height: 2.4rem;
+  padding: 0 0.95rem;
+  border: 1px solid #DCCFC3;
+  border-radius: var(--radio-control);
+  background: var(--vidrio);
+  color: var(--texto);
+  font: 500 var(--texto-s) / 1 var(--fuente-ui);
+  cursor: pointer;
+}
+.filtro[aria-pressed="true"] { background: var(--oscuro); border-color: var(--oscuro); color: var(--blanco); }
+.segmentado { display: flex; gap: 4px; padding: 4px; background: #EFE6DC; border-radius: 12px; }
+.segmentado > button {
+  flex: 1;
+  min-height: 2.6rem;
+  padding: 0 0.9rem;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--texto);
+  font: 500 var(--texto-m) / 1.15 var(--fuente-ui);
+  cursor: pointer;
+}
+.segmentado > button[aria-pressed="true"] { background: var(--blanco); font-weight: 700; box-shadow: 0 2px 8px rgb(46 36 30 / 0.12); }
+.segmentado > button:disabled { cursor: not-allowed; opacity: 0.5; }
+.segmentado small { display: block; font-size: 0.72rem; font-weight: 400; color: var(--texto-suave); }
+
+/* Pantallas con tablero: listado a la izquierda y un panel con el gráfico a la derecha */
+.tablero-2 { display: grid; grid-template-columns: minmax(0, 2.1fr) minmax(18rem, 1fr); gap: var(--espacio-4); align-items: start; }
+@media (max-width: 64rem) { .tablero-2 { grid-template-columns: minmax(0, 1fr); } }
+
+/* Pastillas de la cabecera (caja abierta, fecha) y enlaces con forma de texto */
+.pastilla {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  min-height: 3rem; padding: 0 1.1rem;
+  background: var(--vidrio); color: var(--texto);
+  border: 1px solid #DCCFC3; border-radius: var(--radio-control);
+  font: 500 1rem/1 var(--fuente-ui); white-space: nowrap;
+}
+.pastilla--exito { background: var(--verde-suave); border-color: transparent; border-radius: var(--radio-pildora); color: #2E5A3B; font-weight: 700; }
+.pastilla--exito .punto-color { background: #4F6D4A; }
+.pastilla--peligro { background: color-mix(in srgb, var(--peligro) 12%, var(--blanco)); border-color: transparent; border-radius: var(--radio-pildora); color: var(--peligro); font-weight: 700; }
+.pastilla--peligro .punto-color { background: var(--peligro); }
+.pastilla-boton { min-height: 3rem; font-size: 1rem; }
+.enlace { padding: 0.25rem; border: 0; background: none; color: var(--texto); font: 500 var(--texto-s)/1 var(--fuente-ui); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.insignia--azul { background: #DEE7EE; color: #35536A; }
+.cab-pagina__texto { flex: 1 1 26rem; }
+/* Selector con forma de pastilla (mes) y buscador chico de las barras de filtro */
+.pastilla--selector { position: relative; padding-right: 0.6rem; }
+.pastilla--selector select { appearance: none; border: 0; background: transparent; font: inherit; color: inherit; padding-right: 0.4rem; cursor: pointer; }
+.filtro--selector { display: inline-flex; align-items: center; padding: 0 0.4rem; }
+.filtro--selector select { border: 0; background: transparent; font: inherit; color: inherit; min-height: 2.3rem; cursor: pointer; }
+.buscador { display: flex; align-items: center; gap: 0.45rem; min-height: 2.4rem; min-width: 13rem; padding: 0 0.75rem; background: var(--blanco); color: var(--texto-suave); border: 1px solid #DCCFC3; border-radius: var(--radio-control); }
+.buscador input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: var(--texto-s) var(--fuente-ui); color: var(--texto); }
+.buscador:focus-within { border-color: var(--oscuro); }
+@media (max-width: 40rem) {
+  .cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; }
+  .cifra-tarjeta { min-height: 0; padding: 0.85rem 0.9rem; border-radius: 18px; }
+  .cifra-tarjeta__icono { display: none; }
+  .cifra-tarjeta__titulo { padding-right: 0; font-size: var(--texto-s); }
+  .cifra-tarjeta__valor { font-size: 1.25rem; }
+  .cifra-tarjeta__nota { display: none; }
+  .pastilla, .pastilla-boton { min-height: 2.6rem; padding: 0 0.8rem; font-size: var(--texto-s); }
+}
+
+/* Botones principales de la cabecera de cada pantalla (Nueva venta, Nuevo gasto, Cerrar caja…):
+   rosa de la marca en vez de terracota, para que no compitan con las acciones de cobrar o guardar. */
+.cab-pagina .btn--primario { background: var(--rosa); color: var(--texto); border-color: color-mix(in srgb, var(--rosa) 80%, var(--marron)); }
+.cab-pagina .btn--primario:hover:not(:disabled) { background: color-mix(in srgb, var(--rosa) 85%, var(--marron)); }
+.cab-pagina .boton-pildora { background: var(--rosa); color: var(--texto); }
+.cab-pagina .boton-pildora:hover { background: color-mix(in srgb, var(--rosa) 85%, var(--marron)); }

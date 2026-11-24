@@ -9,28 +9,47 @@
   /* Derivados: variantes de los colores de marca, no colores nuevos */
   --marron-hover: color-mix(in srgb, var(--marron) 82%, black);
   --rosa-hover: color-mix(in srgb, var(--rosa) 70%, var(--marron));
-  --texto-suave: color-mix(in srgb, var(--marron) 88%, white);
+  --texto-suave: #5E5550;
   --borde: color-mix(in srgb, var(--marron) 16%, var(--arena));
   --borde-fuerte: color-mix(in srgb, var(--marron) 60%, var(--arena));
   --superficie: var(--blanco);
 
-  /* Diseño elegido por el cliente (S9): paisaje de fondo y tarjetas de vidrio */
-  --oscuro: #2B211C;              /* píldora activa, botones fuertes */
-  --cab-fondo: #F6ECEB;           /* barra superior */
-  --pestanas-fondo: #EFE2E0;      /* caja de las pestañas, reloj */
-  --vidrio: rgb(255 255 255 / 0.8);
-  --vidrio-borde: rgb(255 255 255 / 0.65);
-  --sombra-vidrio: 0 18px 40px rgb(46 36 30 / 0.14);
+  /* Rediseño pedido por el cliente (S13): menús crema, tarjetas arena, texto carbón y botón terracota */
+  --texto: #1E1A18;               /* carbón: texto principal (más legible que el marrón) */
+  --oscuro: #3D312A;              /* estado activo de los menús y botones fuertes */
+  --cab-fondo: #F8F3EC;           /* menú superior y lateral */
+  --pestanas-fondo: rgb(141 128 120 / 0.16); /* caja de las pestañas, reloj */
+  --burbuja: rgb(141 128 120 / 0.22);        /* redondela de los íconos inactivos */
+  --vidrio: #FAF5EE;              /* superficie de todas las tarjetas */
+  --vidrio-borde: rgb(255 255 255 / 0.7);
+  --sombra-vidrio: 0 14px 34px rgb(46 36 30 / 0.13);
+  --terracota: #D96B43;           /* acción principal */
+  --terracota-hover: #C25A35;
+  --kpi-oscuro: #5A463C;          /* tarjeta principal de las cifras */
+  --salmon: #F6D9CC;
+  --arena-media: #EADFCF;
+  --verde-suave: #E3EDDF;
+  --ocre-suave: #F7E9CC;
+  --linea: #E6DACD;               /* bordes suaves dentro de las tarjetas */
+
+  /* Paleta por categoría de gasto (tabla, gráfico y formulario) */
+  --cat-sueldos: #4F6D4A;
+  --cat-feria: #D96B43;
+  --cat-combustible: #4A6B82;
+  --cat-servicios: #E5A93B;
+  --cat-insumos: #5C8D89;
+  --cat-mantenimiento: #8C5E74;
+  --cat-otros: #8D8078;
 
   /* Estados funcionales (el manual no los define; solo error, éxito y aviso) */
   --peligro: #B3261E;
   --exito: #2E7D4F;
   --aviso: #8A5A00;
 
-  /* Tipografías: Poppins títulos, Verdana interfaz, Aptos Narrow datos */
+  /* Tipografías: Poppins (Black en los títulos de pantalla), Roboto para la interfaz y los datos */
   --fuente-titulo: "Poppins", Verdana, sans-serif;
-  --fuente-ui: Verdana, Geneva, sans-serif;
-  --fuente-dato: "Aptos Narrow", "Arial Narrow", Verdana, sans-serif;
+  --fuente-ui: "Roboto", Verdana, sans-serif;
+  --fuente-dato: "Roboto", Verdana, sans-serif;
 
   /* Escala tipográfica */
   --texto-s: 0.8125rem;

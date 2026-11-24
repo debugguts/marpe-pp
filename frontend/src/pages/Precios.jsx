@@ -103,6 +103,7 @@ function ProductoPrecios({ fila, puedeCambiar, alTeclaInvalida, guardado, alGuar
             <p className="precios__detalle">
               Lo que te cuesta = lo que le pagás al proveedor ({moneda(calculo.costo_bandeja)} la bandeja) + gastos fijos del mes
               ({moneda(calculo.gasto_fijo_bandeja)} por bandeja: {moneda(calculo.gastos_fijos_mes)} repartidos entre {numero(Number(calculo.bandejas_compradas_mes))} bandejas).
+              {calculo.fijos_del_mes_anterior && ' Como todavía no hay gastos fijos cargados este mes, se usan los del mes anterior.'}
             </p>
           )}
         </div>

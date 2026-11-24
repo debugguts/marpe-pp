@@ -1,32 +1,6 @@
 /* Pantallas de movimientos: Caja, Compras y Gastos (S5-12, S5-13) */
 .acciones { display: flex; flex-wrap: wrap; gap: var(--espacio-2); }
 
-/* ---------- Tarjetas con cifras ---------- */
-.cifras {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-  gap: var(--espacio-3);
-  margin-bottom: var(--espacio-4);
-}
-.cifra-tarjeta {
-  padding: var(--espacio-3) var(--espacio-4);
-  background: var(--vidrio);
-  border: 1px solid var(--vidrio-borde);
-  border-radius: var(--radio-panel);
-  box-shadow: var(--sombra-vidrio);
-  -webkit-backdrop-filter: blur(18px) saturate(1.1);
-  backdrop-filter: blur(18px) saturate(1.1);
-}
-.cifra-tarjeta.is-destacada { background: var(--marron); border-color: var(--marron); color: var(--blanco); }
-/* Caja cerrada: en rojo para que se note */
-.cifra-tarjeta.is-peligro { background: color-mix(in srgb, var(--peligro) 8%, var(--blanco)); border-color: color-mix(in srgb, var(--peligro) 45%, var(--blanco)); }
-.cifra-tarjeta.is-peligro .cifra-tarjeta__valor { color: var(--peligro); }
-.cifra-tarjeta__titulo { font-size: var(--texto-s); color: var(--texto-suave); }
-.cifra-tarjeta.is-destacada .cifra-tarjeta__titulo,
-.cifra-tarjeta.is-destacada .cifra-tarjeta__nota { color: color-mix(in srgb, var(--blanco) 75%, transparent); }
-.cifra-tarjeta__valor { margin-top: 0.25rem; font: 600 1.6rem/1.2 var(--fuente-titulo); font-variant-numeric: tabular-nums; }
-.cifra-tarjeta__nota { margin-top: 0.25rem; font-size: var(--texto-s); color: var(--texto-suave); }
-
 .importe--entra { color: var(--exito); }
 .importe--sale { color: var(--peligro); }
 
@@ -244,3 +218,63 @@
 .campo--importe input[type="number"] { appearance: textfield; -moz-appearance: textfield; }
 .campo--importe input[type="number"]::-webkit-inner-spin-button,
 .campo--importe input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* ---------- Gastos · rediseño S13 ---------- */
+.gastos-lista { padding: 1.1rem 1.25rem; }
+.gastos-lado { display: grid; gap: var(--espacio-3); }
+.con-punto { display: inline-flex; align-items: center; gap: 0.5rem; white-space: nowrap; }
+.tipo-gasto { display: inline-block; padding: 0.2rem 0.7rem; border-radius: var(--radio-pildora); font: 500 var(--texto-s)/1.4 var(--fuente-ui); }
+.tipo-gasto.is-fijo { background: var(--salmon); color: #8A3A1E; }
+.tipo-gasto.is-variable { background: var(--arena-media); color: var(--texto); }
+.tabla-gastos__importe { font-variant-numeric: tabular-nums; }
+.tabla-gastos__acciones { white-space: nowrap; text-align: right; }
+.tabla-gastos__acciones .btn { min-height: 2.25rem; padding: 0 0.55rem; }
+.tabla-gastos__anular { color: var(--peligro); }
+.tabla-gastos tr.is-anulada td { color: var(--texto-suave); }
+.tabla-gastos tr.is-anulada .tabla-gastos__importe { text-decoration: line-through; }
+.tabla-gastos tfoot td { padding-top: 0.9rem; border-top: 1px solid var(--linea); border-bottom: 0; font-weight: 500; }
+
+/* Formulario: categorías en píldoras, tipo y medio de pago con botones, importe con $ */
+.gasto-form { display: grid; gap: var(--espacio-3); }
+.gasto-form__grupo { display: grid; gap: 0.375rem; min-width: 0; margin: 0; padding: 0; border: 0; }
+.gasto-form__grupo legend { margin-bottom: 0.375rem; padding: 0; }
+.gasto-form__aviso { display: flex; align-items: center; gap: 0.35rem; color: var(--aviso); }
+.gasto-form .segmentado { padding: 4px; }
+.gasto-form .segmentado > button { min-height: 2.75rem; }
+.gasto-form .segmentado > button.is-fijo[aria-pressed="true"] { background: var(--salmon); box-shadow: none; }
+.gasto-form .segmentado > button.is-efectivo[aria-pressed="true"] { background: #DDEBD9; box-shadow: none; }
+.pildoras { display: flex; flex-wrap: wrap; gap: var(--espacio-2); }
+.pildora {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  min-height: 2.5rem; padding: 0 0.95rem;
+  background: var(--blanco); color: var(--texto);
+  border: 1px solid #DCCFC3; border-radius: var(--radio-control);
+  font: 500 var(--texto-m)/1 var(--fuente-ui); cursor: pointer;
+}
+.pildora:hover { border-color: var(--terracota); }
+.pildora[aria-pressed="true"] { background: var(--salmon); border-color: var(--terracota); box-shadow: inset 0 0 0 1px var(--terracota); }
+.campo--pesos .campo__control { padding-left: 1.9rem; background: var(--blanco) no-repeat 0.85rem 50% / 0.7rem; }
+.campo--pesos { position: relative; }
+.campo--pesos::before { content: "$"; position: absolute; left: 0.9rem; top: calc(1.2rem + var(--alto-control) / 2); font-weight: 700; pointer-events: none; transform: translateY(-15%); }
+.tabla-gastos td, .tabla-gastos th { padding-inline: 0.55rem; }
+.tabla-gastos td:first-child { white-space: nowrap; }
+
+/* ---------- Arqueo ciego: contador de billetes al cerrar la caja (S16) ---------- */
+.contador { display: grid; gap: var(--espacio-3); }
+.contador__tabla { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.contador__tabla th, .contador__tabla td { padding: 0.3rem 0.4rem; border-bottom: 1px solid #EFE6DC; text-align: left; }
+.contador__tabla thead th { font: 500 var(--texto-s)/1.3 var(--fuente-ui); color: var(--texto-suave); }
+.contador__tabla tbody th { font-weight: 700; white-space: nowrap; }
+.contador__tabla .num { text-align: right; min-width: 6.5rem; }
+.contador__tabla tr.is-con-cantidad { background: #F6EFE6; }
+.contador__paso { display: inline-flex; gap: 4px; padding: 3px; background: #EFE6DC; border: 0; border-radius: 10px; }
+.contador__paso button { width: 2.4rem; height: 2.4rem; border: 0; border-radius: 8px; background: var(--blanco); color: var(--texto); font-size: 1.15rem; cursor: pointer; }
+.contador__paso button:last-child { background: var(--terracota); color: var(--blanco); }
+.contador__paso button:disabled { opacity: 0.45; cursor: not-allowed; }
+.contador__paso input { width: 3.4rem; border: 0; background: transparent; text-align: center; font: 700 1.05rem/1 var(--fuente-ui); color: var(--texto); }
+.contador__total { display: flex; align-items: baseline; justify-content: space-between; padding: 0.85rem 1rem; background: var(--kpi-oscuro); color: var(--blanco); border-radius: 14px; }
+.contador__total strong { font: 800 1.7rem/1 var(--fuente-titulo); }
+.contador__confirmar { margin: 0; padding: 0.75rem 0.9rem; background: var(--ocre-suave); border-radius: 12px; }
+.arqueo-ciego__fin { display: grid; gap: var(--espacio-2); font-size: var(--texto-l); }
+.contador__paso { width: auto; }
+.contador__paso input { height: 2.4rem; background: var(--blanco); border-radius: 8px; }

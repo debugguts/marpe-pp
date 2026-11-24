@@ -36,9 +36,9 @@ export default function Cuentas() {
 
       {resumen.data && (
         <div className="cifras">
-          <Cifra titulo="Total a cobrar" valor={moneda(resumen.data.total_pendiente)} destacada />
-          <Cifra titulo="Deudas pendientes" valor={resumen.data.cantidad} nota={`${deudores.length} ${deudores.length === 1 ? 'cliente' : 'clientes'}`} />
-          {deudores[0] && <Cifra titulo="Debe más" valor={deudores[0].cliente_nombre} nota={moneda(deudores[0].deuda)} />}
+          <Cifra icono="cuentas" titulo="Total a cobrar" valor={moneda(resumen.data.total_pendiente)} destacada />
+          <Cifra tono="salmon" icono="etiqueta" titulo="Deudas pendientes" valor={resumen.data.cantidad} nota={`${deudores.length} ${deudores.length === 1 ? 'cliente' : 'clientes'}`} />
+          {deudores[0] && <Cifra tono="arena" icono="clientes" titulo="Debe más" valor={deudores[0].cliente_nombre} nota={moneda(deudores[0].deuda)} />}
         </div>
       )}
 

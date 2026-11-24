@@ -55,3 +55,17 @@
   -webkit-backdrop-filter: blur(18px) saturate(1.1);
   backdrop-filter: blur(18px) saturate(1.1);
 }
+
+/* Rediseño S13: tarjetas arena, nivel contra el mínimo y panel con el gráfico */
+.stock-tarjetas { margin-bottom: 0; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); }
+.stock-tarjeta { background: var(--vidrio); border-color: var(--vidrio-borde); box-shadow: var(--sombra-vidrio); border-radius: 22px; }
+.stock-tarjeta h2 { font: 700 var(--texto-l)/1.25 var(--fuente-ui); color: var(--texto); }
+.stock-tarjeta__total strong { font-weight: 800; color: var(--texto); }
+.stock-tarjeta__reparto div { background: #EFE6DC; }
+.stock-tarjeta__reparto dd { font-weight: 700; }
+.nivel { position: relative; height: 10px; border-radius: 99px; background: #EFE6DC; }
+.nivel__barra { position: absolute; inset: 0 auto 0 0; border-radius: 99px; background: var(--cat-sueldos); }
+.nivel__barra.is-bajo { background: var(--terracota); }
+.nivel__minimo { position: absolute; top: -4px; width: 2px; height: 18px; background: var(--texto); }
+.stock-lado { display: grid; gap: var(--espacio-3); }
+.aviso-stock { display: none; }
