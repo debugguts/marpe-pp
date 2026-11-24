@@ -1,4 +1,5 @@
 from rest_framework import filters, viewsets
+from rest_framework.pagination import PageNumberPagination
 
 from apps.usuarios.models import RegistroActividad
 from config.comunes import Estado
@@ -66,3 +67,12 @@ def validar(serializer_class, datos):
     serializer = serializer_class(data=datos)
     serializer.is_valid(raise_exception=True)
     return serializer.validated_data
+
+
+class PaginaDelMes(PageNumberPagination):
+    """Listas que la pantalla muestra por mes completo (?page_size=, hasta 500): así la suma de las filas
+    coincide con el total de arriba."""
+
+    page_size = 20
+    page_size_query_param = "page_size"
+    max_page_size = 500

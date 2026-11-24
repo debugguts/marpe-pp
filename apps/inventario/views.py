@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from config.permisos import ConsultaOAdministrador
-from config.vistas import anotar_actividad, validar
+from config.vistas import PaginaDelMes, anotar_actividad, validar
 
 from .models import MovimientoInventario, Stock
 from .serializers import MermaOAjusteSerializer, MovimientoInventarioSerializer, StockSerializer
@@ -40,6 +40,7 @@ class MovimientoInventarioViewSet(mixins.ListModelMixin, viewsets.GenericViewSet
 
     serializer_class = MovimientoInventarioSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = PaginaDelMes  # la pantalla pide las mermas del mes completas
 
     def get_queryset(self):
         movimientos = MovimientoInventario.objects.select_related("producto", "usuario").order_by("-fecha_hora")

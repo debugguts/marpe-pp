@@ -1,6 +1,7 @@
 import { useDeferredValue, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Boton, Campo, EstadoVacio, Insignia, Panel } from '../components/ui'
+import { Boton, CabeceraPagina, Campo, EstadoVacio, Insignia, Panel } from '../components/ui'
+import Cifra from '../components/Cifra'
 import AvisoError from '../components/AvisoError'
 import Dialogo from '../components/Dialogo'
 import Icono from '../components/Icono'
@@ -18,11 +19,11 @@ import '../styles/ventas.css'
 // Una venta nunca se borra: anulada, queda en la lista con su motivo.
 const CONSUMIDOR_FINAL_ID = 1
 const PAGOS = [
-  ['EFECTIVO', 'Efectivo', 'Entra a la caja', 'caja'],
-  ['TRANSFERENCIA', 'Transferencia', 'QR o banco', 'banco'],
-  ['FIADO', 'Fiado', 'Cuenta corriente', 'cuentas'],
+  ['EFECTIVO', 'Efectivo', 'Entra a caja', 'efectivo'],
+  ['TRANSFERENCIA', 'Transferencia', 'Sin pasar por caja', 'banco'],
+  ['FIADO', 'Fiado', 'A cuenta corriente', 'etiqueta'],
 ]
-const fechaHoy = new Intl.DateTimeFormat('es-AR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: ZONA })
+const diaCorto = new Intl.DateTimeFormat('es-AR', { day: '2-digit', month: '2-digit', timeZone: ZONA })
 
 export default function Ventas() {
   const cliente = useQueryClient()
@@ -42,6 +43,9 @@ export default function Ventas() {
   const [editando, setEditando] = useState(null) // venta que se está modificando (o null si es una venta nueva)
   const [fallo, setFallo] = useState(null) // error de la API para mostrar en la ventana de aviso
   const [verLista, setVerLista] = useState(false)
+  const [recibido, setRecibido] = useState('') // efectivo que entrega el cliente (solo para calcular el vuelto)
+  const ventasHoy = useQuery({ queryKey: ['ventas', 'dia', hoyISO()], queryFn: () => api(`/ventas/?desde=${hoyISO()}&hasta=${hoyISO()}`) })
+  const delDia = ventasHoy.data?.results ?? []
   const sesion = useSesion()
   const esAdministrador = sesion.data?.rol === 'Administrador'
 
@@ -99,7 +103,7 @@ export default function Ventas() {
   const fijar = (clave, valor) => setLineas((actuales) => actuales
     .map((l) => (l.clave === clave ? { ...l, cantidad: Math.max(0, Math.floor(Number(valor) || 0)) } : l)))
   function vaciar() {
-    setEditando(null); setLineas([]); setReferencia(''); setClienteId(''); setPago('EFECTIVO')
+    setEditando(null); setLineas([]); setReferencia(''); setClienteId(''); setPago('EFECTIVO'); setRecibido('')
   }
 
   // Carga una venta ya hecha en el ticket para corregirla.
@@ -133,29 +137,40 @@ export default function Ventas() {
 
   return (
     <div className="mostrador">
-      <header className="mostrador__cab">
-        <div>
-          <p className="mostrador__fecha">{fechaHoy.format(new Date())}</p>
-          <h1>Ventas <span>· {editando ? `Modificando Nº ${editando.id_venta}` : 'Mostrador'}</span></h1>
-        </div>
-        {caja.data
-          ? <Insignia variante="exito">Caja abierta</Insignia>
-          : caja.isSuccess && <Insignia variante="peligro">Caja cerrada</Insignia>}
-      </header>
+      <CabeceraPagina titulo="Ventas"
+        descripcion={editando
+          ? `Modificando la venta Nº ${editando.id_venta}: cambiá productos, cantidades o forma de pago y guardá.`
+          : 'Elegí la presentación, ajustá la cantidad y añadí al detalle. El efectivo entra solo a la caja abierta.'}
+        acciones={(
+          <div className="cab-pagina__acciones">
+            {caja.data
+              ? <span className="pastilla pastilla--exito"><span className="punto-color" />Caja abierta · {moneda(caja.data.saldo_actual)}</span>
+              : caja.isSuccess && <span className="pastilla pastilla--peligro"><span className="punto-color" />Caja cerrada</span>}
+            <span className="pastilla"><Icono nombre="calendario" tamano={18} />Hoy · {diaCorto.format(new Date())}</span>
+            <Boton variante="secundario" icono="ventas" className="pastilla-boton" aria-expanded={verLista}
+              onClick={() => setVerLista((v) => !v)}>
+              {verLista ? 'Ocultar ventas del día' : 'Ventas del día'}
+            </Boton>
+          </div>
+        )} />
+
+      <CifrasDelDia ventas={delDia} />
 
       <div className="mostrador__cuerpo">
         <section className="mostrador__catalogo" aria-label="Productos">
-          <label className="mostrador__buscar">
-            <Icono nombre="buscar" />
-            <span className="sr-only">Buscar producto</span>
-            <input type="search" value={buscar} onChange={(e) => setBuscar(e.target.value)} placeholder="Buscar producto…" autoComplete="off" />
-          </label>
-          <div className="mostrador__presentacion" role="radiogroup" aria-label="Presentación">
-            <span className="mostrador__presentacion-eti">Presentación</span>
-            {PRESENTACIONES_MOSTRADOR.map(([v, texto]) => (
-              <button key={v} type="button" role="radio" aria-checked={formatoVisto === v} className="mostrador__pildora"
-                onClick={() => { setFormato(v); if (busqueda.formato) setBuscar('') }}>{texto}</button>
-            ))}
+          <div className="mostrador__barra">
+            <span className="mostrador__presentacion-eti" id="eti-presentacion">Presentación</span>
+            <div className="segmentado mostrador__presentacion" role="radiogroup" aria-labelledby="eti-presentacion">
+              {PRESENTACIONES_MOSTRADOR.map(([v, texto]) => (
+                <button key={v} type="button" role="radio" aria-checked={formatoVisto === v} aria-pressed={formatoVisto === v}
+                  onClick={() => { setFormato(v); if (busqueda.formato) setBuscar('') }}>{texto}</button>
+              ))}
+            </div>
+            <label className="mostrador__buscar">
+              <Icono nombre="buscar" tamano={17} />
+              <span className="sr-only">Buscar producto</span>
+              <input type="search" value={buscar} onChange={(e) => setBuscar(e.target.value)} placeholder="Buscar producto…" autoComplete="off" />
+            </label>
           </div>
 
           {(precios.isPending || presentacionesApi.isPending) && <p className="abm-cargando">Cargando productos…</p>}
@@ -172,83 +187,94 @@ export default function Ventas() {
           )}
         </section>
 
-        <aside className={`venta-actual${editando ? ' is-editando' : ''}`} aria-label="Venta actual">
-          <p className="venta-actual__eti">{editando ? `Modificando la venta Nº ${editando.id_venta}` : 'Venta actual'}</p>
-          <h2>{editando ? 'Corregir venta' : 'Tu venta'}</h2>
-          {editando && (
-            <p className="venta-actual__aviso">
-              Cambiá productos, cantidades o forma de pago y guardá. Lo anterior vuelve al stock y a la caja.
-            </p>
-          )}
-          {hecha && (
-            <p className="pos__hecha" role="status">
-              <Icono nombre="ventas" /> Venta Nº {hecha.id_venta} {hecha.modificada ? 'modificada' : 'registrada'} · {moneda(hecha.total)}
-              {hecha.modalidad === 'FIADO' && ` · fiado a ${hecha.cliente_nombre}`}
-              <button type="button" className="btn btn--fantasma pos__ticket" onClick={() => abrirComprobante('ventas', hecha.id_venta)}>
-                <Icono nombre="ventas" /><span>Ver comprobante</span>
-              </button>
-            </p>
-          )}
+        <div className="mostrador__lado">
+          <aside className={`venta-actual${editando ? ' is-editando' : ''}`} aria-label="Detalle de la venta">
+            <header className="venta-actual__cab">
+              <h2>Detalle de la venta</h2>
+              <span className="insignia insignia--neutro">{editando ? `Nº ${editando.id_venta}` : 'Nueva'}</span>
+            </header>
+            {hecha && (
+              <p className="pos__hecha" role="status">
+                <Icono nombre="tilde" /> Venta Nº {hecha.id_venta} {hecha.modificada ? 'modificada' : 'registrada'} · {moneda(hecha.total)}
+                {hecha.modalidad === 'FIADO' && ` · fiado a ${hecha.cliente_nombre}`}
+                <button type="button" className="btn btn--fantasma pos__ticket" onClick={() => abrirComprobante('ventas', hecha.id_venta)}>
+                  <Icono nombre="ventas" /><span>Ver ticket</span>
+                </button>
+              </p>
+            )}
 
-          {lineas.length === 0 ? (
-            <div className="venta-actual__vacia">
-              <span><Icono nombre="ventas" tamano={26} /></span>
-              <strong>La venta está vacía</strong>
-              <p className="suave">Elegí un producto para empezar.</p>
-            </div>
-          ) : (
-            <ul className="venta-actual__lineas">
-              {lineas.map((l) => (
-                <li key={l.clave}>
-                  <div>
-                    <p className="venta-actual__nombre"><span className={`etiqueta-pres is-${tipoDe(l)}`}>{l.detalle}</span>{l.nombre}</p>
-                    <p className="suave">{moneda(l.precio)} {tipoDe(l) === 'unidad' ? 'el huevo' : 'c/u'}</p>
-                    {faltantes.has(l.producto) && <p className="campo__error">Stock insuficiente: hay {numero(faltantes.get(l.producto))} bandejas.</p>}
-                  </div>
-                  <div className="paso-a-paso" role="group" aria-label={`Cantidad de ${l.nombre}`}>
-                    <button type="button" onClick={() => cambiar(l.clave, -1)} aria-label="Uno menos">−</button>
-                    <input type="number" inputMode="numeric" min="1" step="1" value={l.cantidad || ''}
-                      onChange={(e) => fijar(l.clave, e.target.value)} onBlur={() => l.cantidad || cambiar(l.clave, 0)}
-                      aria-label={`Cantidad de ${l.detalle.toLowerCase()} de ${l.nombre}`} />
-                    <button type="button" onClick={() => cambiar(l.clave, 1)} aria-label="Uno más">+</button>
-                  </div>
-                  <strong className="venta-actual__subtotal">{moneda(l.cantidad * l.precio)}</strong>
-                </li>
+            {lineas.length === 0 ? (
+              <p className="venta-actual__vacia">Elegí una presentación y tocá <strong>Añadir</strong>.</p>
+            ) : (
+              <ul className="venta-actual__lineas">
+                {lineas.map((l) => (
+                  <li key={l.clave}>
+                    <div>
+                      <p className="venta-actual__nombre"><span className={`etiqueta-pres is-${tipoDe(l)}`}>{l.detalle}</span>{l.nombre}</p>
+                      <p className="suave">{numero(l.cantidad)} × {moneda(l.precio)}{tipoDe(l) === 'unidad' ? ' el huevo' : ''}</p>
+                      {faltantes.has(l.producto) && <p className="campo__error">Stock insuficiente: hay {numero(faltantes.get(l.producto))} bandejas.</p>}
+                    </div>
+                    <div className="paso-a-paso" role="group" aria-label={`Cantidad de ${l.nombre}`}>
+                      <button type="button" onClick={() => cambiar(l.clave, -1)} aria-label="Uno menos">−</button>
+                      <input type="number" inputMode="numeric" min="1" step="1" value={l.cantidad || ''}
+                        onChange={(e) => fijar(l.clave, e.target.value)} onBlur={() => l.cantidad || cambiar(l.clave, 0)}
+                        aria-label={`Cantidad de ${l.detalle.toLowerCase()} de ${l.nombre}`} />
+                      <button type="button" onClick={() => cambiar(l.clave, 1)} aria-label="Uno más">+</button>
+                    </div>
+                    <strong className="venta-actual__subtotal">{moneda(l.cantidad * l.precio)}</strong>
+                    <button type="button" className="venta-actual__quitar" onClick={() => cambiar(l.clave, -l.cantidad)}
+                      aria-label={`Quitar ${l.detalle.toLowerCase()} de ${l.nombre}`} title="Quitar"><Icono nombre="cerrar" tamano={16} /></button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div className="venta-actual__total"><span>Total</span><strong>{moneda(total)}</strong></div>
+
+            <fieldset className="venta-actual__pagos">
+              <legend>Medio de pago</legend>
+              {PAGOS.map(([valor, texto, ayuda, icono]) => (
+                <button key={valor} type="button" aria-pressed={pago === valor} className={`is-${valor.toLowerCase()}`} onClick={() => setPago(valor)}>
+                  <Icono nombre={icono} />
+                  <strong>{texto}</strong>
+                  <small>{ayuda}</small>
+                </button>
               ))}
-            </ul>
-          )}
+            </fieldset>
 
-          <div className="venta-actual__total"><span>Total a cobrar</span><strong>{moneda(total)}</strong></div>
+            {pago === 'EFECTIVO' && lineas.length > 0 && (
+              <div className="venta-actual__vuelto">
+                <Campo etiqueta="Recibido" inputMode="numeric" value={recibido} placeholder={String(Math.ceil(total))}
+                  onChange={(e) => setRecibido(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                  error={recibido && Number(recibido) < total ? 'No alcanza para el total.' : undefined} />
+                <div className="campo">
+                  <span className="campo__label">Vuelto</span>
+                  <output className="venta-actual__vuelto-valor">{recibido && Number(recibido) >= total ? moneda(Number(recibido) - total) : '—'}</output>
+                </div>
+              </div>
+            )}
+            {pago === 'TRANSFERENCIA' && (
+              <Campo etiqueta="Referencia de la transferencia" value={referencia} onChange={(e) => setReferencia(e.target.value)}
+                error={errores.referencia_transferencia} autoComplete="off" placeholder="Últimos números de la operación" />
+            )}
+            {pago === 'FIADO' && <ElegirCliente valor={clienteId} alCambiar={setClienteId} error={errores.cliente} />}
 
-          <fieldset className="venta-actual__pagos">
-            <legend>¿Cómo paga?</legend>
-            {PAGOS.map(([valor, texto, ayuda, icono]) => (
-              <button key={valor} type="button" aria-pressed={pago === valor} onClick={() => setPago(valor)}>
-                <Icono nombre={icono} />
-                <strong>{texto}</strong>
-                <small>{ayuda}</small>
-              </button>
-            ))}
-          </fieldset>
+            <div className="venta-actual__botones">
+              <Boton variante="secundario" disabled={lineas.length === 0 && !editando} onClick={vaciar}>
+                {editando ? 'Cancelar' : 'Vaciar'}
+              </Boton>
+              <Boton className="venta-actual__cobrar" disabled={!puedeConfirmar} cargando={registrar.isPending}
+                textoCargando={editando ? 'Guardando…' : 'Registrando…'} onClick={() => registrar.mutate()}>
+                {editando ? `Guardar cambios · ${moneda(total)}` : pago === 'FIADO' ? `Registrar fiado · ${moneda(total)}` : `Cobrar · ${moneda(total)}`}
+              </Boton>
+            </div>
+            <p className={`venta-actual__nota${sinCaja || faltantes.size ? ' is-error' : ''}`}>{motivoBloqueo}</p>
+          </aside>
 
-          {pago === 'TRANSFERENCIA' && (
-            <Campo etiqueta="Referencia de la transferencia" value={referencia} onChange={(e) => setReferencia(e.target.value)}
-              error={errores.referencia_transferencia} autoComplete="off" placeholder="Últimos números de la operación" />
-          )}
-          {pago === 'FIADO' && <ElegirCliente valor={clienteId} alCambiar={setClienteId} error={errores.cliente} />}
-
-          <Boton className="venta-actual__cobrar" disabled={!puedeConfirmar} cargando={registrar.isPending}
-            textoCargando={editando ? 'Guardando…' : 'Registrando…'} onClick={() => registrar.mutate()}>
-            {editando ? `Guardar cambios · ${moneda(total)}` : pago === 'FIADO' ? `Registrar fiado · ${moneda(total)}` : `Cobrar venta · ${moneda(total)}`}
-          </Boton>
-          <Boton variante="secundario" className="venta-actual__vaciar" disabled={lineas.length === 0 && !editando} onClick={vaciar}>
-            {editando ? 'Cancelar modificación' : 'Vaciar venta'}
-          </Boton>
-          <p className={`venta-actual__nota${sinCaja || faltantes.size ? ' is-error' : ''}`}>{motivoBloqueo}</p>
-        </aside>
+          <UltimasVentas ventas={delDia} alVerTodas={() => setVerLista(true)} />
+        </div>
       </div>
 
-      <ResumenDelDia abierto={verLista} alAlternar={() => setVerLista((v) => !v)} />
       {verLista && (
         <ListadoVentas esAdministrador={esAdministrador} editandoId={editando?.id_venta}
           alModificar={modificar} alFallar={setFallo} />
@@ -262,19 +288,60 @@ export default function Ventas() {
   )
 }
 
-function ResumenDelDia({ abierto, alAlternar }) {
-  const ventas = useQuery({ queryKey: ['ventas', 'dia', hoyISO()], queryFn: () => api(`/ventas/?desde=${hoyISO()}&hasta=${hoyISO()}`) })
-  const filas = (ventas.data?.results ?? []).filter((v) => v.estado !== 'ANULADA')
+// Las cuatro cifras del día: lo vendido y cómo entró (efectivo, transferencia, fiado). Las anuladas no cuentan.
+function CifrasDelDia({ ventas }) {
+  const filas = ventas.filter((v) => v.estado !== 'ANULADA')
   const vendido = filas.reduce((s, v) => s + Number(v.total), 0)
-  const ultima = filas[0]
+  const porMedio = (medio) => filas.reduce((s, v) => s + v.pagos.filter((p) => p.medio_pago === medio)
+    .reduce((t, p) => t + Number(p.importe), 0), 0)
+  const efectivo = porMedio('EFECTIVO')
+  const transferencia = porMedio('TRANSFERENCIA')
+  const fiados = filas.filter((v) => v.modalidad === 'FIADO')
+  const fiado = fiados.reduce((s, v) => s + Number(v.total), 0)
+  const parte = (v) => `${vendido ? Math.round((v / vendido) * 100) : 0} % del día`
+  const clientesFiado = new Set(fiados.map((v) => v.cliente)).size
   return (
-    <div className="resumen-dia">
-      <span className="resumen-dia__icono"><Icono nombre="cuentas" /></span>
-      <div><small>Hoy</small><strong>{filas.length} {filas.length === 1 ? 'venta' : 'ventas'}</strong></div>
-      <div><small>Vendido</small><strong>{moneda(vendido)}</strong></div>
-      {ultima && <p className="suave resumen-dia__ultima">Última venta Nº {ultima.id_venta} · {hora(ultima.fecha)} · {moneda(ultima.total)}</p>}
-      <Boton variante="secundario" onClick={alAlternar}>{abierto ? 'Ocultar ventas del día' : 'Ver ventas del día'}</Boton>
+    <div className="cifras">
+      <Cifra tono="oscuro" icono="ventas" titulo="Vendido hoy" valor={moneda(vendido)}
+        nota={`${filas.length} ${filas.length === 1 ? 'venta' : 'ventas'}`}
+        insignia={filas.length ? `Ticket promedio ${moneda(vendido / filas.length)}` : 'Sin ventas todavía'} />
+      <Cifra tono="verde" icono="efectivo" titulo="Efectivo" valor={moneda(efectivo)} nota="Entró a la caja abierta" insignia={parte(efectivo)} />
+      <Cifra tono="salmon" icono="banco" titulo="Transferencia" valor={moneda(transferencia)} nota="Sin pasar por caja" insignia={parte(transferencia)} />
+      <Cifra tono="ocre" icono="etiqueta" titulo="Fiado" valor={moneda(fiado)}
+        nota={`${clientesFiado} ${clientesFiado === 1 ? 'cliente' : 'clientes'}`} insignia={parte(fiado)} />
     </div>
+  )
+}
+
+const MEDIO_TEXTO = { EFECTIVO: ['Efectivo', 'exito'], TRANSFERENCIA: ['Transferencia', 'azul'] }
+
+// Las últimas tres ventas de hoy, cada una con su ticket al lado.
+function UltimasVentas({ ventas, alVerTodas }) {
+  const ultimas = ventas.slice(0, 3)
+  return (
+    <section className="panel ultimas-ventas" aria-labelledby="ultimas-ventas">
+      <header className="panel__cab">
+        <h2 id="ultimas-ventas" className="panel__titulo">Últimas ventas de hoy</h2>
+        {ventas.length > 0 && <button type="button" className="enlace" onClick={alVerTodas}>Ver todas</button>}
+      </header>
+      {ultimas.length === 0 ? <p className="suave">Todavía no hay ventas hoy.</p> : (
+        <ul>
+          {ultimas.map((v) => {
+            const [texto, variante] = v.modalidad === 'FIADO' ? ['Fiado', 'aviso'] : MEDIO_TEXTO[v.pagos[0]?.medio_pago] ?? ['Efectivo', 'exito']
+            return (
+              <li key={v.id_venta} className={v.estado === 'ANULADA' ? 'is-anulada' : undefined}>
+                <span className="suave">{hora(v.fecha)}</span>
+                <span className="ultimas-ventas__cliente">{v.cliente_nombre}</span>
+                {v.estado === 'ANULADA' ? <Insignia variante="peligro">Anulada</Insignia> : <Insignia variante={variante}>{texto}</Insignia>}
+                <strong>{moneda(v.total)}</strong>
+                <button type="button" className="btn btn--fantasma" onClick={() => abrirComprobante('ventas', v.id_venta)}
+                  aria-label={`Ticket de la venta ${v.id_venta}`} title="Ver ticket"><Icono nombre="ventas" tamano={17} /></button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </section>
   )
 }
 

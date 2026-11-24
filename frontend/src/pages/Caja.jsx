@@ -92,11 +92,11 @@ function CajaAbierta({ caja }) {
   return (
     <>
       <div className="cifras">
-        <Cifra titulo="Saldo inicial" valor={moneda(caja.saldo_inicial)}
+        <Cifra tono="arena" icono="caja" titulo="Saldo inicial" valor={moneda(caja.saldo_inicial)}
           nota={`Abrió ${caja.usuario_apertura_nombre} a las ${hora(caja.fecha_hora_apertura)}`} />
-        <Cifra titulo="Entró en efectivo" valor={moneda(suma((t) => ENTRAN.includes(t)))} />
-        <Cifra titulo="Salió en efectivo" valor={moneda(suma((t) => !ENTRAN.includes(t)))} />
-        <Cifra titulo="Debería haber" valor={moneda(caja.saldo_actual)} destacada />
+        <Cifra tono="verde" icono="efectivo" titulo="Entró en efectivo" valor={moneda(suma((t) => ENTRAN.includes(t)))} />
+        <Cifra tono="salmon" icono="gastos" titulo="Salió en efectivo" valor={moneda(suma((t) => !ENTRAN.includes(t)))} />
+        <Cifra icono="caja" titulo="Debería haber" valor={moneda(caja.saldo_actual)} destacada />
       </div>
 
       <Panel titulo="Movimientos de hoy">

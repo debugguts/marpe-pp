@@ -73,11 +73,15 @@ class AnularCompraSerializer(serializers.Serializer):
 class DetalleCompraSerializer(serializers.ModelSerializer):
     producto_nombre = serializers.CharField(source="producto.__str__", read_only=True)
     presentacion_nombre = serializers.CharField(source="presentacion.nombre", read_only=True)
+    bandejas = serializers.SerializerMethodField()  # bandejas de 30 que sumó al stock
 
     class Meta:
         model = DetalleCompra
         fields = ["id_detalle_compra", "producto", "producto_nombre", "presentacion",
-                  "presentacion_nombre", "cantidad", "precio_unitario", "subtotal"]
+                  "presentacion_nombre", "cantidad", "precio_unitario", "subtotal", "bandejas"]
+
+    def get_bandejas(self, detalle):
+        return detalle.cantidad * detalle.presentacion.cantidad_bandejas_equivalentes
 
 
 class CompraSerializer(serializers.ModelSerializer):

@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from config.comprobantes import comprobante_compra
 from config.permisos import ConsultaOAdministrador
-from config.vistas import anotar_actividad, validar
+from config.vistas import PaginaDelMes, anotar_actividad, validar
 
 from .models import Compra
 from .serializers import AnularCompraSerializer, CompraSerializer, ModificarCompraSerializer, NuevaCompraSerializer
@@ -27,6 +27,7 @@ class CompraViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.G
 
     serializer_class = CompraSerializer
     permission_classes = [ConsultaOAdministrador]  # el operador consulta; carga, modifica y anula el administrador
+    pagination_class = PaginaDelMes
 
     def get_queryset(self):
         compras = (Compra.objects.select_related("proveedor", "usuario")

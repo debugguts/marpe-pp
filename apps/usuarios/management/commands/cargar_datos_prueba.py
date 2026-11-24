@@ -251,7 +251,7 @@ class Command(BaseCommand):
             importe=Decimal("12000"), medio_pago="TRANSFERENCIA", usuario=oper,
         )
         # Gastos fijos del mes: se usan para el precio sugerido (HU-09-E)
-        for concepto, categoria, importe in [("Alquiler del local", "Alquiler", "150000"),
+        for concepto, categoria, importe in [("Puesto de la feria", "Feria / Puesto", "150000"),
                                              ("Combustible del reparto", "Combustible", "60000")]:
             Gasto.objects.create(
                 fecha=ahora.date(), concepto=concepto, categoria=categoria, tipo="FIJO",
